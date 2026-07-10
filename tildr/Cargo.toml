@@ -1,0 +1,27 @@
+[package]
+name = "tildr"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description.workspace = true
+
+[[bin]]
+name = "tildr"
+path = "src/main.rs"
+
+[dependencies]
+# -------- built-in --------
+tildr-core = { workspace = true }
+tildr-git = { workspace = true }
+tildr-utils = { workspace = true }
+tildr-cli = { workspace = true }
+tildr-commands = { workspace = true }
+
+# -------- vendors --------
+clap = { workspace = true }
+anyhow = { workspace = true }
