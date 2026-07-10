@@ -10,6 +10,7 @@ docs/** linguist-vendored
 *.js linguist-vendored
 *.sh linguist-vendored
 *.toml linguist-vendored
+*.py linguist-vendored
 Makefile linguist-vendored
 
 # Tell Linguist what IS the project
