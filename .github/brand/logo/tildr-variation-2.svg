@@ -14,7 +14,7 @@ Created with Inkscape (http://www.inkscape.org/)
    id="svg1"
    xml:space="preserve"
    inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
-   sodipodi:docname="tilder-variation-4.svg"
+   sodipodi:docname="tildr-transparent.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -23,7 +23,7 @@ Created with Inkscape (http://www.inkscape.org/)
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:cc="http://creativecommons.org/ns#"
    xmlns:dc="http://purl.org/dc/elements/1.1/"><title
-     id="title1">Tilder</title><sodipodi:namedview
+     id="title1">Tildr</title><sodipodi:namedview
      id="namedview1"
      pagecolor="#ffffff"
      bordercolor="#000000"
@@ -80,7 +80,7 @@ Created with Inkscape (http://www.inkscape.org/)
        y2="79.596344"
        gradientUnits="userSpaceOnUse"
        gradientTransform="matrix(1.4872897,0,0,1.4872862,-75.19634,-7.7435593)" /></defs><g
-     inkscape:label="tilder"
+     inkscape:label="tildr"
      inkscape:groupmode="layer"
      id="layer1"
      style="fill:#1f1f1f;fill-opacity:1"><rect
@@ -99,9 +99,8 @@ Created with Inkscape (http://www.inkscape.org/)
        style="baseline-shift:baseline;display:none;overflow:visible;fill:url(#linearGradient25);fill-opacity:1;stroke:#ffffff;stroke-width:4.81393;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none;stroke-opacity:1;enable-background:accumulate;stop-color:#000000"
        id="path24"
        inkscape:label="logo-curve"
-       sodipodi:nodetypes="scsssscsssssssscsssssscsscssccsccss"
-       sodipodi:insensitive="true" /><path
-       style="display:inline;opacity:1;fill:url(#linearGradient26);fill-opacity:1;stroke:none;stroke-width:5.94915;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none;stroke-opacity:1"
+       sodipodi:nodetypes="scsssscsssssssscsssssscsscssccsccss" /><path
+       style="display:inline;opacity:1;fill:url(#linearGradient26);fill-opacity:1;stroke:#ffffff;stroke-width:5.94915;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none;stroke-opacity:1"
        d="m 114.04957,261.11666 c 3.2674,1.86592 4.98443,0.49117 4.97801,-2.73305 L 118.7515,119.52818 c -15.49452,-11.12072 -28.366982,-7.18537 -40.800297,7.23229 -2.395921,2.77829 -5.865798,3.07077 -8.491928,1.26889 L 56.08693,118.8542 c -2.920338,-2.00374 -3.28052,-6.03331 -0.195219,-10.15123 54.973509,-73.372637 98.209849,25.03387 135.968469,-23.718796 2.34294,-3.025114 5.2711,-2.576643 7.02781,-1.171291 l 14.64125,11.712966 c 2.76933,2.21547 2.06992,5.817301 0.39042,8.979961 -10.82592,20.38604 -28.74916,32.49466 -62.46936,26.93985 l 0.58565,126.89057 c 0.0205,4.40098 3.51874,4.22745 6.05174,2.73304 l 80.34078,-47.39865 c 8.56093,-5.05068 14.73609,-12.97331 14.63214,-30.64462 L 252.50845,89.15965 C 252.45095,79.390533 248.4102,70.162325 230.69829,59.895433 L 149.25521,12.686178 c -9.28623,-5.3828569 -19.76355,-5.8109709 -30.36859,0.552155 l -84.761576,50.8577 c -9.257325,5.554475 -16.481966,13.956849 -16.39821,27.720718 l 0.585653,96.241619 c 0.07205,11.84225 6.1776,21.24288 17.179075,27.52549 26.093974,14.90153 78.558008,45.5328 78.558008,45.5328 z"
        id="path1"
        sodipodi:nodetypes="sscsssssssscsssssssssssss"
@@ -120,4 +119,4 @@ Created with Inkscape (http://www.inkscape.org/)
          x="0"
          y="0">©</tspan></text></g><metadata
      id="metadata1"><rdf:RDF><cc:Work
-         rdf:about=""><dc:creator><cc:Agent><dc:title>William C. Canin</dc:title></cc:Agent></dc:creator><dc:rights><cc:Agent><dc:title>© 2026 William C. Canin. Unauthorized use prohibited.</dc:title></cc:Agent></dc:rights><dc:publisher><cc:Agent><dc:title>William C. Canin</dc:title></cc:Agent></dc:publisher><dc:title>Tilder</dc:title><dc:source>Baloo 2</dc:source></cc:Work></rdf:RDF></metadata></svg>
+         rdf:about=""><dc:creator><cc:Agent><dc:title>William C. Canin</dc:title></cc:Agent></dc:creator><dc:rights><cc:Agent><dc:title>© 2026 William C. Canin. Unauthorized use prohibited.</dc:title></cc:Agent></dc:rights><dc:publisher><cc:Agent><dc:title>William C. Canin</dc:title></cc:Agent></dc:publisher><dc:title>Tildr</dc:title><dc:source>Baloo 2</dc:source></cc:Work></rdf:RDF></metadata></svg>

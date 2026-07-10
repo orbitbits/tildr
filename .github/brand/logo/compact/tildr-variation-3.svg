@@ -14,7 +14,7 @@ Created with Inkscape (http://www.inkscape.org/)
    id="svg1"
    xml:space="preserve"
    inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
-   sodipodi:docname="tilder-variation-3.svg"
+   sodipodi:docname="tildr-variation-3.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -23,7 +23,7 @@ Created with Inkscape (http://www.inkscape.org/)
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:cc="http://creativecommons.org/ns#"
    xmlns:dc="http://purl.org/dc/elements/1.1/"><title
-     id="title1">Tilder</title><sodipodi:namedview
+     id="title1">Tildr</title><sodipodi:namedview
      id="namedview1"
      pagecolor="#ffffff"
      bordercolor="#000000"
@@ -80,7 +80,7 @@ Created with Inkscape (http://www.inkscape.org/)
        y2="79.596344"
        gradientUnits="userSpaceOnUse"
        gradientTransform="matrix(1.1425924,0,0,1.1425929,-25.223753,17.020171)" /></defs><g
-     inkscape:label="tilder"
+     inkscape:label="tildr"
      inkscape:groupmode="layer"
      id="layer1"
      style="fill:#1f1f1f;fill-opacity:1"><rect
@@ -118,4 +118,4 @@ Created with Inkscape (http://www.inkscape.org/)
          x="196.50734"
          y="96.620529">©</tspan></text></g><metadata
      id="metadata1"><rdf:RDF><cc:Work
-         rdf:about=""><dc:creator><cc:Agent><dc:title>William C. Canin</dc:title></cc:Agent></dc:creator><dc:rights><cc:Agent><dc:title>© 2026 William C. Canin. Unauthorized use prohibited.</dc:title></cc:Agent></dc:rights><dc:publisher><cc:Agent><dc:title>William C. Canin</dc:title></cc:Agent></dc:publisher><dc:title>Tilder</dc:title><dc:source>Baloo 2</dc:source></cc:Work></rdf:RDF></metadata></svg>
+         rdf:about=""><dc:creator><cc:Agent><dc:title>William C. Canin</dc:title></cc:Agent></dc:creator><dc:rights><cc:Agent><dc:title>© 2026 William C. Canin. Unauthorized use prohibited.</dc:title></cc:Agent></dc:rights><dc:publisher><cc:Agent><dc:title>William C. Canin</dc:title></cc:Agent></dc:publisher><dc:title>Tildr</dc:title><dc:source>Baloo 2</dc:source></cc:Work></rdf:RDF></metadata></svg>
