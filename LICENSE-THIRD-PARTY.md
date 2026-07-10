@@ -1,8 +1,8 @@
-# Tilder – Third Party Licenses
+# Tildr – Third Party Licenses
 
-Copyright (c) 2026 EvolvBits. All rights reserved.
+Copyright (c) 2026 OrbitBits. All rights reserved.
 
-Tilder may include or depend on third-party libraries and components.
+Tildr may include or depend on third-party libraries and components.
 
 Each third-party component remains under its respective license.
 
@@ -18,4 +18,4 @@ of any third-party dependencies included in compiled binaries.
 
 Third-party software is provided "as is" without warranty of any kind.
 
-EvolvBits Contributors make no claims of ownership over third-party code.
+OrbitBits Contributors make no claims of ownership over third-party code.

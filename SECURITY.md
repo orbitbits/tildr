@@ -15,7 +15,7 @@ To verify signatures, you first need to import the project's public key:
 # Import the public key from a keyserver (e.g., keys.openpgp.org)
 gpg --keyserver keys.openpgp.org --recv-keys E6A5CC75350F3DCE
 
-# Or, download our public key at https://github.com/evolvbits/pubkey/blob/main/pubkey.asc
+# Or, download our public key at https://github.com/orbitbits/pubkey/blob/main/pubkey.asc
 gpg --import pubkey.asc
 ```
 

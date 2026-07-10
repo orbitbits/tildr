@@ -1,3 +1,3 @@
-# Environment Variables for tilder
+# Environment Variables for tildr
 
-`tilder` supports the following environment variables to control its user interface and progress bar behavior:
+`tildr` supports the following environment variables to control its user interface and progress bar behavior:

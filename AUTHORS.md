@@ -1,12 +1,12 @@
 # Authors
 
-This file lists the authors and contributors of **Tilder**, a project maintained by [EvolvBits](https://github.com/EvolvBits).
+This file lists the authors and contributors of **Tildr**, a project maintained by [OrbitBits](https://github.com/orbitbits).
 
 ---
 
 ## Maintainers
 
-These are the people responsible for the direction, maintenance, and releases of Tilder.
+These are the people responsible for the direction, maintenance, and releases of Tildr.
 
 | Name          | GitHub                                           | Role                 |
 |---------------|--------------------------------------------------|----------------------|
@@ -16,7 +16,7 @@ These are the people responsible for the direction, maintenance, and releases of
 
 ## Contributors
 
-These are the people who have contributed code, documentation, bug reports, or ideas to Tilder.
+These are the people who have contributed code, documentation, bug reports, or ideas to Tildr.
 
 *No external contributors yet. Be the first — see [CONTRIBUTING.md](CONTRIBUTING.md)!*
 
@@ -28,4 +28,4 @@ Contribute to the project by opening a Pull Request. Once your contribution is m
 
 ---
 
-*Copyright (c) 2026 EvolvBits. All rights reserved.*
+*Copyright (c) 2026 OrbitBits. All rights reserved.*

@@ -1,165 +1,367 @@
 # Development Guide
 
-This guide is intended for contributors and developers who want to build, run, and release **Tilder** locally.
+This guide describes the current development workflow for **Tildr** and the supporting files that ship with the project.
 
 ---
 
-## 1. System Requirements
+## 1. Requirements
 
-Before setting up the project, make sure you have the following installed:
+Make sure these tools are available locally:
 
-- Rust (v1.85+)
+- Rust `1.90.0` or newer
+- `cargo`
+- `git`
+- `make`
+- `pandoc`
 
-### Install via [rustup.rs](https://rustup.rs)
+Optional but useful:
 
-```bash
+- `gzip` for compressed man pages
+- `python3` when working on the Nautilus plugin
+- Nautilus or Dolphin when testing file-manager integrations
+
+Install Rust with:
+
+```sh
 curl --proto '=https' --tlsv1.2 -sSf https://rustup.rs | sh
 ```
 
-### Verify your installation
+Verify the toolchain:
 
-```bash
-rustc --version  # should be >= 1.85
+```sh
+rustc --version
 cargo --version
 ```
 
-`cargo-run-bin` Utility to run local project binaries (used internally for git-cliff):
+---
 
-```bash
-cargo install cargo-run-bin
+## 2. Repository Setup
+
+Clone the repository and build it once:
+
+```sh
+git clone https://github.com/orbitbits/tildr.git
+cd tildr
+make build
 ```
+
+The default development build currently runs:
+
+- `cargo fmt --all`
+- `cargo build`
 
 ---
 
-## 2. Project Setup
+## 3. Daily Workflow
 
-Clone the repository and build the project. The first build will automatically compile `git-cliff` inside `target/bin`:
+Typical local workflow:
 
-```bash
-git clone https://github.com/evolvbits/tilder.git
-cd tilder
-cargo build --release
-```
-
----
-
-## 3. Development Workflow
-
-### Step A: Development
-
-Write your changes and commit using [Conventional Commits](https://www.conventionalcommits.org). This is required because `git-cliff` reads commit messages to generate the changelog automatically.
-
-Common prefixes:
-
-| Prefix      | Use case                 |
-|-------------|--------------------------|
-| `feat:`     | New feature              |
-| `fix:`      | Bug fix                  |
-| `docs:`     | Documentation changes    |
-| `refactor:` | Code refactoring         |
-| `chore:`    | Maintenance tasks        |
-| `test:`     | Adding or updating tests |
-
-Example:
-
-```bash
-git commit -m "feat: add scan subcommand"
-git commit -m "fix: handle empty input gracefully"
-```
-
-### Step B: Running Tests
-
-Before preparing a release, always run the test suite:
-
-```bash
+```sh
+make build
 cargo test
 ```
 
-Make sure all tests pass before moving forward.
+Useful commands:
 
-### Step C: Preparing the Release
+| Command                         | Purpose                                                      |
+|---------------------------------|--------------------------------------------------------------|
+| `make build`                    | Format and build the workspace                               |
+| `make release`                  | Generate man pages, format, test, and build release binaries |
+| `make man`                      | Generate `man` pages into `docs/man/dist`                    |
+| `make man-gz`                   | Generate and compress `man` pages                            |
+| `cargo test`                    | Run the full test suite                                      |
+| `cargo test -p tildr-commands` | Focus on the command crate                                   |
+| `cargo clippy`                  | Run lints manually                                           |
 
-**Update the version** in the root `Cargo.toml` under `[workspace.package]`:
+When changing CLI behavior, keep these areas aligned:
 
-```toml
-[workspace.package]
-version = "X.X.X"
-```
-
-**Generate the changelog** by running the release build:
-
-```bash
-cargo build --release
-```
-
-This will automatically invoke `git-cliff` and update `CHANGELOG.md` based on your commit history.
-
-**Review the changelog** before proceeding:
-
-```bash
-cat CHANGELOG.md
-```
-
-### Step D: Finalizing in Git
-
-```bash
-git add .
-git commit -m "chore(release): prepare for vX.X.X"
-git tag vX.X.X
-git push origin main --tags
-```
+- Rust implementation in `crates/`
+- long-form documentation in `docs/md/documentation.md`
+- manual sources in `docs/man/*.md`
+- generated `man` pages in `docs/man/dist/*.1`
 
 ---
 
-## 4. Publishing a Release
+## 4. Commit Conventions
 
-Tilder binaries are distributed via **GitHub Releases**.
+This project uses Conventional Commit-style messages, and the Git hooks enforce them.
 
-After pushing the tag, create a new release on GitHub:
+Examples:
 
-1. Go to [github.com/evolvbits/tilder/releases](https://github.com/evolvbits/tilder/releases)
-2. Click **Draft a new release**
-3. Select the tag `vX.X.X` you just pushed
-4. Paste the relevant section from `CHANGELOG.md` as the release description
-5. Attach the compiled binary from `target/release/tilder`
-6. Publish the release
+```sh
+git commit -m "feat(sync): add conflict detection"
+git commit -m "fix(doctor): compact git failure output"
+git commit -m "docs: update man pages"
+```
+
+Allowed types in the hook:
+
+- `feat`
+- `fix`
+- `docs`
+- `style`
+- `refactor`
+- `test`
+- `chore`
+- `perf`
+- `build`
+- `ci`
 
 ---
 
-## 5. Project Structure (overview)
+## 5. Documentation and Man Pages
+
+Tildr keeps two documentation tracks in the repository:
+
+### `docs/md`
+
+This directory contains the long-form Markdown documentation used by the project site.
+
+Current file of interest:
+
+- `docs/md/documentation.md`
+
+This file is not generated by the current `Makefile`. It is maintained directly and should stay consistent with the manual pages under `docs/man/`.
+
+### `docs/man`
+
+This directory contains the Markdown sources for the Unix manual pages:
+
+- `docs/man/tildr.md`
+- `docs/man/tildr-commands.md`
+- `docs/man/tildr-config.md`
+- `docs/man/tildr-security.md`
+- `docs/man/tildr-plugins.md`
+
+### `docs/man/dist`
+
+This directory contains the generated `man` page artifacts committed to the repository:
+
+- `docs/man/dist/tildr.1`
+- `docs/man/dist/tildr-commands.1`
+- `docs/man/dist/tildr-config.1`
+- `docs/man/dist/tildr-security.1`
+- `docs/man/dist/tildr-plugins.1`
+
+These files are generated from the Markdown sources with `pandoc`.
+
+### Generate man pages
+
+Recommended:
+
+```sh
+make man
+```
+
+This uses the `Makefile` rule:
+
+```sh
+pandoc -s -t man docs/man/<page>.md -o docs/man/dist/<page>.1
+```
+
+Release-style local build:
+
+```sh
+make release
+```
+
+Compressed output if needed:
+
+```sh
+make man-gz
+```
+
+### Documentation maintenance rules
+
+When you change behavior, flags, output, or workflow:
+
+1. Update the relevant Rust code.
+2. Update `docs/man/*.md`.
+3. Regenerate `docs/man/dist/*.1` with `make man`.
+4. Update `docs/md/documentation.md` when the long-form docs are affected.
+
+This matters because the installers consume the generated files from `docs/man/dist`.
+
+---
+
+## 6. Git Hooks
+
+Project hooks live in `hooks/`.
+
+Enable them once per clone:
+
+```sh
+git config core.hooksPath hooks
+```
+
+### `hooks/commit-msg`
+
+This hook validates the first line of the commit message.
+
+It enforces:
 
 ```text
-tilder/
-├── src/                  # Source code
-├── target/               # Build output (git-ignored)
-│   ├── bin/              # Local binaries (git-cliff, etc.)
-│   └── release/          # Release binary
-├── CHANGELOG.md          # Auto-generated by git-cliff
-├── Cargo.toml            # Workspace manifest
-├── cliff.toml            # git-cliff configuration
-├── LICENSE               # Elastic License 2.0
-├── AUTHORS.md
-├── CONTRIBUTING.md
-└── DEVELOPMENT.md        # This file
+<type>(optional-scope): <message>
+```
+
+Examples accepted by the hook:
+
+- `feat: add new feature`
+- `fix(rm): correct unlink logic`
+- `docs: update man pages`
+
+### `hooks/pre-commit`
+
+This hook runs:
+
+```sh
+make build
+```
+
+Then it checks whether the working tree changed during that process.
+
+If tracked files changed, the commit is aborted with a warning that generated artifacts may be out of date. In practice, this is a safety net for forgotten formatting or other generated changes.
+
+If you changed manual sources, regenerate the manual output yourself before committing:
+
+```sh
+make man
+git add docs/man docs/man/dist docs/md/documentation.md
 ```
 
 ---
 
-## 6. Useful Commands
+## 7. Installers
 
-| Command                 | Description                         |
-|-------------------------|-------------------------------------|
-| `cargo build`           | Debug build                         |
-| `cargo build --release` | Release build + generates changelog |
-| `cargo test`            | Run all tests                       |
-| `cargo clippy`          | Lint the code                       |
-| `cargo fmt`             | Format the code                     |
+Installer scripts live in `tools/installers/`.
+
+Files currently present:
+
+- `tools/installers/linux.sh`
+- `tools/installers/macos.sh`
+- `tools/installers/README.md`
+
+Important note from the repository itself:
+
+- these installer copies are maintained in this repository for development
+- production copies are expected to be published on the OrbitBits website
+
+### Linux installer
+
+`tools/installers/linux.sh` currently:
+
+- downloads the correct release binary from GitHub Releases
+- installs the binary into `/usr/local/bin`
+- installs manual pages from `docs/man/dist`
+- installs the license file
+- verifies checksums when possible
+- warns when Git is not installed
+- attempts to install the Nautilus and Dolphin plugins when the environment supports them
+
+### macOS installer
+
+`tools/installers/macos.sh` currently:
+
+- detects a Homebrew-style prefix
+- installs the binary into the matching `bin` directory
+- installs manual pages from `docs/man/dist`
+- installs the license file
+- verifies checksums with `shasum`
+- warns when Git is not installed
+
+### Why installer changes matter to development
+
+If you rename binaries, move man pages, add new man pages, or change plugin locations, the installer scripts usually need to be updated too.
 
 ---
 
-*For contribution rules and the CLA, see [CONTRIBUTING.md](CONTRIBUTING.md).*
-*For a list of authors and maintainers, see [AUTHORS.md](AUTHORS.md).*
+## 8. Plugins
+
+File-manager plugins live in `tools/plugins/`.
+
+Files currently present:
+
+- `tools/plugins/nautilus/tildr.py`
+- `tools/plugins/dolphin/tildr.desktop`
+
+### Nautilus plugin
+
+`tools/plugins/nautilus/tildr.py` is a Python extension for `nautilus-python`.
+
+Current behavior:
+
+- shows a `Tildr` submenu for supported selections
+- exposes `Add`, `Unlink`, and `Restore`
+- converts selected files to paths relative to the user home directory
+- invokes the CLI directly with:
+  - `tildr add ...`
+  - `tildr unlink ...`
+  - `tildr restore ...`
+
+### Dolphin plugin
+
+`tools/plugins/dolphin/tildr.desktop` is a KDE service menu.
+
+Current behavior:
+
+- adds a `Tildr` submenu in Dolphin
+- exposes `Add`, `Unlink`, and `Restore`
+- passes the selected file list directly to Tildr using `%F`
+
+### Plugin development notes
+
+When changing command names, argument handling, or multi-file support in the CLI, verify whether the plugin launchers still match the expected command line.
+
+The plugin behavior is documented publicly, so related documentation should also be kept in sync:
+
+- `docs/md/documentation.md`
+- `docs/man/tildr-plugins.md`
 
 ---
 
-*Copyright (c) 2026 EvolvBits. All rights reserved.*
+## 9. Release Notes
+
+Release automation is defined in:
+
+- `.github/workflows/release.yml`
+
+Current workflow responsibilities include:
+
+- generating `CHANGELOG.md` with `git-cliff`
+- running tests
+- building Linux and macOS binaries
+- generating checksums
+- signing release artifacts
+- publishing GitHub Releases
+
+If you change release artifact names, supported targets, or documentation packaging, review this workflow together with the installer scripts.
+
+---
+
+## 10. Project Layout
+
+High-level structure:
+
+```text
+tildr/
+├── crates/             # Workspace crates
+├── docs/
+│   ├── man/            # Man-page Markdown sources + dist output
+│   └── md/             # Long-form Markdown documentation
+├── hooks/              # Git hooks used by contributors
+├── tools/
+│   ├── installers/     # Linux/macOS installer scripts
+│   └── plugins/        # File-manager integrations
+├── tildr/             # Binary crate entrypoint
+├── Makefile            # Local build and doc-generation commands
+├── DEVELOPMENT.md      # This guide
+└── .github/workflows/  # CI and release automation
+```
+
+---
+
+See also:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [docs/man/README.md](docs/man/README.md)
+- [tools/installers/README.md](tools/installers/README.md)

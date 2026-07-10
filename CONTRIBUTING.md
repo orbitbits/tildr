@@ -1,25 +1,25 @@
-# Contributing to Tilder
+# Contributing to Tildr
 
-Thank you for your interest in contributing to **Tilder**! This document describes how to participate in the project in an organized and transparent way.
+Thank you for your interest in contributing to **Tildr**! This document describes how to participate in the project in an organized and transparent way.
 
 ---
 
 ## Before contributing
 
-Tilder is a project of the **EvolvBits** organization, licensed under the [Elastic License 2.0](LICENSE). By submitting any contribution, you agree to the terms described in this document.
+Tildr is a project of the **OrbitBits** organization, licensed under the [Elastic License 2.0](LICENSE). By submitting any contribution, you agree to the terms described in this document.
 
 ---
 
 ## Contributor License Agreement (CLA)
 
-To maintain the legal integrity of the project and ensure that EvolvBits can continue developing and distributing Tilder, all contributors must accept the following agreement:
+To maintain the legal integrity of the project and ensure that OrbitBits can continue developing and distributing Tildr, all contributors must accept the following agreement:
 
 > **By submitting a contribution to this repository (via Pull Request, patch, code issue, or any other means), you declare and agree that:**
 >
-> 1. **License Assignment:** You grant EvolvBits a perpetual, irrevocable, worldwide, non-exclusive, royalty-free, and sublicensable license to use, reproduce, modify, distribute, sublicense, and incorporate your contribution into Tilder and derivative works, in any format.
+> 1. **License Assignment:** You grant OrbitBits a perpetual, irrevocable, worldwide, non-exclusive, royalty-free, and sublicensable license to use, reproduce, modify, distribute, sublicense, and incorporate your contribution into Tildr and derivative works, in any format.
 >
 >
-> 2. **Copyright Retained:** You remain the author of your contribution. EvolvBits does not claim ownership of your original work, only the usage rights described above.
+> 2. **Copyright Retained:** You remain the author of your contribution. OrbitBits does not claim ownership of your original work, only the usage rights described above.
 >
 >
 > 3. **Originality:** You declare that your contribution is your original work, or that you have the necessary rights to submit it under these terms.
@@ -28,7 +28,7 @@ To maintain the legal integrity of the project and ensure that EvolvBits can con
 > 4. **Absence of encumbrances:** Your contribution is not subject to any agreement, patent, or third-party right that conflicts with the terms above.
 >
 >
-> 5. **License acknowledgment:** You understand that Tilder is distributed under the Elastic License 2.0 and that your contribution will become part of the project under that same license.
+> 5. **License acknowledgment:** You understand that Tildr is distributed under the Elastic License 2.0 and that your contribution will become part of the project under that same license.
 
 Acceptance occurs **implicitly** by opening a Pull Request in this repository.
 
@@ -42,7 +42,7 @@ Open an issue describing:
 
 - What you expected to happen
 - What actually happened
-- Tilder version, operating system, and steps to reproduce it
+- Tildr version, operating system, and steps to reproduce it
 
 ### 2. Suggest Improvements
 
@@ -72,8 +72,8 @@ We expect all contributors to maintain a respectful and collaborative environmen
 
 ## Questions?
 
-Open an issue with the label `question` or contact the organization on GitHub: [github.com/evolvbits](https://github.com/evolvbits).
+Open an issue with the label `question` or contact the organization on GitHub: [github.com/orbitbits](https://github.com/orbitbits).
 
 ---
 
-*Copyright (c) 2026 EvolvBits. All rights reserved.*
+*Copyright (c) 2026 OrbitBits. All rights reserved.*
