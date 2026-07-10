@@ -3,12 +3,29 @@ use std::fs;
 use std::path::Path;
 use tildr_core::context::Context as Ctx;
 use tildr_domain::ExcludeMode;
+use tildr_git::GitIntegration;
+
+const APP_NAME: &str = "tildr";
 
 pub fn run(ctx: &Ctx, mode: ExcludeMode) -> Result<()> {
   match mode {
-    ExcludeMode::Add { pattern } => add_pattern(&ctx.repo_path, &pattern),
-    ExcludeMode::Remove { pattern } => remove_pattern(&ctx.repo_path, &pattern),
-    ExcludeMode::List => list_patterns(&ctx.repo_path),
+    ExcludeMode::Add { pattern } => {
+      add_pattern(&ctx.repo_path, &pattern)?;
+      auto_commit(ctx, &format!("exclude add {}", pattern));
+    }
+    ExcludeMode::Remove { pattern } => {
+      remove_pattern(&ctx.repo_path, &pattern)?;
+      auto_commit(ctx, &format!("exclude remove {}", pattern));
+    }
+    ExcludeMode::List => list_patterns(&ctx.repo_path)?,
+  }
+  Ok(())
+}
+
+fn auto_commit(ctx: &Ctx, msg: &str) {
+  if ctx.config.git.auto_commit_enabled() {
+    let git = GitIntegration::new(ctx.repo_path.clone());
+    let _ = git.auto_commit(&format!("{}: {}", APP_NAME, msg));
   }
 }
 
