@@ -1,0 +1,31 @@
+[package]
+name = "tildr-commands"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description.workspace = true
+
+[dependencies]
+# -------- built-in --------
+tildr-utils  = { workspace = true }
+tildr-cli    = { workspace = true }
+tildr-domain = { workspace = true }
+tildr-fs     = { workspace = true }
+tildr-repo   = { workspace = true }
+tildr-ui     = { workspace = true }
+tildr-git    = { workspace = true }
+tildr-core   = { workspace = true }
+tildr-crypto = { workspace = true }
+
+# -------- vendors --------
+anyhow        = { workspace = true }
+dirs          = { workspace = true }
+serde         = { workspace = true }
+serde_json    = { workspace = true }
+walkdir       = { workspace = true }
+dialoguer     = { workspace = true }

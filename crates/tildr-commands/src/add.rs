@@ -1,0 +1,303 @@
+use anyhow::{Result, bail};
+use std::{
+  fs,
+  path::{Path, PathBuf},
+};
+use tildr_core::{
+  constants::APP_NAME,
+  context::Context,
+  pick::{PickMode, target as pick_target},
+};
+use tildr_fs::{
+  paths::resolve_home_path,
+  symlink::{create_symlink, is_symlink, is_symlink_to},
+  utils::remove_file_or_dir,
+};
+use tildr_git::GitIntegration;
+use tildr_repo::ignore::IgnoreMatcher;
+use tildr_ui::{
+  color::Colorize,
+  icons,
+  output::{ActionLog, SummaryKind, print_actions, print_summary},
+};
+use tildr_utils::fs::move_file;
+use walkdir::WalkDir;
+
+pub struct AddArgs {
+  pub paths: Option<Vec<String>>,
+  pub dry_run: bool,
+  pub quiet: bool,
+  pub force: bool,
+  pub nolink: bool,
+}
+
+pub fn run(ctx: &Context, args: AddArgs) -> Result<()> {
+  let resolved_paths = match &args.paths {
+    Some(paths) if !paths.is_empty() => paths.clone(),
+    _ => {
+      // No paths provided — open interactive pick from HOME
+      let picked = pick_target(
+        ctx,
+        None,
+        true,
+        Some("Add file\n--------\n"),
+        PickMode::Home,
+      )?;
+      let relative = picked
+        .strip_prefix(&ctx.home_path)
+        .unwrap_or(&picked)
+        .display()
+        .to_string();
+      vec![relative]
+    }
+  };
+
+  let targets = resolve_add_targets(ctx, &resolved_paths)?;
+  let ignore = IgnoreMatcher::from_repo(&ctx.repo_path)?;
+
+  let mut actions = Vec::new();
+  let mut added = 0;
+  let mut skipped = 0;
+
+  for target in &targets {
+    let outcome = if target.source.is_dir() {
+      run_dir(ctx, &target.source, &ignore, &args)?
+    } else {
+      run_file(ctx, &target.source, &ignore, &args)?
+    };
+
+    actions.extend(outcome.actions);
+    added += outcome.added;
+    skipped += outcome.skipped;
+  }
+
+  print_actions(&actions, args.quiet);
+
+  print_summary(
+    SummaryKind::Add { added, skipped },
+    args.dry_run,
+    args.quiet,
+  );
+
+  auto_commit(ctx, &format!("add {}", commit_label(&targets)), &args);
+
+  Ok(())
+}
+
+fn run_file(
+  ctx: &Context,
+  source: &Path,
+  ignore: &IgnoreMatcher,
+  args: &AddArgs,
+) -> Result<AddOutcome> {
+  let (did_add, action) = process_add_file(ctx, source, ignore, args)?;
+  let mut actions = Vec::new();
+
+  if let Some(action) = action {
+    actions.push(action);
+  }
+
+  Ok(AddOutcome {
+    added: usize::from(did_add),
+    skipped: usize::from(!did_add),
+    actions,
+  })
+}
+
+fn run_dir(
+  ctx: &Context,
+  root: &Path,
+  ignore: &IgnoreMatcher,
+  args: &AddArgs,
+) -> Result<AddOutcome> {
+  let mut outcome = AddOutcome::default();
+  let mut added = 0;
+  let mut skipped = 0;
+
+  for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
+    let source = entry.path();
+
+    let relative = to_relative(ctx, source)?;
+
+    if ignore.is_ignored(&relative) {
+      continue;
+    }
+
+    if !entry.file_type().is_file() {
+      continue;
+    }
+
+    let (did_add, action) = process_add_file(ctx, source, ignore, args)?;
+
+    if did_add {
+      added += 1;
+    } else {
+      skipped += 1;
+    }
+
+    if let Some(a) = action {
+      outcome.actions.push(a);
+    }
+  }
+
+  outcome.added = added;
+  outcome.skipped = skipped;
+
+  Ok(outcome)
+}
+
+fn process_add_file(
+  ctx: &Context,
+  source: &Path,
+  ignore: &IgnoreMatcher,
+  args: &AddArgs,
+) -> Result<(bool, Option<ActionLog>)> {
+  let relative = to_relative(ctx, source)?;
+  let target = ctx.repo_path.join(&relative);
+
+  // --- IGNORE ---
+  if ignore.is_ignored(&relative) {
+    return Ok((false, None));
+  }
+
+  // --- ALREADY LINKED (non-nolink) ---
+  if !args.nolink && is_symlink(source) && is_symlink_to(source, &target) {
+    return Ok((false, None));
+  }
+
+  // --- NOLINK: already in repo and not linked ---
+  if args.nolink && !source.exists() && target.exists() {
+    return Ok((false, None));
+  }
+
+  // --- DRY RUN ---
+  if args.dry_run {
+    let action = if args.nolink {
+      "Would add (nolink)"
+    } else {
+      "Would add"
+    };
+    return Ok((
+      true,
+      Some(ActionLog {
+        action: action.to_string(),
+        file: relative.display().to_string(),
+      }),
+    ));
+  }
+
+  // --- PREP TARGET ---
+  if let Some(parent) = target.parent() {
+    fs::create_dir_all(parent)?;
+  }
+
+  if target.exists() && args.force {
+    remove_file_or_dir(&target)?;
+  }
+
+  // --- NOLINK: move only, no symlink ---
+  if args.nolink {
+    // If source is a symlink pointing to repo, just remove it (file is already in repo)
+    if is_symlink(source) && is_symlink_to(source, &target) {
+      remove_file_or_dir(source)?;
+    } else {
+      move_file(source, &target)?;
+    }
+    append_to_tildrignore(&ctx.repo_path, &relative)?;
+
+    return Ok((
+      true,
+      Some(ActionLog {
+        action: format!("{}Added (nolink)", icons().check).green(),
+        file: relative.display().to_string(),
+      }),
+    ));
+  }
+
+  // --- MOVE + LINK ---
+  move_file(source, &target)?;
+  create_symlink(&target, source)?;
+
+  Ok((
+    true,
+    Some(ActionLog {
+      action: format!("{}Added", icons().check).green(),
+      file: relative.display().to_string(),
+    }),
+  ))
+}
+
+fn to_relative(ctx: &Context, path: &Path) -> Result<PathBuf> {
+  Ok(path.strip_prefix(&ctx.home_path)?.to_path_buf())
+}
+
+#[derive(Default)]
+struct AddOutcome {
+  added: usize,
+  skipped: usize,
+  actions: Vec<ActionLog>,
+}
+
+struct AddTarget {
+  source: PathBuf,
+  relative: PathBuf,
+}
+
+fn resolve_add_targets(ctx: &Context, paths: &[String]) -> Result<Vec<AddTarget>> {
+  let mut targets = Vec::with_capacity(paths.len());
+
+  for path in paths {
+    let source = resolve_home_path(path, &ctx.home_path);
+
+    if !source.exists() {
+      bail!("File does not exist: {}", source.display());
+    }
+
+    if !source.is_file() && !source.is_dir() {
+      bail!("Unsupported path type: {}", source.display());
+    }
+
+    targets.push(AddTarget {
+      relative: to_relative(ctx, &source)?,
+      source,
+    });
+  }
+
+  Ok(targets)
+}
+
+fn commit_label(targets: &[AddTarget]) -> String {
+  if targets.len() == 1 {
+    return targets[0].relative.display().to_string();
+  }
+
+  format!("{} targets", targets.len())
+}
+
+fn auto_commit(ctx: &Context, msg: &str, args: &AddArgs) {
+  if ctx.config.git.auto_commit_enabled() && !args.dry_run {
+    let git = GitIntegration::new(ctx.repo_path.clone());
+    let _ = git.auto_commit(&format!("{}: {}", APP_NAME, msg));
+  }
+}
+
+fn append_to_tildrignore(repo_path: &Path, relative: &Path) -> Result<()> {
+  let ignore_file = repo_path.join(".tildrignore");
+  let mut content = if ignore_file.exists() {
+    fs::read_to_string(&ignore_file)?
+  } else {
+    String::new()
+  };
+
+  let line = relative.display().to_string();
+  if !content.lines().any(|l| l.trim() == line) {
+    if !content.ends_with('\n') && !content.is_empty() {
+      content.push('\n');
+    }
+    content.push_str(&line);
+    content.push('\n');
+    fs::write(&ignore_file, content)?;
+  }
+
+  Ok(())
+}

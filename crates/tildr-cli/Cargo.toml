@@ -1,0 +1,19 @@
+[package]
+name = "tildr-cli"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description.workspace = true
+
+[dependencies]
+tildr-domain  = { workspace = true }
+
+# -------- vendors --------
+clap = { workspace = true }
+clap_complete = "=4.5.3"
+anyhow = { workspace = true }
