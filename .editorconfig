@@ -9,9 +9,16 @@ trim_trailing_whitespace = true
 insert_final_newline = true
 charset = utf-8
 end_of_line = lf
+max_line_length = 80
+
+[*.{rs,yml,json,md}]
+indent_style = space
+
+[*.md]
 max_line_length = 100
 
-[*.{rs,yml,json}]
+[*.py]
+indent_size = 4
 indent_style = space
 
 [Makefile]

@@ -1,0 +1,22 @@
+# Prepare support macOS:
+# $ sudo pacman -S clang git cmake libxml2 patch python xz
+# $ rustup target add x86_64-apple-darwin aarch64-apple-darwin
+# $ git clone https://github.com/tpoechtrager/osxcross ~/.osxcross
+# $ curl -fsSL https://github.com/joseluisq/macosx-sdks/releases/download/26.1/MacOSX26.1.sdk.tar.xz -o ~/.osxcross/tarballs/MacOSX26.1.sdk.tar.xz
+# $ UNATTENDED=1 ./build.sh
+# $ echo 'export PATH="$HOME/.osxcross/target/bin:$PATH"' >> ~/.zshrc
+
+# Linux (Default)
+[build]
+target-dir = "target"
+target = "x86_64-unknown-linux-gnu"
+
+# macOS (Tahoe 26.1) - x86_64 (Intel)
+[target.x86_64-apple-darwin]
+linker = "x86_64-apple-darwin25.1-clang"
+ar = "x86_64-apple-darwin25.1-ar"
+
+# macOS (Tahoe 26.1) - aarch64 (Apple Silicon)
+[target.aarch64-apple-darwin]
+linker = "aarch64-apple-darwin25.1-clang"
+ar = "aarch64-apple-darwin25.1-ar"

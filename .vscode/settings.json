@@ -1,42 +1,67 @@
 {
-  // Rust / Rust Analyzer
-  "rust-analyzer.cargo.autoreload": true,
-  "rust-analyzer.cargo.buildScripts.enable": true,
-  "rust-analyzer.cargo.features": "all",
-  "rust-analyzer.check.command": "clippy",
-  "rust-analyzer.procMacro.enable": true,
-  "rust-analyzer.inlayHints.bindingModeHints.enable": true,
-  "rust-analyzer.inlayHints.closingBraceHints.enable": true,
-  "rust-analyzer.inlayHints.closingBraceHints.minLines": 25,
-  "rust-analyzer.inlayHints.expressionAdjustmentHints.enable": "always",
-  "rust-analyzer.inlayHints.lifetimeElisionHints.enable": "always",
-  "rust-analyzer.semanticHighlighting.doc.comment.inject.enable": true,
-  "rust-analyzer.semanticHighlighting.punctuation.enable": true,
-  "rust-analyzer.files.exclude": ["target"],
-  "rust-analyzer.inlayHints.typeHints.enable": true,
-  "rust-analyzer.inlayHints.parameterHints.enable": true,
-  "rust-analyzer.inlayHints.chainingHints.enable": true,
-  "rust-analyzer.hover.actions.enable": true,
-  "rust-analyzer.completion.autoimport.enable": true,
-  "[rust]": {
-    "editor.defaultFormatter": "rust-lang.rust-analyzer",
-    "editor.formatOnSave": true,
-    "editor.fontWeight": "300",
-    "editor.showUnused": true,
-    "editor.rulers": [80],
+  // ===== APPEARANCE =====
+  "workbench.colorTheme": "Dark Modern",
+  "workbench.iconTheme": "vscode-jetbrains-icon-theme-2023-auto",
+  "workbench.activityBar.location": "default",
+  "workbench.activityBar.compact": true,
+  "workbench.startupEditor": "newUntitledFile",
+  "workbench.layoutControl.enabled": true,
+  "workbench.editor.labelFormat": "short",
+  "workbench.editor.enablePreviewFromCodeNavigation": true,
+  "workbench.editor.empty.hint": "hidden",
+  "workbench.editor.editorActionsLocation": "titleBar",
+  "window.commandCenter": true,
+  "explorer.compactFolders": true,
+  "explorer.fileNesting.enabled": true,
+  "breadcrumbs.enabled": false,
+
+  // ===== EDITOR =====
+  "editor.fontFamily": "JetBrains Mono, monospace",
+  "editor.fontSize": 14,
+  "editor.fontWeight": "400",
+  "editor.lineHeight": 1.8,
+  "editor.fontLigatures": true,
+  "editor.wordWrap": "on",
+  "editor.tabSize": 2,
+  "editor.rulers": [80],
+  "editor.minimap.enabled": true,
+  "editor.scrollbar.vertical": "hidden",
+  "editor.scrollbar.horizontal": "hidden",
+  "editor.renderControlCharacters": false,
+  "editor.renderLineHighlight": "gutter",
+  "editor.matchBrackets": "always",
+  "editor.guides.indentation": true,
+  "editor.guides.bracketPairs": false,
+  "editor.guides.highlightActiveBracketPair": false,
+  "editor.bracketPairColorization.enabled": false,
+  "editor.showUnused": true,
+  "editor.semanticHighlighting.enabled": false,
+  "editor.semanticTokenColorCustomizations": {
+    "enabled": true,
+    "rules": {
+      "*.mutable": {
+        "underline": false,
+        "bold": true
+      }
+    }
   },
 
-  // UI
-  "workbench.activityBar.location": "default",
-  "workbench.startupEditor": "newUntitledFile",
-  "explorer.compactFolders": true,
-  "workbench.layoutControl.enabled": true,
-  "diffEditor.ignoreTrimWhitespace": true,
-  "explorer.fileNesting.enabled": true,
-  "window.commandCenter": true,
-  "workbench.iconTheme": "vscode-jetbrains-icon-theme-2023-auto",
+  // ===== HOVER E HINTS =====
+  "editor.hover.delay": 800, // Visual Studio Code diagnostics (popup tips)
+  "editor.hover.sticky": true,
+  "editor.hover.enabled": "on",
+  "editor.inlayHints.enabled": "on", // disable type annotations
+  "editor.inlayHints.fontSize": 12,
+  "editor.inlayHints.padding": true,
+  "editor.inlayHints.fontFamily": "Open Sans Medium",
 
-  // Linux terminal
+  // ===== STICKY SCROLL =====
+  "editor.stickyScroll.enabled": false,
+  "editor.stickyScroll.scrollWithEditor": false,
+  "workbench.tree.enableStickyScroll": false,
+  "terminal.integrated.stickyScroll.enabled": false,
+
+  // ===== TERMINAL LINUX =====
   "terminal.integrated.defaultProfile.linux": "zsh",
   "terminal.integrated.profiles.linux": {
     "zsh": {
@@ -45,65 +70,7 @@
     }
   },
 
-  // HTML
-  "[html]": {
-    "editor.rulers": [100]
-  },
-  "editor.rulers": [80],
-  "editor.fontSize": 14,
-  "editor.semanticHighlighting.enabled": false,
-  "editor.hover.delay": 800, // Visual Studio Code diagnostics (popup tips)
-  "editor.hover.sticky": true,
-  "editor.hover.enabled": "on",
-  "editor.tabSize": 2,
-  "editor.wordWrap": "on",
-  "editor.stickyScroll.enabled": false,
-  "workbench.tree.enableStickyScroll": false,
-  "editor.stickyScroll.scrollWithEditor": false,
-  "terminal.integrated.stickyScroll.enabled": false,
-  "editor.inlayHints.enabled": "on", // disable type annotactions
-  "editor.inlayHints.fontSize": 12,
-  "editor.inlayHints.padding": true,
-  "editor.inlayHints.fontFamily": "Open Sans Medium",
-  "editor.guides.indentation": true,
-  "window.titleBarStyle": "custom",
-  "workbench.editor.labelFormat": "short",
-  "workbench.editor.enablePreviewFromCodeNavigation": true,
-  "terminal.integrated.fontFamily": "DejaVuSansMono Nerd Font",
-  "editor.fontFamily": "JetBrains Mono, monospace",
-  "editor.fontLigatures": true,
-  "terminal.integrated.fontWeight": "500",
-  "editor.lineHeight": 1.8,
-  "editor.fontWeight": "400",
-  "files.autoSave": "onFocusChange",
-  "files.associations": {
-    "*.md": "markdown",
-    "*.scss": "scss",
-    "LICENSE": "plaintext",
-    "CNAME": "plaintext",
-  },
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": "explicit"
-  },
-  "editor.renderControlCharacters": false,
-  "editor.minimap.enabled": true,
-  "editor.scrollbar.vertical": "hidden",
-  "editor.scrollbar.horizontal": "hidden",
-  "breadcrumbs.enabled": false,
-  "files.autoSaveDelay": 4000,
-  "files.trimTrailingWhitespace": true,
-  "css.lint.emptyRules": "ignore",
-  "terminal.integrated.tabs.enabled": true,
-  "terminal.integrated.fontSize": 14,
-  "terminal.integrated.cursorStyle": "underline",
-  "editor.bracketPairColorization.enabled": false,
-  "editor.guides.highlightActiveBracketPair": false,
-  "editor.guides.bracketPairs": false,
-  "editor.matchBrackets": "always",
-  "editor.renderLineHighlight": "gutter",
-  "editor.showUnused": true,
-
-  // Windows terminal
+  // ===== TERMINAL WINDOWS =====
   "terminal.integrated.defaultProfile.windows": "PowerShell",
   "terminal.integrated.profiles.windows": {
     "PowerShell": {
@@ -118,9 +85,85 @@
       "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
     }
   },
-  // "editor.suggestSelection": "first",
+
+  // ===== GENERAL TERMINAL =====
+  "terminal.integrated.fontFamily": "DejaVuSansMono Nerd Font",
+  "terminal.integrated.fontSize": 14,
+  "terminal.integrated.fontWeight": "500",
+  "terminal.integrated.cursorStyle": "underline",
+  "terminal.integrated.tabs.enabled": true,
+
+  // ===== FILES =====
+  "files.autoSave": "onFocusChange",
+  "files.autoSaveDelay": 4000,
+  "files.trimTrailingWhitespace": true,
+  "files.associations": {
+    "*.md": "markdown",
+    "*.scss": "scss",
+    "LICENSE": "plaintext",
+    "Makefile": "makefile",
+    "CNAME": "plaintext"
+  },
+  "files.exclude": {
+    "**/.vscode": false,
+    ".bin": true,
+    "target": true,
+    "__docs__": false
+  },
+
+  // ===== CODE ACTIONS =====
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "editor.suggestSelection": "first",
   "editor.suggest.showSnippets": true,
+
+  // ===== BEHAVIOR =====
+  "diffEditor.ignoreTrimWhitespace": true,
   "git.autofetch": true,
+  "git.openRepositoryInParentFolders": "never",
+
+  // ===== EDITOR RULERS =====
+  "[html, markdown]": {
+    "editor.rulers": [100]
+  },
+
+  // ===== CONFIGURATION FILES =====
+  "[markdown]": {
+    "diffEditor.ignoreTrimWhitespace": true
+  },
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+   "makefile.configureOnOpen": true,
+
+  // ===== RUST =====
+  "rust-analyzer.cargo.autoreload": true,
+  "rust-analyzer.cargo.buildScripts.enable": true,
+  "rust-analyzer.cargo.features": "all",
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.procMacro.enable": true,
+  "rust-analyzer.inlayHints.bindingModeHints.enable": true,
+  "rust-analyzer.inlayHints.closingBraceHints.enable": true,
+  "rust-analyzer.inlayHints.closingBraceHints.minLines": 25,
+  "rust-analyzer.inlayHints.expressionAdjustmentHints.enable": "always",
+  "rust-analyzer.inlayHints.lifetimeElisionHints.enable": "always",
+  "rust-analyzer.inlayHints.typeHints.enable": true,
+  "rust-analyzer.inlayHints.parameterHints.enable": true,
+  "rust-analyzer.inlayHints.chainingHints.enable": true,
+  "rust-analyzer.semanticHighlighting.doc.comment.inject.enable": true,
+  "rust-analyzer.semanticHighlighting.punctuation.enable": true,
+  "rust-analyzer.hover.actions.enable": true,
+  "rust-analyzer.completion.autoimport.enable": true,
+  "rust-analyzer.files.exclude": ["target"],
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true,
+    "editor.fontWeight": "300",
+    "editor.showUnused": true,
+  },
+
+  // ===== TODO TREE =====
   "todo-tree.highlights.defaultHighlight": {
     "icon": "alert",
     "type": "text",
@@ -140,31 +183,9 @@
       "gutterIcon": true
     }
   },
-  "editor.semanticTokenColorCustomizations": {
-    "enabled": true,
-    "rules": {
-      "*.mutable": {
-        "underline": false,
-        "bold": true
-      }
-    }
-  },
-  "files.exclude": {
-    "**/.vscode": false,
-  },
-  "git.openRepositoryInParentFolders": "never",
-  "[github-actions-workflow]": {
-    "editor.defaultFormatter": "redhat.vscode-yaml"
-  },
-  "workbench.editor.empty.hint": "hidden",
-  "[markdown]": {
-    "diffEditor.ignoreTrimWhitespace": true
-  },
+
+  // ===== AI / COPILOT =====
   "chat.unifiedAgentsBar.enabled": true,
-  "gitlens.ai.model": "vscode",
-  "gitlens.ai.vscode.model": "copilotcli:claude-sonnet-4.6",
-  "workbench.editor.editorActionsLocation": "titleBar",
-  "workbench.activityBar.compact": true,
   "github.copilot.enable": {
     "*": false,
     "plaintext": false,
@@ -173,12 +194,29 @@
     "txt": false
   },
   "github.copilot.nextEditSuggestions.enabled": false,
-    "cSpell.customDictionaries": {
-      "custom-dictionary-workspace": {
-        "name": "custom-dictionary-workspace",
-        "path": "${workspaceFolder:tilder}/.cspell/custom-dictionary-workspace.txt",
-        "addWords": true,
-        "scope": "workspace"
-      }
+
+  // ===== SPELL CHECK =====
+  "cSpell.language": "en,pt_BR",
+  "cSpell.ignorePaths": [
+    "**/.config/Code/User/*.json",
+    "TODO.txt",
+    "settings.json",
+    "extensions.json",
+    "Cargo.toml",
+    "rustfmt.toml",
+    "cliff.toml",
+    "CHANGELOG.md",
+    "*.1"
+  ],
+  "cSpell.customDictionaries": {
+    "custom-dictionary-workspace": {
+      "name": "custom-dictionary-workspace",
+      "path": "${workspaceFolder}/.cspell/custom-dictionary-workspace.txt",
+      "addWords": true,
+      "scope": "folder"
     }
+  },
+  "chat.tools.terminal.autoApprove": {
+    "mkdir": true
+  }
 }

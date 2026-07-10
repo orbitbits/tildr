@@ -6,24 +6,21 @@
     "fill-labs.dependi",
     "llvm-vs-code-extensions.lldb-dap",
     "ms-vscode.makefile-tools",
-    "ms-vscode.powershell",
     "chadalen.vscode-jetbrains-icon-theme",
     "esbenp.prettier-vscode",
     "wayou.vscode-todo-highlight",
     "ms-python.python",
-    "twxs.cmake",
     "ms-vscode.cmake-tools",
-    "github.vscode-github-actions",
     "aaron-bond.better-comments",
-    "editorconfig.editorconfig", // EditorConfig
-    "ardonplay.vscode-jetbrains-icon-theme", // JetBrains Icon Theme
+    "editorconfig.editorconfig",
+    "ardonplay.vscode-jetbrains-icon-theme",
     "miguelsolorio.symbols", // Symbols Icons
-    "seunlanlege.action-buttons", // VSCode Actions Buttons
-    "shortall.html-liquid-preview", // HTML+Liquid Preview
+    "seunlanlege.action-buttons",
+    "shortall.html-liquid-preview",
     "redhat.vscode-yaml", // Front Matter YAML
     "yzhang.markdown-all-in-one", // Markdown with shortcuts and preview
-    "davidanson.vscode-markdownlint", // Markdown Linter
-    "gruntfuggly.todo-tree", // --TODO--
-    "zainchen.json", // Json
+    "davidanson.vscode-markdownlint",
+    "gruntfuggly.todo-tree",
+    "zainchen.json",
   ]
 }
