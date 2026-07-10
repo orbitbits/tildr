@@ -101,6 +101,41 @@ curl -fsSL https://orbitbits.github.io/tildr/linux.sh | sh
 If the file manager is not installed at the time of Tildr installation,
 the plugin can be installed manually at any time using the commands above.
 
+# UNINSTALLATION
+
+## Nautilus
+
+```sh
+rm ~/.local/share/nautilus/python-extensions/tildr.py
+nautilus -q
+```
+
+## Dolphin
+
+```sh
+rm ~/.local/share/kio/servicemenus/tildr.desktop
+```
+
+No restart is required. Dolphin picks up changes automatically.
+
+# TROUBLESHOOTING
+
+## Submenu does not appear
+
+- Ensure the plugin file exists in the correct location
+- Check that the file has read permissions
+- For Nautilus: restart with `nautilus -q` and reopen
+- For Dolphin: restart Dolphin or run `kbuildsycoca5`
+
+## "Command not found" when clicking a menu action
+
+- Ensure `tildr` is installed and available in `PATH`
+- Open a terminal and run `which tildr` to verify
+
+## Plugin appears outside of $HOME
+
+This should not happen. The Nautilus plugin checks the current directory and only shows the submenu when inside `$HOME`. If this occurs, please open an issue.
+
 # SEE ALSO
 
 **tildr(1)**, **tildr-config(1)**, **tildr-commands(1)**, **tildr-security(1)**

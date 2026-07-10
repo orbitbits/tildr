@@ -56,6 +56,8 @@ Open an issue labeled `enhancement` describing your idea before implementing it.
 4. Ensure the code compiles and the tests pass
 5. Open a Pull Request describing what was done and why
 
+See [DEVELOPMENT.md](DEVELOPMENT.md) for development setup, build commands, and project architecture.
+
 ### 4. Code Standards
 
 - Follow the style already adopted in the project

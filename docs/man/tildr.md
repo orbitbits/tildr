@@ -109,6 +109,9 @@ This means Tildr is not intended for copying files to a repository stored on ano
 **tildr init** *[options]*
 :   Initialize the Tildr repository and config file.
 
+**tildr import** *\<url\>* *[options]*
+:   Clone a remote dotfiles repository and apply it.
+
 **tildr add** *\<path...\>* *[options]*
 :   Add files or directories to the repository and replace them with symlinks.
 
@@ -142,11 +145,23 @@ This means Tildr is not intended for copying files to a repository stored on ano
 **tildr del** *[\<target\>]* *[options]*
 :   Delete managed files from the repository and unlink from `$HOME`.
 
+**tildr mv** *[\<source\>]* *[\<dest\>]* *[options]*
+:   Rename or move a managed file inside the repository.
+
+**tildr exclude** *\<mode\>*
+:   Manage `.tildrignore` patterns (add, remove, list).
+
+**tildr secret** *\<mode\>*
+:   Manage encryption of sensitive files using GPG.
+
 **tildr sync** *[options]*
 :   Synchronize the repository with its Git remote in both directions.
 
 **tildr doctor**
 :   Run a health check against the Tildr environment.
+
+**tildr completions** *\<shell\>*
+:   Generate shell completion scripts for bash, zsh, or fish.
 
 **tildr info** *\<mode\>*
 :   Display project metadata (credits or license).

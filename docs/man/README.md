@@ -1,6 +1,6 @@
 # Tildr man
 
-The `.md` files in this directory are for generating the `man tiller` command.
+The `.md` files in this directory are for generating the `man tildr` command.
 
 ## Auto (recommended)
 

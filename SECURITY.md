@@ -1,13 +1,26 @@
-# Verifying Binary Integrity
+# Security Policy
+
+## Reporting Vulnerabilities
+
+If you discover a security vulnerability in Tildr, please report it responsibly:
+
+1. **Do not** open a public GitHub issue for security vulnerabilities
+2. Email the maintainer directly or use [GitHub's private vulnerability reporting](https://github.com/orbitbits/tildr/security/advisories/new)
+3. Include a description of the vulnerability, steps to reproduce, and potential impact
+4. You should receive a response within 72 hours
+
+We will work with you to understand and address the issue before any public disclosure.
+
+## Verifying Binary Integrity
 
 For security-conscious users, we provide cryptographic signatures for all releases. This ensures that the binaries you download haven't been tampered with.
 
-## Prerequisites
+### Prerequisites
 
 * GPG (GNU Privacy Guard) installed on your system
 * The project's public GPG key imported in your system's keyring
 
-## Importing the Public Key
+### Importing the Public Key
 
 To verify signatures, you first need to import the project's public key:
 
@@ -19,13 +32,13 @@ gpg --keyserver keys.openpgp.org --recv-keys E6A5CC75350F3DCE
 gpg --import pubkey.asc
 ```
 
-## Verifying the Binary
+### Verifying the Binary
 
 After downloading the binary and its signature file (`.asc`), verify the integrity:
 
 ```sh
 # Download the binary and signature
-# Example: roost-0.1.0-x86_64 and SHA256SUMS.asc
+# Example: tildr-0.1.0-x86_64 and SHA256SUMS.asc
 
 # Verify the SHA256SUMS signature
 gpg --verify SHA256SUMS.asc
@@ -36,7 +49,7 @@ sha256sum -c SHA256SUMS
 # Both commands should show "Good signature" and "OK"
 ```
 
-## What This Ensures
+### What This Ensures
 
 * **Authenticity**: The release was created by project maintainers (verified by GPG signature)
 * **Integrity**: The binary hasn't been modified or corrupted (verified by SHA256 checksum)

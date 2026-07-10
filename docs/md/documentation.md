@@ -647,6 +647,34 @@ Behavior:
 
 ---
 
+### `tildr mv`
+
+Renames or moves a managed file inside the repository and updates its symlink in `$HOME`. Mirrors the behavior of the Linux `mv` command — rename and move are the same operation.
+
+```sh
+tildr mv .bashrc .bashrc_backup
+tildr mv files/file.txt configs/file.txt
+tildr mv
+```
+
+Options:
+
+| Flag        | Short| Description                              |
+|-------------|------|------------------------------------------|
+| `--dry-run` | `-n`  | Show what would be done without making changes |
+| `--quiet`   | `-q`  | Suppress output                          |
+
+Behavior:
+
+* Renames or moves the file inside the repository
+* Removes the old symlink from `$HOME`
+* Creates a new symlink at the new path in `$HOME`
+* If the destination is a filename only (no directory), the original directory is preserved
+* If no arguments are passed, Tildr opens an interactive picker to select the source, then prompts for the new path
+* Auto-commits the repository when `git.auto_commit = true`
+
+---
+
 ### `tildr exclude`
 
 Manages patterns in `.tildrignore` without editing the file manually.
@@ -1057,6 +1085,7 @@ Modes:
 
 When a target is omitted, the following commands open an interactive file picker over the list of managed files:
 
+* `tildr add` (picks from `$HOME` instead of the repository)
 * `tildr cat`
 * `tildr edit`
 * `tildr unlink`

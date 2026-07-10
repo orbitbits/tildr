@@ -7,8 +7,29 @@
 
 <h2 align="center">Manage your HOME files and directories with symlinks and Git.</h2>
 
-[![Version](https://img.shields.io/badge/version-0.0.0-blue.svg)](https://github.com/orbitbits/tildr/releases)
-![Rust](https://img.shields.io/badge/Rust-built-orange)
+[![Version](https://img.shields.io/github/v/release/orbitbits/tildr.svg)](https://github.com/orbitbits/tildr/releases)
+[![License](https://img.shields.io/badge/license-Elastic%20License%202.0-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/MSRV-1.90.0-orange.svg)](https://www.rust-lang.org/)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey.svg)]()
+[![Build](https://img.shields.io/github/actions/workflow/status/orbitbits/tildr/release.yml?branch=main)](https://github.com/orbitbits/tildr/actions)
+[![Downloads](https://img.shields.io/github/downloads/orbitbits/tildr/total.svg)](https://github.com/orbitbits/tildr/releases)
+
+---
+
+## Quick Start
+
+```sh
+# Install
+curl -fsSL https://orbitbits.github.io/tildr/linux.sh | sh
+
+# Initialize
+tildr init
+
+# Add your first dotfile
+tildr add .bashrc
+tildr apply
+tildr sync
+```
 
 ---
 
