@@ -10,6 +10,9 @@ target/
 
 # This repo
 # -------------------------------------------------------------
-__docs__
+.idea/
+docs/*
+!/docs/man
+!/docs/md
 tmp/
 ANNOTATIONS.txt

@@ -1,4 +1,5 @@
-name: Release
+# Note: change cliff.toml -> [remote.github]
+name: Release Linux/macOS
 
 on:
   push:
@@ -32,7 +33,7 @@ jobs:
         id: version
         run: |
           VERSION=$(cargo metadata --no-deps --format-version=1 \
-            | jq -r '.packages[] | select(.name=="tilder") | .version')
+            | jq -r '.packages[] | select(.name=="tildr") | .version')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
@@ -47,10 +48,14 @@ jobs:
           fi
 
       - name: Stop if tag exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: steps.tag_check.outputs.exists == 'true'
         run: exit 0
 
       - name: Generate full changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: git cliff --config cliff.toml --output CHANGELOG.md
 
       - name: Commit changelog
@@ -59,15 +64,30 @@ jobs:
           git config user.email "github-actions@github.com"
           git add CHANGELOG.md
           git commit -m "chore(release): update changelog for v${{ steps.version.outputs.version }}" || echo "No changes"
-          git push origin main
+          git push origin HEAD:${{ github.ref_name }}
 
       - name: Create tag
         run: |
           git tag ${{ steps.version.outputs.tag }}
           git push origin ${{ steps.version.outputs.tag }}
 
+      - name: Regenerate CHANGELOG after tag (close Unreleased)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: git cliff --config cliff.toml --output CHANGELOG.md
+
+      - name: Commit finalized CHANGELOG
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add CHANGELOG.md
+          git commit -m "docs(changelog): finalize v${{ steps.version.outputs.version }}" || echo "No changes"
+          git push origin HEAD:${{ github.ref_name }}
+
       # Generate changelog for the latest release.
       - name: Generate release notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: git cliff --latest --config cliff.toml > CHANGELOG_RELEASE.md
 
       - name: Load CHANGELOG_RELEASE.md
@@ -85,13 +105,17 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build
+      - name: Tests Linux
         run: |
-          cargo build --release
-          mkdir dist
-          cp target/release/tilder dist/tilder-${{ steps.version.outputs.version }}-linux-x86_64
+          cargo test --target x86_64-unknown-linux-gnu
 
-      - name: Generate SHA256SUMS
+      - name: Build Linux
+        run: |
+          cargo build --release --target x86_64-unknown-linux-gnu
+          mkdir dist
+          cp target/x86_64-unknown-linux-gnu/release/tildr dist/tildr-${{ steps.version.outputs.version }}-linux-x86_64
+
+      - name: Generate SHA256SUMS (Linux only — macOS will append later)
         run: |
           cd dist
           sha256sum * > SHA256SUMS
@@ -106,7 +130,7 @@ jobs:
           echo "${{ secrets.GPG_PASSPHRASE }}" | \
           gpg --batch --yes --pinentry-mode loopback \
               --passphrase-fd 0 \
-              --armor --detach-sign \
+              --detach-sign \
               --local-user "${{ secrets.GPG_KEY_ID }}" \
               SHA256SUMS
 
@@ -120,20 +144,106 @@ jobs:
 
             ## Files
 
-            - Linux binary
-            - SHA256SUMS
-            - GPG signature (SHA256SUMS.asc)
+            - Linux binary (x86_64)
+            - macOS binaries (x86_64, aarch64)
+            - SHA256SUMS (all platforms)
+            - GPG signature (SHA256SUMS.sig)
 
             ## Verification
 
             ```bash
             sha256sum -c SHA256SUMS
-            gpg --verify SHA256SUMS.asc SHA256SUMS
+            gpg --verify SHA256SUMS.sig SHA256SUMS
             ```
-
-            ## Changelog
 
             ${{ env.CHANGELOG_RELEASE }}
 
+          files: |
+            dist/*
+
+  # macOS
+  macos:
+    name: Build macOS and append to release
+    needs: release
+    runs-on: macos-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout same commit
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Get version from Cargo.toml
+        id: version
+        run: |
+          VERSION=$(cargo metadata --no-deps --format-version=1 \
+            | jq -r '.packages[] | select(.name=="tildr") | .version')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Disable osxcross config
+        run: |
+          if [ -f .cargo/config.toml ]; then
+            mv .cargo/config.toml .cargo/config.toml.bak
+          fi
+
+      - name: Add macOS targets Rust
+        run: |
+          rustup target add x86_64-apple-darwin
+          rustup target add aarch64-apple-darwin
+
+      - name: Tests macOS
+        run: |
+          cargo test --target x86_64-apple-darwin
+          cargo test --target aarch64-apple-darwin
+
+      - name: Build x86_64 (Intel)
+        run: cargo build --release --target x86_64-apple-darwin
+
+      - name: Build aarch64 (Apple Silicon)
+        run: cargo build --release --target aarch64-apple-darwin
+
+      - name: Prepare dist
+        run: |
+          mkdir dist
+          cp target/x86_64-apple-darwin/release/tildr \
+             dist/tildr-${{ steps.version.outputs.version }}-macos-x86_64
+          cp target/aarch64-apple-darwin/release/tildr \
+             dist/tildr-${{ steps.version.outputs.version }}-macos-aarch64
+
+      - name: Download SHA256SUMS from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download ${{ steps.version.outputs.tag }} -p SHA256SUMS
+          mv SHA256SUMS dist/
+
+      - name: Append macOS hashes
+        run: |
+          cd dist
+          shasum -a 256 tildr-* >> SHA256SUMS
+
+      - name: Import GPG key
+        run: echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+
+      - name: Re-sign SHA256SUMS
+        run: |
+          cd dist
+          rm -f SHA256SUMS.sig
+          echo "${{ secrets.GPG_PASSPHRASE }}" | \
+          gpg --batch --yes --pinentry-mode loopback \
+              --passphrase-fd 0 \
+              --detach-sign \
+              --local-user "${{ secrets.GPG_KEY_ID }}" \
+              SHA256SUMS
+
+      - name: Upload macOS artifacts to existing release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
           files: |
             dist/*

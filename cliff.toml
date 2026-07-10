@@ -36,8 +36,10 @@ postprocessors = [
 ]
 
 [remote.github]
-owner = "evolvbits"
-repo = "tilder"
+owner = "williamcanin"
+repo = "tildr"
+token = "$GITHUB_TOKEN"
+#token = "" # Leaving it blank disables API calls, and Cliff will not fetch PRs.
 
 [git]
 conventional_commits = true
@@ -47,36 +49,32 @@ top_order = true
 use_branch_tags = false
 
 # Repo URL (used in links)
-repository_url = "https://github.com/evolvbits/tilder"
+repository_url = "https://github.com/orbitbits/tildr"
 
 commit_preprocessors = [
     # Normalizes BREAKING CHANGE in the body
     { pattern = "BREAKING CHANGE:", replace = "BREAKING:" },
-		# Escape HTML tag
-		{ pattern = "<([^>]+)>", replace = "`<$1>`" }
+    # Escape HTML tag
+    { pattern = "<([^>]+)>", replace = "`<$1>`" }
 ]
 
 commit_parsers = [
     { message = "^feat(\\([^)]+\\))?!?:", group = "Features", breaking = true },
     { message = "^feat(\\([^)]+\\))?:", group = "Features" },
-
     { message = "^fix(\\([^)]+\\))?!?:", group = "Bug Fixes", breaking = true },
     { message = "^fix(\\([^)]+\\))?:", group = "Bug Fixes" },
-
     { message = "^perf(\\([^)]+\\))?!?:", group = "Performance", breaking = true },
     { message = "^perf(\\([^)]+\\))?:", group = "Performance" },
-
     { message = "^refactor(\\([^)]+\\))?!?:", group = "Refactoring", breaking = true },
     { message = "^refactor(\\([^)]+\\))?:", group = "Refactoring" },
-
-		# Ignore
+    # Ignore
     { message = "^docs(\\([^)]+\\))?:", skip = true },
     { message = "^test(\\([^)]+\\))?:", skip = true },
     { message = "^build(\\([^)]+\\))?:", skip = true },
     { message = "^ci(\\([^)]+\\))?:", skip = true },
     { message = "^chore(\\([^)]+\\))?:", skip = true },
     { message = "^style(\\([^)]+\\))?:", skip = true },
-		{ message = "^add(\\([^)]+\\))?:", skip = true },
+    { message = "^add(\\([^)]+\\))?:", skip = true },
 ]
 
 # Optional: Ignore specific commits
