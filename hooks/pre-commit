@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+# To use, run the following command only once in the project directory:
+#   git config core.hooksPath hooks
+
+echo "[tildr] Running build..."
+
+# ----- Build -----
+if ! make build; then
+  echo "[tildr] Build failed. Commit aborted."
+  exit 1
+fi
+
+# ----- Checks if the build generated changes -----
+if ! git diff --quiet; then
+  echo ""
+  echo "[tildr] Detected uncommitted changes after build."
+  echo "[tildr] You probably forgot to generate artifacts (man pages, etc)."
+  echo ""
+  echo "Run:"
+  echo "  make build"
+  echo "  git add <TARGET>"
+  echo "Then commit again."
+  echo ""
+  exit 1
+fi
+
+echo "[tildr] OK"
+exit 0

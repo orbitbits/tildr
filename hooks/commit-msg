@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+# To use, run the following command only once in the project directory:
+#   git config core.hooksPath hooks
+
+MSG_FILE="$1"
+MSG=$(head -n 1 "$MSG_FILE")
+
+# ----- Allowed types -----
+TYPES="feat|fix|docs|style|refactor|test|chore|perf|build|ci"
+
+PATTERN="^($TYPES)(\([a-zA-Z0-9_-]+\))?: .+"
+
+if ! echo "$MSG" | grep -Eq "$PATTERN"; then
+  echo ""
+  echo "[tildr] Invalid commit message format."
+  echo ""
+  echo "Use:"
+  echo "  <type>(optional-scope): <message>"
+  echo ""
+  echo "Examples:"
+  echo "  feat: add new feature"
+  echo "  fix(rm): correct unlink logic"
+  echo "  docs: update man pages"
+  echo ""
+  echo "Allowed types:"
+  echo "  feat, fix, docs, style, refactor, test, chore, perf, build, ci"
+  echo ""
+  exit 1
+fi
+
+exit 0

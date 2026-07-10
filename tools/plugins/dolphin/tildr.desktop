@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=KonqPopupMenu/Plugin
+MimeType=application/octet-stream;text/plain;inode/symlink;
+X-KDE-Submenu=Tildr
+Actions=TildrAdd;TildrUnlink;TildrRestore;
+
+[Desktop Action TildrAdd]
+Name=Add
+Icon=list-add
+Exec=tildr add %F
+
+[Desktop Action TildrUnlink]
+Name=Unlink
+Icon=remove-link
+Exec=tildr unlink %F
+
+[Desktop Action TildrRestore]
+Name=Restore
+Icon=edit-undo
+Exec=tildr restore %F
