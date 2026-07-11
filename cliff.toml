@@ -36,7 +36,7 @@ postprocessors = [
 ]
 
 [remote.github]
-owner = "williamcanin"
+owner = "orbitbits"
 repo = "tildr"
 token = "$GITHUB_TOKEN"
 #token = "" # Leaving it blank disables API calls, and Cliff will not fetch PRs.
