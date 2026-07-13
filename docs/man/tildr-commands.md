@@ -498,6 +498,19 @@ tildr exclude list
 - Patterns added here prevent files from being discovered by `list`, `status`, and `apply`
 - Does not remove existing symlinks — use `tildr unlink` for that
 
+## tildr open
+
+Opens the Tildr repository in the system file manager.
+
+```sh
+tildr open
+```
+
+**Behavior:**
+
+- Launches the default file manager of the system at the repository path
+- Uses the `open` crate for cross-platform support (xdg-open on Linux, open on macOS)
+
 ## tildr secret
 
 Manages encryption of sensitive files in your dotfiles repository using GPG.

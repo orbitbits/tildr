@@ -739,6 +739,21 @@ Behavior:
 
 ---
 
+### `tildr open`
+
+Opens the Tildr repository in the system file manager.
+
+```sh
+tildr open
+```
+
+Behavior:
+
+* Launches the default file manager at the repository path
+* Uses the `open` crate for cross-platform support (xdg-open on Linux, open on macOS)
+
+---
+
 ### `tildr secret`
 
 Manages encryption of sensitive files in your dotfiles repository using GPG encryption.

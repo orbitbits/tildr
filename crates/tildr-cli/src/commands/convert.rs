@@ -122,6 +122,7 @@ impl From<CliCommands> for Commands {
           CliExcludeMode::List => ExcludeMode::List,
         },
       },
+      CliCommands::Open(_) => Commands::Open,
     }
   }
 }

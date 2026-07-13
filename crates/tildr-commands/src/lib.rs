@@ -11,6 +11,7 @@ mod info;
 mod init;
 mod list;
 mod mv;
+mod open;
 mod repo;
 mod restore;
 mod secret;
@@ -221,5 +222,6 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     ),
     Commands::Secret { mode } => secret::run(ctx, mode.clone()),
     Commands::Exclude { mode } => exclude::run(ctx, mode.clone()),
+    Commands::Open => open::run(ctx),
   }
 }

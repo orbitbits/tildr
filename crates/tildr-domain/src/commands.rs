@@ -124,4 +124,5 @@ pub enum Commands {
   Exclude {
     mode: ExcludeMode,
   },
+  Open,
 }

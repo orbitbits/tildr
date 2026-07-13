@@ -50,6 +50,7 @@ trash           = "5.2.6"
 ignore          = "0.4.25"
 libc            = "0.2.186"
 rfd             = { version = "0.17.2", default-features = false, features = ["xdg-portal"] }
+open            = "5"
 
 # -------- optimization dev --------
 [profile.dev.package."*"]

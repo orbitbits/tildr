@@ -15,6 +15,7 @@ mod info;
 mod init;
 mod list;
 mod mv;
+mod open;
 mod repo;
 mod restore;
 mod secret;
@@ -44,4 +45,5 @@ pub enum CliCommands {
   Import(import::Command),
   Mv(mv::Command),
   Exclude(exclude::Command),
+  Open(open::Command),
 }
