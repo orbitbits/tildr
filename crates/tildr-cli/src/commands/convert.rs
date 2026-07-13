@@ -124,6 +124,7 @@ impl From<CliCommands> for Commands {
       },
       CliCommands::Open(_) => Commands::Open,
       CliCommands::Stats(_) => Commands::Stats,
+      CliCommands::Backup(cmd) => Commands::Backup { output: cmd.output },
     }
   }
 }

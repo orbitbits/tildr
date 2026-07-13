@@ -126,4 +126,7 @@ pub enum Commands {
   },
   Open,
   Stats,
+  Backup {
+    output: Option<String>,
+  },
 }

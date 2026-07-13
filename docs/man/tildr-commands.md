@@ -535,6 +535,27 @@ By extension:  .toml (12), .lua (8), .sh (6), .json (5)
 - Shows the largest managed file
 - Shows file extension distribution (top 6)
 
+## tildr backup
+
+Creates a compressed tarball backup of the repository.
+
+```sh
+tildr backup
+tildr backup --output ~/my-backup.tar.gz
+```
+
+**Options:**
+
+**--output** *\<FILE\>*
+:   Custom output path for the backup file.
+
+**Behavior:**
+
+- Creates a `.tar.gz` archive of the entire repository
+- Default output: `~/.dotfiles-backup-YYYY-MM-DD.tar.gz`
+- Shows the backup file size after creation
+- Requires `tar` to be installed on the system
+
 ## tildr secret
 
 Manages encryption of sensitive files in your dotfiles repository using GPG.

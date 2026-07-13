@@ -30,4 +30,5 @@ serde_json    = { workspace = true }
 walkdir       = { workspace = true }
 dialoguer     = { workspace = true }
 open          = { workspace = true }
+chrono        = { workspace = true }
 console       = { workspace = true }

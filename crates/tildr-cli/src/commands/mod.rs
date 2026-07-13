@@ -2,6 +2,7 @@ use clap::Subcommand;
 
 mod add;
 mod apply;
+mod backup;
 mod cat;
 mod completions;
 mod convert;
@@ -48,4 +49,5 @@ pub enum CliCommands {
   Exclude(exclude::Command),
   Open(open::Command),
   Stats(stats::Command),
+  Backup(backup::Command),
 }

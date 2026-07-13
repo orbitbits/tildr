@@ -1,5 +1,6 @@
 mod add;
 mod apply;
+mod backup;
 mod cat;
 mod del;
 pub mod doctor;
@@ -225,5 +226,6 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     Commands::Exclude { mode } => exclude::run(ctx, mode.clone()),
     Commands::Open => open::run(ctx),
     Commands::Stats => stats::run(ctx),
+    Commands::Backup { output } => backup::run(ctx, output),
   }
 }
