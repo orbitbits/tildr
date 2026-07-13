@@ -19,6 +19,7 @@ mod open;
 mod repo;
 mod restore;
 mod secret;
+mod stats;
 mod status;
 mod sync;
 mod unlink;
@@ -46,4 +47,5 @@ pub enum CliCommands {
   Mv(mv::Command),
   Exclude(exclude::Command),
   Open(open::Command),
+  Stats(stats::Command),
 }

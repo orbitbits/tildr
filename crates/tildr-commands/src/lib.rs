@@ -15,6 +15,7 @@ mod open;
 mod repo;
 mod restore;
 mod secret;
+pub mod stats;
 mod status;
 pub mod sync;
 mod unlink;
@@ -223,5 +224,6 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     Commands::Secret { mode } => secret::run(ctx, mode.clone()),
     Commands::Exclude { mode } => exclude::run(ctx, mode.clone()),
     Commands::Open => open::run(ctx),
+    Commands::Stats => stats::run(ctx),
   }
 }

@@ -1119,6 +1119,7 @@ name = "tildr-commands"
 version = "0.2.0"
 dependencies = [
  "anyhow",
+ "console",
  "dialoguer",
  "dirs",
  "open",

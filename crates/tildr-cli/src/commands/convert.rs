@@ -123,6 +123,7 @@ impl From<CliCommands> for Commands {
         },
       },
       CliCommands::Open(_) => Commands::Open,
+      CliCommands::Stats(_) => Commands::Stats,
     }
   }
 }

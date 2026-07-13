@@ -125,4 +125,5 @@ pub enum Commands {
     mode: ExcludeMode,
   },
   Open,
+  Stats,
 }

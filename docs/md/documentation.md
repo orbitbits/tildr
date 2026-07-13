@@ -754,6 +754,32 @@ Behavior:
 
 ---
 
+### `tildr stats`
+
+Shows statistics about managed files.
+
+```sh
+tildr stats
+```
+
+Output example:
+
+```text
+Managed files: 47
+Total size:    2.3 MB
+Largest:       .config/nvim/init.lua (12.4 KB)
+By extension:  .toml (12), .lua (8), .sh (6), .json (5)
+```
+
+Behavior:
+
+* Counts total managed files
+* Calculates total size of managed files in `$HOME`
+* Shows the largest managed file
+* Shows file extension distribution (top 6)
+
+---
+
 ### `tildr secret`
 
 Manages encryption of sensitive files in your dotfiles repository using GPG encryption.
