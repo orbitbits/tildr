@@ -1,6 +1,8 @@
 use super::{CliCommands, info::CliInfoMode, secret::CliSecretMode};
-use crate::commands::{exclude::CliExcludeMode, git::CliGitMode, repo::CliRepoMode};
-use tildr_domain::{Commands, ExcludeMode, GitMode, InfoMode, RepoMode, SecretMode};
+use crate::commands::{
+  exclude::CliExcludeMode, git::CliGitMode, group::CliGroupMode, repo::CliRepoMode,
+};
+use tildr_domain::{Commands, ExcludeMode, GitMode, GroupMode, InfoMode, RepoMode, SecretMode};
 
 impl From<CliCommands> for Commands {
   fn from(value: CliCommands) -> Self {
@@ -126,6 +128,17 @@ impl From<CliCommands> for Commands {
       CliCommands::Stats(_) => Commands::Stats,
       CliCommands::Backup(cmd) => Commands::Backup { output: cmd.output },
       CliCommands::Suggest(_) => Commands::Suggest,
+      CliCommands::Group(cmd) => Commands::Group {
+        mode: match cmd.mode {
+          CliGroupMode::Create { name, files } => GroupMode::Create { name, files },
+          CliGroupMode::Add { name, files } => GroupMode::Add { name, files },
+          CliGroupMode::Remove { name, files } => GroupMode::Remove { name, files },
+          CliGroupMode::Delete { name } => GroupMode::Delete { name },
+          CliGroupMode::List => GroupMode::List,
+          CliGroupMode::Apply { name } => GroupMode::Apply { name },
+          CliGroupMode::Unlink { name } => GroupMode::Unlink { name },
+        },
+      },
     }
   }
 }

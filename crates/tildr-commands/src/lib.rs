@@ -7,6 +7,7 @@ pub mod doctor;
 mod edit;
 mod exclude;
 mod git;
+mod group;
 mod import;
 mod info;
 mod init;
@@ -229,5 +230,6 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     Commands::Stats => stats::run(ctx),
     Commands::Backup { output } => backup::run(ctx, output),
     Commands::Suggest => suggest::run(ctx),
+    Commands::Group { mode } => group::run(ctx, mode),
   }
 }

@@ -130,4 +130,18 @@ pub enum Commands {
     output: Option<String>,
   },
   Suggest,
+  Group {
+    mode: GroupMode,
+  },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GroupMode {
+  Create { name: String, files: Vec<String> },
+  Add { name: String, files: Vec<String> },
+  Remove { name: String, files: Vec<String> },
+  Delete { name: String },
+  List,
+  Apply { name: String },
+  Unlink { name: String },
 }

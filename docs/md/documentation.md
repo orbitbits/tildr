@@ -835,6 +835,41 @@ Behavior:
 
 ---
 
+### `tildr group`
+
+Manages named groups of managed files for batch operations.
+
+```sh
+tildr group list
+tildr group create dev --files .bashrc .config/nvim
+tildr group add dev --files .tmux.conf
+tildr group remove dev --files .tmux.conf
+tildr group delete dev
+tildr group apply dev
+tildr group unlink dev
+```
+
+Options:
+
+| Subcommand                        | Description                                     |
+|-----------------------------------|-------------------------------------------------|
+| `create <NAME> --files <FILES>`   | Create a new group with the specified files     |
+| `add <NAME> --files <FILES>`      | Add files to an existing group                  |
+| `remove <NAME> --files <FILES>`   | Remove files from a group                       |
+| `delete <NAME>`                   | Delete a group                                  |
+| `list`                            | List all groups and their files                 |
+| `apply <NAME>`                    | Create symlinks for all files in the group      |
+| `unlink <NAME>`                   | Remove symlinks for all files in the group      |
+
+Behavior:
+
+* Groups are stored in `.tildr-groups.json` in the repository root
+* `apply` creates symlinks in `$HOME` for all files in the group
+* `unlink` removes symlinks from `$HOME` for all files in the group
+* Group operations work on files already managed by Tildr
+
+---
+
 ### `tildr secret`
 
 Manages encryption of sensitive files in your dotfiles repository using GPG encryption.

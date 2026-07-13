@@ -11,6 +11,7 @@ mod doctor;
 mod edit;
 mod exclude;
 mod git;
+mod group;
 mod import;
 mod info;
 mod init;
@@ -52,4 +53,5 @@ pub enum CliCommands {
   Stats(stats::Command),
   Backup(backup::Command),
   Suggest(suggest::Command),
+  Group(group::Command),
 }
