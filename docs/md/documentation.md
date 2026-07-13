@@ -3,7 +3,7 @@ layout: doc
 menu: tildr
 logo: https://raw.githubusercontent.com/orbitbits/tildr/refs/heads/main/.github/brand/logo-text/compact/tildr-variation-3.svg
 title: Tildr
-description: "Manage your HOME files and directories with symlinks and Git."
+description: "Manage and reproduce your HOME directory declaratively."
 date: 2026-04-18 17:59:04 -0300
 tags: [Rust, CLI, Declarative, Dotfiles, Synchronization, Reproducible]
 update_date:
@@ -13,23 +13,23 @@ permalink: /tildr/documentation/
 
 ## Introduction
 
-**Manage, reproduce, and control everything in your `$HOME` — declaratively.**
+**Manage, reproduce, and control your entire `$HOME`—declaratively.**
 
-`Tildr` is a fast and minimalist CLI that lets you define the desired state of your HOME directory and automatically
-enforce it.
+> **More powerful than *stow*. Simpler than *chezmoi*.**
 
-Instead of manually copying dotfiles, syncing folders, or rebuilding your environment from memory, you describe how your
-`$HOME` should look — and `Tildr` makes your system converge to that state.
+**Tildr** is a fast, minimalist CLI for defining and reproducing your personal Unix environment.
 
-> More powerful than *stow*. Simpler than *chezmoi*.
+Instead of manually copying dotfiles, syncing directories, or rebuilding your setup from memory, you describe the desired state of your `$HOME` in a declarative configuration. Tildr then ensures your system converges to that state safely and consistently.
+
+Designed around simplicity, predictability, and idempotency, Tildr helps you keep your environment reproducible across new machines, reinstalls, and everyday changes.
 
 ---
 
 ## Why Tildr?
 
-Traditional dotfile tools manage files. **Tildr** manages your HOME state.
+Traditional dotfile tools manage files. **Tildr** manages your **HOME state**.
 
-It treats your HOME directory as a reproducible environment—not just a collection of configuration files.
+Most dotfile managers treat your configuration as a collection of individual files. Tildr takes a broader view: your `$HOME` is an environment whose structure, contents, and behavior should be reproducible as a whole.
 
 With **Tildr**, you can:
 
@@ -367,12 +367,12 @@ tildr add .config/app01.json --nolink
 
 Options:
 
-| Flag        | Short | Description                                                 |
-|-------------|-------|-------------------------------------------------------------|
-| `--dry-run` | `-n`  | Preview actions without modifying files                     |
+| Flag        | Short | Description                                                           |
+|-------------|-------|-----------------------------------------------------------------------|
+| `--dry-run` | `-n`  | Preview actions without modifying files                               |
 | `--nolink`  |       | Add to repository without creating a symlink (adds to `.tildrignore`) |
-| `--force`   | `-f`  | Remove an existing repository target before moving the file |
-| `--quiet`   | `-q`  | Suppress output                                             |
+| `--force`   | `-f`  | Remove an existing repository target before moving the file           |
+| `--quiet`   | `-q`  | Suppress output                                                       |
 
 Behavior:
 
@@ -673,10 +673,10 @@ tildr mv
 
 Options:
 
-| Flag        | Short| Description                              |
-|-------------|------|------------------------------------------|
+| Flag        | Short | Description                                    |
+|-------------|-------|------------------------------------------------|
 | `--dry-run` | `-n`  | Show what would be done without making changes |
-| `--quiet`   | `-q`  | Suppress output                          |
+| `--quiet`   | `-q`  | Suppress output                                |
 
 Behavior:
 
@@ -702,8 +702,8 @@ tildr exclude list
 
 Options:
 
-| Subcommand    | Description                                                  |
-|---------------|--------------------------------------------------------------|
+| Subcommand        | Description                                              |
+|-------------------|----------------------------------------------------------|
 | `add <PATTERN>`   | Add a gitignore-style pattern to `.tildrignore`          |
 | `remove <PATTERN>`| Remove the exact pattern from `.tildrignore`             |
 | `list`            | Print all patterns in `.tildrignore`                     |

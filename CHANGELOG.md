@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Conventional Commits.
 
-## [Unreleased] - 2026-05-04
+## v0.1.0 - 2026-05-04
 
 ### Bug Fixes
 
