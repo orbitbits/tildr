@@ -18,6 +18,7 @@ mod restore;
 mod secret;
 pub mod stats;
 mod status;
+mod suggest;
 pub mod sync;
 mod unlink;
 mod utils;
@@ -227,5 +228,6 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     Commands::Open => open::run(ctx),
     Commands::Stats => stats::run(ctx),
     Commands::Backup { output } => backup::run(ctx, output),
+    Commands::Suggest => suggest::run(ctx),
   }
 }

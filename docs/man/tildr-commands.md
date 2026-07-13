@@ -556,6 +556,35 @@ tildr backup --output ~/my-backup.tar.gz
 - Shows the backup file size after creation
 - Requires `tar` to be installed on the system
 
+## tildr suggest
+
+Scans `$HOME` for common dotfile patterns that could be managed by Tildr.
+
+```sh
+tildr suggest
+```
+
+**Output example:**
+
+```text
+Suggested files in $HOME:
+
+  Shell:        .zshrc, .bash_profile
+  Editor:       .config/nvim/init.lua
+  Terminal:     .config/alacritty.toml
+  Git:          .gitconfig
+  Tools:        .tmux.conf
+
+Run `tildr add <file>` to manage them.
+```
+
+**Behavior:**
+
+- Checks for common dotfile patterns (shell configs, editor configs, terminal emulators, git, etc.)
+- Skips files already managed by Tildr
+- Reports suggestions grouped by category
+- Does not modify any files
+
 ## tildr secret
 
 Manages encryption of sensitive files in your dotfiles repository using GPG.

@@ -129,4 +129,5 @@ pub enum Commands {
   Backup {
     output: Option<String>,
   },
+  Suggest,
 }
