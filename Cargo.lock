@@ -1064,7 +1064,7 @@ dependencies = [
 
 [[package]]
 name = "tildr"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1077,7 +1077,7 @@ dependencies = [
 
 [[package]]
 name = "tildr-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1087,7 +1087,7 @@ dependencies = [
 
 [[package]]
 name = "tildr-commands"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "dialoguer",
@@ -1108,7 +1108,7 @@ dependencies = [
 
 [[package]]
 name = "tildr-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "crossterm",
@@ -1128,18 +1128,18 @@ dependencies = [
 
 [[package]]
 name = "tildr-crypto"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
 ]
 
 [[package]]
 name = "tildr-domain"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "tildr-fs"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "dirs",
@@ -1147,14 +1147,14 @@ dependencies = [
 
 [[package]]
 name = "tildr-git"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
 ]
 
 [[package]]
 name = "tildr-repo"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "ignore",
@@ -1163,7 +1163,7 @@ dependencies = [
 
 [[package]]
 name = "tildr-ui"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "console",
  "dialoguer",
@@ -1171,7 +1171,7 @@ dependencies = [
 
 [[package]]
 name = "tildr-utils"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "trash",

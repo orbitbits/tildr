@@ -52,6 +52,8 @@ pub enum Commands {
   List {
     tree: bool,
     long: bool,
+    export: Option<String>,
+    import: Option<String>,
   },
 
   Apply {

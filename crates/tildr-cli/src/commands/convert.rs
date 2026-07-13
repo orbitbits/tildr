@@ -39,6 +39,8 @@ impl From<CliCommands> for Commands {
       CliCommands::List(cmd) => Commands::List {
         tree: cmd.tree,
         long: cmd.long,
+        export: cmd.export,
+        import: cmd.import,
       },
 
       CliCommands::Apply(cmd) => Commands::Apply {

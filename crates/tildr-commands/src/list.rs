@@ -1,13 +1,23 @@
-use anyhow::Result;
-use std::{fs, path::Path};
+use anyhow::{Context as AnyhowContext, Result};
+use serde::{Deserialize, Serialize};
+use std::{fs, path::Path, path::PathBuf};
 use tildr_core::context::Context;
+use tildr_fs::symlink::create_symlink;
 use tildr_repo::ManagedEntry;
 use tildr_ui::info;
 use tildr_utils::fs::format_size;
 
+#[derive(Debug, Serialize, Deserialize)]
+struct ExportFile {
+  version: u32,
+  files: Vec<String>,
+}
+
 pub struct ListArgs {
   pub tree: bool,
   pub long: bool,
+  pub export: Option<String>,
+  pub import: Option<String>,
 }
 
 pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
@@ -16,12 +26,19 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
     return Ok(());
   }
 
+  if let Some(ref path) = args.export {
+    return export_to_file(ctx, path);
+  }
+
+  if let Some(ref path) = args.import {
+    return import_from_file(ctx, path);
+  }
+
   if args.tree {
     print_tree(&ctx.repo_path)?;
     return Ok(());
   }
 
-  // let entries = collect_entries(&ctx.repo_path)?;
   let entries = tildr_repo::scatildr_repo(&ctx.repo_path)?;
 
   if entries.is_empty() {
@@ -44,18 +61,98 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   Ok(())
 }
 
-// fn collect_entries(root: &Path) -> Result<Vec<PathBuf>> {
-//   let entries = WalkDir::new(root)
-//     .min_depth(1)
-//     .into_iter()
-//     .filter_map(|e| e.ok())
-//     .filter(|e| !e.path().components().any(|c| c.as_os_str() == ".git"))
-//     .filter(|e| e.file_type().is_file())
-//     .map(|e| e.path().strip_prefix(root).unwrap().to_path_buf())
-//     .collect();
+fn export_to_file(ctx: &Context, path: &str) -> Result<()> {
+  let entries = tildr_repo::scatildr_repo(&ctx.repo_path)?;
 
-//   Ok(entries)
-// }
+  if entries.is_empty() {
+    info("No managed files to export.");
+    return Ok(());
+  }
+
+  let files: Vec<String> = entries
+    .iter()
+    .map(|e| e.relative.display().to_string())
+    .collect();
+
+  let export = ExportFile { version: 1, files };
+
+  let json = serde_json::to_string_pretty(&export).context("Failed to serialize export")?;
+  fs::write(path, &json).context("Failed to write export file")?;
+
+  println!("Exported {} file(s) to {}", entries.len(), path);
+  Ok(())
+}
+
+fn import_from_file(ctx: &Context, path: &str) -> Result<()> {
+  let content = fs::read_to_string(path).context("Failed to read import file")?;
+  let export: ExportFile =
+    serde_json::from_str(&content).context("Failed to parse import file (invalid JSON)")?;
+
+  if export.version != 1 {
+    anyhow::bail!("Unsupported export version: {}", export.version);
+  }
+
+  if export.files.is_empty() {
+    info("No files in import file.");
+    return Ok(());
+  }
+
+  let mut created = 0u32;
+  let mut skipped = 0u32;
+  let mut not_found = 0u32;
+
+  for file in &export.files {
+    let repo_file: PathBuf = ctx.repo_path.join(file);
+    let home_file: PathBuf = ctx.home_path.join(file);
+
+    if !repo_file.exists() {
+      eprintln!("  Warning: '{}' not found in repository, skipping", file);
+      not_found += 1;
+      continue;
+    }
+
+    // Create parent directories in $HOME if needed
+    if let Some(parent) = home_file.parent() {
+      if !parent.exists() {
+        fs::create_dir_all(parent)
+          .with_context(|| format!("Failed to create directory: {}", parent.display()))?;
+      }
+    }
+
+    // Check if symlink already exists and is correct
+    if home_file
+      .symlink_metadata()
+      .map(|m: fs::Metadata| m.is_symlink())
+      .unwrap_or(false)
+    {
+      if let Ok(target) = fs::read_link(&home_file) {
+        if target == repo_file {
+          skipped += 1;
+          continue;
+        }
+      }
+    }
+
+    // Remove existing file/symlink if present
+    if home_file.exists() || home_file.symlink_metadata().is_ok() {
+      if home_file.is_dir() && !home_file.is_symlink() {
+        fs::remove_dir_all(&home_file)?;
+      } else {
+        fs::remove_file(&home_file)?;
+      }
+    }
+
+    create_symlink(&repo_file, &home_file)?;
+    created += 1;
+  }
+
+  println!(
+    "Imported: {} created, {} skipped (already correct), {} not found in repo",
+    created, skipped, not_found
+  );
+
+  Ok(())
+}
 
 fn print_long(entries: &[ManagedEntry]) -> Result<()> {
   let max_len = entries

@@ -117,11 +117,18 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
       },
     ),
 
-    Commands::List { tree, long } => list::run(
+    Commands::List {
+      tree,
+      long,
+      export,
+      import,
+    } => list::run(
       ctx,
       list::ListArgs {
         tree: *tree,
         long: *long,
+        export: export.clone(),
+        import: import.clone(),
       },
     ),
 

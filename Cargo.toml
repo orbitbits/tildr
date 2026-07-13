@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/*", "tildr"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 authors = ["William <https://williamcanin.github.io>"]
 edition = "2024"
 homepage = "https://orbitbits.github.io/tildr/"

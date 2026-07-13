@@ -461,20 +461,40 @@ Lists managed files in the repository.
 tildr list
 tildr list --long
 tildr list --tree
+tildr list --export ~/tildr-files.json
+tildr list --import ~/tildr-files.json
 ```
 
 Options:
 
-| Flag     | Short| Description                             |
-|----------|------|-----------------------------------------|
-| `--tree` | `-t` | Show the repository as a directory tree |
-| `--long` | `-l` | Show type and file size for each entry  |
+| Flag          | Short| Description                                                   |
+|---------------|------|---------------------------------------------------------------|
+| `--tree`      | `-t` | Show the repository as a directory tree                       |
+| `--long`      | `-l` | Show type and file size for each entry                        |
+| `--export`    |      | Export managed file list to a JSON file                       |
+| `--import`    |      | Import managed file list from a JSON file and create symlinks |
+
+Export JSON format:
+
+```json
+{
+  "version": 1,
+  "files": [
+    ".bashrc",
+    ".config/starship.toml",
+    ".config/nvim/init.lua"
+  ]
+}
+```
 
 Notes:
 
 * Standard listing includes only managed files discovered by repository scanning
 * Tree view prints the repository directory structure directly
 * `.tildrignore` patterns and internally excluded files are not shown
+* Export creates a portable snapshot of managed files for use on other machines
+* Import creates parent directories in `$HOME` as needed and skips files already correctly linked
+* Files not found in the repository during import are reported as warnings but do not stop the process
 
 ---
 
