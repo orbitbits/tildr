@@ -27,17 +27,31 @@ Instead of manually copying dotfiles, syncing folders, or rebuilding your enviro
 
 ## Why Tildr?
 
-Traditional dotfile tools focus on files. `Tildr` focuses on **state**.
+Traditional dotfile tools manage files. **Tildr** manages your HOME state.
 
-It treats your HOME directory as a reproducible environment — not just a collection of configs.
+It treats your HOME directory as a reproducible environment—not just a collection of configuration files.
 
-With `Tildr`, you can:
+With **Tildr**, you can:
 
 * Define the structure and contents of your `$HOME`
 * Keep files and directories consistently in sync
 * Recreate your environment reliably at any time
 * Eliminate configuration drift
-* Manage more than dotfiles — manage your **entire home state**
+* Manage more than dotfiles—manage your **entire home state**
+
+---
+
+## Why the name?
+
+The name **Tildr** is inspired by the **tilde** (`~`), one of the most recognizable symbols in Unix and Linux.
+
+For decades, `~` has represented the user's **home directory**—a familiar starting point where configuration, files, and personal workflows naturally live. It's a small symbol with a meaning that every Unix user immediately understands.
+
+That idea perfectly reflects the project's philosophy: your home directory is more than a place to store dotfiles—it's your personal environment.
+
+Rather than using *Tilde* directly, the name evolved into **Tildr**: shorter, more distinctive, and better suited as a modern software project while preserving its Unix roots.
+
+For experienced Unix users, it's a subtle nod to a symbol they've used countless times. For everyone else, it's simply a memorable name that grows with the project.
 
 ---
 
