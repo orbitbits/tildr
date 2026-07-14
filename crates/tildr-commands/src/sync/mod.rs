@@ -127,8 +127,12 @@ fn re_encrypt_before_push(ctx: &Context) -> Result<()> {
   if manifest.exists() && detect_gpg_available() {
     let entries = manifest.entries()?;
     if !entries.is_empty() {
-      // Skip re-encryption if any file is missing from HOME
-      // (the encrypted bundle already has the previous version)
+      // Filter out files that don't exist in HOME
+      let available: Vec<String> = entries
+        .iter()
+        .filter(|e| ctx.home_path.join(e).exists())
+        .cloned()
+        .collect();
       let missing: Vec<&String> = entries
         .iter()
         .filter(|e| !ctx.home_path.join(e).exists())
@@ -136,14 +140,16 @@ fn re_encrypt_before_push(ctx: &Context) -> Result<()> {
       if !missing.is_empty() {
         let names: Vec<&str> = missing.iter().map(|s| s.as_str()).collect();
         info(&format!(
-          "Skipping re-encryption: {} file(s) not found in HOME: {}",
+          "Skipping {} file(s) not found in HOME: {}",
           missing.len(),
           names.join(", ")
         ));
+      }
+      if available.is_empty() {
         return Ok(());
       }
       let gpg = GpgIntegration::new(&ctx.repo_path);
-      crate::secret::encrypt_bundle(ctx, &gpg, &entries)?;
+      crate::secret::encrypt_bundle(ctx, &gpg, &available)?;
       let git_inner = GitIntegration::new(ctx.repo_path.clone());
       let _ = git_inner.auto_commit(&format!("{}: secret: re-encrypt before sync", APP_NAME));
     }
