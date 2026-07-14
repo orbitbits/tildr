@@ -134,7 +134,13 @@ During repository scans, Tildr always excludes the following entries regardless 
 - `.gitignore`
 - `.tildrignore`
 - `.tildr/` — internal directory containing all Tildr configuration files
+- `.DS_Store`
+- `Thumbs.db`
+- `.gitkeep`
 - Files ending in `.bak`
+- Files ending in `.tmp`
+- Files ending in `.swp`
+- Files ending in `~`
 
 # SEE ALSO
 
