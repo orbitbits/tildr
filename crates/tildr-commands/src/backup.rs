@@ -18,7 +18,7 @@ pub fn run(ctx: &Context, output: &Option<String>) -> Result<()> {
     .arg("-czf")
     .arg(&backup_path)
     .arg("-C")
-    .arg(&ctx.repo_path.parent().unwrap_or(&ctx.repo_path))
+    .arg(ctx.repo_path.parent().unwrap_or(&ctx.repo_path))
     .arg(ctx.repo_path.file_name().unwrap_or_default())
     .status()
     .context("Failed to run 'tar'. Is it installed?")?;

@@ -112,11 +112,11 @@ fn import_from_file(ctx: &Context, path: &str) -> Result<()> {
     }
 
     // Create parent directories in $HOME if needed
-    if let Some(parent) = home_file.parent() {
-      if !parent.exists() {
-        fs::create_dir_all(parent)
-          .with_context(|| format!("Failed to create directory: {}", parent.display()))?;
-      }
+    if let Some(parent) = home_file.parent()
+      && !parent.exists()
+    {
+      fs::create_dir_all(parent)
+        .with_context(|| format!("Failed to create directory: {}", parent.display()))?;
     }
 
     // Check if symlink already exists and is correct
@@ -124,13 +124,11 @@ fn import_from_file(ctx: &Context, path: &str) -> Result<()> {
       .symlink_metadata()
       .map(|m: fs::Metadata| m.is_symlink())
       .unwrap_or(false)
+      && let Ok(target) = fs::read_link(&home_file)
+      && target == repo_file
     {
-      if let Ok(target) = fs::read_link(&home_file) {
-        if target == repo_file {
-          skipped += 1;
-          continue;
-        }
-      }
+      skipped += 1;
+      continue;
     }
 
     // Remove existing file/symlink if present
