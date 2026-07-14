@@ -1,8 +1,10 @@
 use anyhow::Result;
+use std::fmt::Write;
 use tildr_core::{constants::APP_NAME, context::Context};
 use tildr_fs::symlink::{is_symlink, is_symlink_to};
 use tildr_repo::scatildr_repo;
 use tildr_ui::{color::Colorize, symbols::icons};
+use tildr_utils::pager::page_string;
 
 #[derive(Debug, serde::Serialize)]
 pub struct FileStatus {
@@ -13,6 +15,7 @@ pub struct FileStatus {
 pub struct StatusArgs {
   pub json: bool,
   pub counter: bool,
+  pub less: bool,
 }
 
 pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
@@ -59,7 +62,11 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
 
   // --- JSON ---
   if args.json {
-    println!("{}", serde_json::to_string_pretty(&statuses)?);
+    if args.less {
+      page_string(&serde_json::to_string_pretty(&statuses)?)?;
+    } else {
+      println!("{}", serde_json::to_string_pretty(&statuses)?);
+    }
     return Ok(());
   }
 
@@ -67,20 +74,24 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
 
   // --- COUNTER ---
   if args.counter {
-    println!("Managed: {}", result.0);
-    println!("Linked: {}", result.1[0]);
-    println!("Missing: {}", result.1[1]);
-    println!("Broken: {}", result.1[2]);
-    println!("Not symlink: {}", result.1[3]);
-
+    let output = format!(
+      "Managed: {}\nLinked: {}\nMissing: {}\nBroken: {}\nNot symlink: {}",
+      result.0, result.1[0], result.1[1], result.1[2], result.1[3]
+    );
+    if args.less {
+      page_string(&output)?;
+    } else {
+      println!("{}", output);
+    }
     return Ok(());
   }
 
   // --- default ---
+  let mut buf = String::new();
   let max_len = statuses.iter().map(|s| s.path.len()).max().unwrap_or(0);
 
-  println!();
-  println!("{:<width$}  STATUS", "FILE", width = max_len + 2);
+  writeln!(buf)?;
+  writeln!(buf, "{:<width$}  STATUS", "FILE", width = max_len + 2)?;
 
   for s in &statuses {
     let (symbol, label) = match s.status.as_str() {
@@ -97,20 +108,28 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
       _ => (icons().none, "unknown".to_string()),
     };
 
-    println!(
+    writeln!(
+      buf,
       "{}{:<width$}  {}",
       symbol,
       s.path,
       label,
       width = max_len + 2
-    );
+    )?;
   }
   if result.1[1] > 0 || result.1[2] > 0 || result.1[3] > 0 {
-    println!(
+    writeln!(
+      buf,
       "\n-------------------------------\n{}: {} apply",
       "run".cyan(),
       APP_NAME
-    );
+    )?;
+  }
+
+  if args.less {
+    page_string(&buf)?;
+  } else {
+    print!("{}", buf);
   }
 
   Ok(())

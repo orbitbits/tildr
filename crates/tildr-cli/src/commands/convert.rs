@@ -43,6 +43,7 @@ impl From<CliCommands> for Commands {
         long: cmd.long,
         export: cmd.export,
         import: cmd.import,
+        less: cmd.less,
       },
 
       CliCommands::Apply(cmd) => Commands::Apply {
@@ -67,6 +68,7 @@ impl From<CliCommands> for Commands {
       CliCommands::Status(cmd) => Commands::Status {
         json: cmd.json,
         counter: cmd.counter,
+        less: cmd.less,
       },
 
       CliCommands::Doctor(_) => Commands::Doctor,

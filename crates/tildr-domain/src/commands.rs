@@ -54,6 +54,7 @@ pub enum Commands {
     long: bool,
     export: Option<String>,
     import: Option<String>,
+    less: bool,
   },
 
   Apply {
@@ -75,6 +76,7 @@ pub enum Commands {
   Status {
     json: bool,
     counter: bool,
+    less: bool,
   },
 
   Doctor,

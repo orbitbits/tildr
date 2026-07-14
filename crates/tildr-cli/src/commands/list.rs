@@ -7,6 +7,7 @@ use clap::Args;
 EXAMPLES:
   tildr list
   tildr list --tree
+  tildr list --less
   tildr list --export ~/tildr-files.json
   tildr list --import ~/tildr-files.json\n"
 )]
@@ -23,4 +24,7 @@ pub struct Command {
   /// Import managed file list from a JSON file and create symlinks
   #[arg(long, value_name = "FILE")]
   pub import: Option<String>,
+  /// View the output in an interactive pager
+  #[arg(short, long)]
+  pub less: bool,
 }

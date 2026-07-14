@@ -4,8 +4,9 @@ use clap::Args;
 #[command(
   about = "Show the current status of managed files and symlinks",
   after_help = "\
-EXAMPLE:
-  tildr status\n"
+EXAMPLES:
+  tildr status
+  tildr status --less\n"
 )]
 pub struct Command {
   /// Output status information in JSON format
@@ -15,4 +16,8 @@ pub struct Command {
   /// Display a summary of managed files and their states
   #[arg(short, long)]
   pub counter: bool,
+
+  /// View the output in an interactive pager
+  #[arg(short, long)]
+  pub less: bool,
 }

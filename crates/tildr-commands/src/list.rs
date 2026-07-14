@@ -1,11 +1,11 @@
 use anyhow::{Context as AnyhowContext, Result};
 use serde::{Deserialize, Serialize};
-use std::{fs, path::Path, path::PathBuf};
+use std::{fmt::Write, fs, path::Path, path::PathBuf};
 use tildr_core::context::Context;
 use tildr_fs::symlink::create_symlink;
 use tildr_repo::ManagedEntry;
 use tildr_ui::info;
-use tildr_utils::fs::format_size;
+use tildr_utils::{fs::format_size, pager::page_string};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ExportFile {
@@ -18,6 +18,7 @@ pub struct ListArgs {
   pub long: bool,
   pub export: Option<String>,
   pub import: Option<String>,
+  pub less: bool,
 }
 
 pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
@@ -35,7 +36,13 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   }
 
   if args.tree {
-    print_tree(&ctx.repo_path)?;
+    let mut buf = String::new();
+    write_tree(&ctx.repo_path, &mut buf)?;
+    if args.less {
+      page_string(&buf)?;
+    } else {
+      print!("{}", buf);
+    }
     return Ok(());
   }
 
@@ -47,16 +54,23 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   }
 
   let count = entries.len();
+  let mut buf = String::new();
 
   if args.long {
-    print_long(&entries)?;
+    write_long(&entries, &mut buf)?;
   } else {
     for entry in &entries {
-      println!("{}", entry.relative.display());
+      writeln!(buf, "{}", entry.relative.display())?;
     }
   }
 
-  println!("\n{} file(s) managed", count);
+  writeln!(buf, "\n{} file(s) managed", count)?;
+
+  if args.less {
+    page_string(&buf)?;
+  } else {
+    print!("{}", buf);
+  }
 
   Ok(())
 }
@@ -152,14 +166,14 @@ fn import_from_file(ctx: &Context, path: &str) -> Result<()> {
   Ok(())
 }
 
-fn print_long(entries: &[ManagedEntry]) -> Result<()> {
+fn write_long(entries: &[ManagedEntry], buf: &mut String) -> Result<()> {
   let max_len = entries
     .iter()
     .map(|e| e.relative.display().to_string().len())
     .max()
     .unwrap_or(0);
 
-  println!("{:<width$}  TYPE  SIZE", "FILE", width = max_len + 2);
+  writeln!(buf, "{:<width$}  TYPE  SIZE", "FILE", width = max_len + 2)?;
 
   for entry in entries {
     let metadata = fs::metadata(&entry.repo_path)?;
@@ -171,20 +185,21 @@ fn print_long(entries: &[ManagedEntry]) -> Result<()> {
       format_size(0)
     };
 
-    println!(
+    writeln!(
+      buf,
       "{:<width$}  {:<4}  {}",
       entry.relative.display(),
       file_type,
       size,
       width = max_len + 2
-    );
+    )?;
   }
 
   Ok(())
 }
 
-fn print_tree(root: &Path) -> Result<()> {
-  fn walk(path: &Path, prefix: String) -> Result<()> {
+fn write_tree(root: &Path, buf: &mut String) -> Result<()> {
+  fn walk(path: &Path, prefix: String, buf: &mut String) -> Result<()> {
     let mut entries: Vec<_> = fs::read_dir(path)?
       .filter_map(|e| e.ok())
       .filter(|e| e.file_name() != ".git")
@@ -200,7 +215,7 @@ fn print_tree(root: &Path) -> Result<()> {
       let path = entry.path();
 
       let branch = if is_last { "└── " } else { "├── " };
-      println!("{}{}{}", prefix, branch, name);
+      writeln!(buf, "{}{}{}", prefix, branch, name)?;
 
       if path.is_dir() {
         let new_prefix = if is_last {
@@ -208,15 +223,19 @@ fn print_tree(root: &Path) -> Result<()> {
         } else {
           format!("{}│   ", prefix)
         };
-        walk(&path, new_prefix)?;
+        walk(&path, new_prefix, buf)?;
       }
     }
 
     Ok(())
   }
 
-  println!("{}", root.file_name().unwrap_or_default().to_string_lossy());
-  walk(root, String::new())?;
+  writeln!(
+    buf,
+    "{}",
+    root.file_name().unwrap_or_default().to_string_lossy()
+  )?;
+  walk(root, String::new(), buf)?;
 
   Ok(())
 }
