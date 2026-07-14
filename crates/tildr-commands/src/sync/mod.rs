@@ -9,7 +9,7 @@ use anyhow::{Result, bail};
 use tildr_core::{constants::APP_NAME, context::Context};
 use tildr_crypto::{EncryptManifest, GpgIntegration, detect_gpg_available};
 use tildr_git::GitIntegration;
-use tildr_ui::success;
+use tildr_ui::{info, success};
 
 pub struct SyncArgs {
   pub dry_run: bool,
@@ -127,6 +127,21 @@ fn re_encrypt_before_push(ctx: &Context) -> Result<()> {
   if manifest.exists() && detect_gpg_available() {
     let entries = manifest.entries()?;
     if !entries.is_empty() {
+      // Skip re-encryption if any file is missing from HOME
+      // (the encrypted bundle already has the previous version)
+      let missing: Vec<&String> = entries
+        .iter()
+        .filter(|e| !ctx.home_path.join(e).exists())
+        .collect();
+      if !missing.is_empty() {
+        let names: Vec<&str> = missing.iter().map(|s| s.as_str()).collect();
+        info(&format!(
+          "Skipping re-encryption: {} file(s) not found in HOME: {}",
+          missing.len(),
+          names.join(", ")
+        ));
+        return Ok(());
+      }
       let gpg = GpgIntegration::new(&ctx.repo_path);
       crate::secret::encrypt_bundle(ctx, &gpg, &entries)?;
       let git_inner = GitIntegration::new(ctx.repo_path.clone());
