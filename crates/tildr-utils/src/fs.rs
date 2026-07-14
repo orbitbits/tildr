@@ -21,6 +21,7 @@ const IGNORE_FILES: &[&str] = &[
   ".gitignore",
   ".tildr-encrypt",
   ".tildr-encrypt.gpg",
+  ".tildr-groups.json",
 ];
 //
 // List of ignored extensions in all repository Tildr

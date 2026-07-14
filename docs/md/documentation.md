@@ -199,6 +199,7 @@ During repository scans, Tildr always excludes:
 * `.tildr`
 * `.tildr-encrypt`
 * `.tildr-encrypt.gpg`
+* `.tildr-groups.json`
 * files ending in `.bak`
 
 ---
