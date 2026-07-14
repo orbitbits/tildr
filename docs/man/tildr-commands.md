@@ -178,6 +178,7 @@ Shows the synchronization state of all managed files.
 tildr status
 tildr status --json
 tildr status --counter
+tildr status --less
 ```
 
 **Options:**
@@ -187,6 +188,9 @@ tildr status --counter
 
 **-c**, **--counter**
 :   Print aggregated counters only.
+
+**-l**, **--less**
+:   View the output in an interactive pager (uses `$PAGER` or `less -RFX`).
 
 **Status values:**
 
@@ -220,6 +224,7 @@ Lists managed files in the repository.
 tildr list
 tildr list --long
 tildr list --tree
+tildr list --less
 tildr list --export ~/tildr-files.json
 tildr list --import ~/tildr-files.json
 ```
@@ -231,6 +236,9 @@ tildr list --import ~/tildr-files.json
 
 **-l**, **--long**
 :   Show type and file size for each entry.
+
+**-l**, **--less**
+:   View the output in an interactive pager (uses `$PAGER` or `less -RFX`).
 
 **--export** *\<FILE\>*
 :   Export the list of managed files to a JSON file. The JSON contains a version number, export timestamp, and an array of relative file paths.

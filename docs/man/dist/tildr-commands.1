@@ -194,6 +194,7 @@ Shows the synchronization state of all managed files.
 tildr status
 tildr status \-\-json
 tildr status \-\-counter
+tildr status \-\-less
 .EE
 .PP
 \f[B]Options:\f[R]
@@ -203,6 +204,10 @@ Emit structured JSON output.
 .TP
 \f[B]\-c\f[R], \f[B]\[en]counter\f[R]
 Print aggregated counters only.
+.TP
+\f[B]\-l\f[R], \f[B]\[en]less\f[R]
+View the output in an interactive pager (uses \f[CR]$PAGER\f[R] or
+\f[CR]less \-RFX\f[R]).
 .PP
 \f[B]Status values:\f[R]
 .TP
@@ -234,6 +239,9 @@ Lists managed files in the repository.
 tildr list
 tildr list \-\-long
 tildr list \-\-tree
+tildr list \-\-less
+tildr list \-\-export \[ti]/tildr\-files.json
+tildr list \-\-import \[ti]/tildr\-files.json
 .EE
 .PP
 \f[B]Options:\f[R]
@@ -243,6 +251,34 @@ Show the repository as a directory tree.
 .TP
 \f[B]\-l\f[R], \f[B]\[en]long\f[R]
 Show type and file size for each entry.
+.TP
+\f[B]\-l\f[R], \f[B]\[en]less\f[R]
+View the output in an interactive pager (uses \f[CR]$PAGER\f[R] or
+\f[CR]less \-RFX\f[R]).
+.TP
+\f[B]\[en]export\f[R] \f[I]<FILE>\f[R]
+Export the list of managed files to a JSON file.
+The JSON contains a version number, export timestamp, and an array of
+relative file paths.
+.TP
+\f[B]\[en]import\f[R] \f[I]<FILE>\f[R]
+Import a previously exported JSON file and create symlinks for all
+listed files in \f[CR]$HOME\f[R].
+Files already correctly linked are skipped.
+Files not found in the repository are reported as warnings.
+.PP
+\f[B]Export JSON format:\f[R]
+.IP
+.EX
+{
+  \[dq]version\[dq]: 1,
+  \[dq]files\[dq]: [
+    \[dq].bashrc\[dq],
+    \[dq].config/starship.toml\[dq],
+    \[dq].config/nvim/init.lua\[dq]
+  ]
+}
+.EE
 .PP
 \f[B]Notes:\f[R]
 .IP \[bu] 2
@@ -253,6 +289,12 @@ Tree view prints the repository directory structure directly
 .IP \[bu] 2
 \f[CR].tildrignore\f[R] patterns and internally excluded files are not
 shown
+.IP \[bu] 2
+Export creates a portable snapshot of managed files for use on other
+machines
+.IP \[bu] 2
+Import creates parent directories in \f[CR]$HOME\f[R] as needed and
+skips files already correctly linked
 .SS tildr repo path
 Prints the absolute path to the configured Tildr repository.
 .IP
@@ -529,6 +571,146 @@ Patterns added here prevent files from being discovered by
 .IP \[bu] 2
 Does not remove existing symlinks \[em] use \f[CR]tildr unlink\f[R] for
 that
+.SS tildr open
+Opens the Tildr repository in the system file manager.
+.IP
+.EX
+tildr open
+.EE
+.PP
+\f[B]Behavior:\f[R]
+.IP \[bu] 2
+Launches the default file manager of the system at the repository path
+.IP \[bu] 2
+Uses the \f[CR]open\f[R] crate for cross\-platform support (xdg\-open on
+Linux, open on macOS)
+.SS tildr stats
+Shows statistics about managed files.
+.IP
+.EX
+tildr stats
+.EE
+.PP
+\f[B]Output example:\f[R]
+.IP
+.EX
+Managed files: 47
+Total size:    2.3 MB
+Largest:       .config/nvim/init.lua (12.4 KB)
+By extension:  .toml (12), .lua (8), .sh (6), .json (5)
+.EE
+.PP
+\f[B]Behavior:\f[R]
+.IP \[bu] 2
+Counts total managed files
+.IP \[bu] 2
+Calculates total size of managed files in \f[CR]$HOME\f[R]
+.IP \[bu] 2
+Shows the largest managed file
+.IP \[bu] 2
+Shows file extension distribution (top 6)
+.SS tildr backup
+Creates a compressed tarball backup of the repository.
+.IP
+.EX
+tildr backup
+tildr backup \-\-output \[ti]/my\-backup.tar.gz
+.EE
+.PP
+\f[B]Options:\f[R]
+.TP
+\f[B]\[en]output\f[R] \f[I]<FILE>\f[R]
+Custom output path for the backup file.
+.PP
+\f[B]Behavior:\f[R]
+.IP \[bu] 2
+Creates a \f[CR].tar.gz\f[R] archive of the entire repository
+.IP \[bu] 2
+Default output: \f[CR]\[ti]/.dotfiles\-backup\-YYYY\-MM\-DD.tar.gz\f[R]
+.IP \[bu] 2
+Shows the backup file size after creation
+.IP \[bu] 2
+Requires \f[CR]tar\f[R] to be installed on the system
+.SS tildr suggest
+Scans \f[CR]$HOME\f[R] for common dotfile patterns that could be managed
+by Tildr.
+.IP
+.EX
+tildr suggest
+.EE
+.PP
+\f[B]Output example:\f[R]
+.IP
+.EX
+Suggested files in $HOME:
+
+  Shell:        .zshrc, .bash_profile
+  Editor:       .config/nvim/init.lua
+  Terminal:     .config/alacritty.toml
+  Git:          .gitconfig
+  Tools:        .tmux.conf
+
+Run \[ga]tildr add <file>\[ga] to manage them.
+.EE
+.PP
+\f[B]Behavior:\f[R]
+.IP \[bu] 2
+Checks for common dotfile patterns (shell configs, editor configs,
+terminal emulators, git, etc.)
+.IP \[bu] 2
+Skips files already managed by Tildr
+.IP \[bu] 2
+Reports suggestions grouped by category
+.IP \[bu] 2
+Does not modify any files
+.SS tildr group
+Manages named groups of managed files for batch operations.
+.IP
+.EX
+tildr group list
+tildr group create dev \-\-files .bashrc .config/nvim
+tildr group add dev \-\-files .tmux.conf
+tildr group remove dev \-\-files .tmux.conf
+tildr group delete dev
+tildr group apply dev
+tildr group unlink dev
+.EE
+.PP
+\f[B]Subcommands:\f[R]
+.TP
+\f[B]create\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
+Create a new group with the specified files.
+.TP
+\f[B]add\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
+Add files to an existing group.
+.TP
+\f[B]remove\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
+Remove files from a group.
+.TP
+\f[B]delete\f[R] \f[I]<NAME>\f[R]
+Delete a group.
+.TP
+\f[B]list\f[R]
+List all groups and their files.
+.TP
+\f[B]apply\f[R] \f[I]<NAME>\f[R]
+Create symlinks for all files in the group.
+.TP
+\f[B]unlink\f[R] \f[I]<NAME>\f[R]
+Remove symlinks for all files in the group.
+.PP
+\f[B]Behavior:\f[R]
+.IP \[bu] 2
+Groups are stored in \f[CR].tildr/groups.json\f[R] in the repository
+root
+.IP \[bu] 2
+\f[CR]apply\f[R] creates symlinks in \f[CR]$HOME\f[R] for all files in
+the group
+.IP \[bu] 2
+\f[CR]unlink\f[R] removes symlinks from \f[CR]$HOME\f[R] for all files
+in the group
+.IP \[bu] 2
+Group operations work on files already managed by Tildr
 .SS tildr secret
 Manages encryption of sensitive files in your dotfiles repository using
 GPG.
@@ -556,7 +738,7 @@ The original file in \f[CR]$HOME\f[R] is not touched.
 .TP
 \f[B]list\f[R]
 Lists all sensitive files currently registered in
-\f[CR].tildr\-encrypt\f[R].
+\f[CR].tildr/encrypted\-items\f[R].
 .TP
 \f[B]encrypt\f[R]
 Manually re\-encrypts all registered files into the bundle using their
@@ -587,8 +769,8 @@ interactively and saves the chosen key to config
 The original sensitive files are never stored in plain text in the
 repository
 .IP \[bu] 2
-Only the encrypted bundle \f[CR].tildr\-encrypt.gpg\f[R] and the
-plaintext manifest \f[CR].tildr\-encrypt\f[R] are committed
+Only the encrypted bundle \f[CR].tildr/encrypted.gpg\f[R] and the
+plaintext manifest \f[CR].tildr/encrypted\-items\f[R] are committed
 .IP \[bu] 2
 \f[CR]tildr sync\f[R] automatically re\-encrypts before pushing
 .IP \[bu] 2
