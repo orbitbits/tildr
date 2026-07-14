@@ -6,6 +6,7 @@ use anyhow::{Context as _, Result};
 use console::style;
 use serde::{Deserialize, Serialize};
 use tildr_core::context::Context;
+use tildr_utils::fs::tildr_dir;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Groups {
@@ -14,7 +15,7 @@ pub struct Groups {
 
 impl Groups {
   fn path(ctx: &Context) -> PathBuf {
-    ctx.repo_path.join(".tildr-groups.json")
+    tildr_dir(&ctx.repo_path).join("groups.json")
   }
 
   fn load(ctx: &Context) -> Result<Self> {

@@ -4,7 +4,7 @@ use std::{
   fs,
   hash::{Hash, Hasher},
   io,
-  path::Path,
+  path::{Path, PathBuf},
 };
 
 #[cfg(target_os = "linux")]
@@ -13,15 +13,16 @@ use std::process::{Command, Stdio};
 // IMPORTANT: These files are not considered user files, so they will be
 // ignored by default.
 //
+// Internal Tildr directory name
+const TILDR_DIR: &str = ".tildr";
+
 // List of ignored files in all repository Tildr
 const IGNORE_FILES: &[&str] = &[
   ".DS_Store",
   "Thumbs.db",
   ".gitkeep",
   ".gitignore",
-  ".tildr-encrypt",
-  ".tildr-encrypt.gpg",
-  ".tildr-groups.json",
+  ".tildrignore",
 ];
 //
 // List of ignored extensions in all repository Tildr
@@ -30,9 +31,17 @@ const IGNORE_EXTENSION: &[&str] = &["bak", "tmp", "swp"];
 // List of ignored suffixes in all repository Tildr
 const IGNORE_SUFFIXES: &[&str] = &["~"];
 
+/// Returns the path to the `.tildr/` internal directory.
+/// Creates the directory if it does not exist.
+pub fn tildr_dir(repo_path: &Path) -> PathBuf {
+  let dir = repo_path.join(TILDR_DIR);
+  let _ = std::fs::create_dir_all(&dir);
+  dir
+}
+
 pub fn should_ignore(path: &Path) -> bool {
   if let Some(name) = path.file_name().and_then(|n| n.to_str())
-    && (name == ".tildrignore" || name == ".tildr")
+    && name == TILDR_DIR
   {
     return true;
   }

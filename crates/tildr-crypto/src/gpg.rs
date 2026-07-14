@@ -4,6 +4,8 @@ use std::{
   process::Command,
 };
 
+use tildr_utils::fs::tildr_dir;
+
 pub struct GpgIntegration {
   repo_path: PathBuf,
 }
@@ -16,7 +18,7 @@ impl GpgIntegration {
   }
 
   pub fn bundle_path(&self) -> PathBuf {
-    self.repo_path.join(".tildr-encrypt.gpg")
+    tildr_dir(&self.repo_path).join("encrypted.gpg")
   }
 
   /// List available secret keys as (key_id, uid) pairs
@@ -73,7 +75,7 @@ impl GpgIntegration {
   pub fn encrypt_symmetric(&self, entries: &[String], home_path: &Path) -> Result<()> {
     self.validate_entries(entries, home_path)?;
 
-    let tar_path = self.repo_path.join(".tildr-encrypt.tar");
+    let tar_path = tildr_dir(&self.repo_path).join("encrypt.tar");
     self.create_tar(entries, home_path, &tar_path)?;
 
     let bundle = self.bundle_path();
@@ -112,7 +114,7 @@ impl GpgIntegration {
 
     self.validate_entries(entries, home_path)?;
 
-    let tar_path = self.repo_path.join(".tildr-encrypt.tar");
+    let tar_path = tildr_dir(&self.repo_path).join("encrypt.tar");
     self.create_tar(entries, home_path, &tar_path)?;
 
     let bundle = self.bundle_path();
@@ -148,7 +150,7 @@ impl GpgIntegration {
       bail!("No encrypted bundle found: {}", bundle.display());
     }
 
-    let tar_path = self.repo_path.join(".tildr-decrypt.tar");
+    let tar_path = tildr_dir(&self.repo_path).join("decrypt.tar");
 
     let status = Command::new("gpg")
       .args([
@@ -186,7 +188,7 @@ impl GpgIntegration {
 
   fn validate_entries(&self, entries: &[String], home_path: &Path) -> Result<()> {
     if entries.is_empty() {
-      bail!("No files listed in .tildr-encrypt");
+      bail!("No files listed in .tildr/encrypted-items");
     }
     for entry in entries {
       let full = home_path.join(entry);

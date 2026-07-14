@@ -195,12 +195,7 @@ During repository scans, Tildr always excludes:
 
 * `.git`
 * `.gitignore`
-* `.tildrignore`
-* `.tildr`
-* `.tildr-encrypt`
-* `.tildr-encrypt.gpg`
-* `.tildr-groups.json`
-* files ending in `.bak`
+* `.tildr/` — internal directory containing all Tildr configuration files
 
 ---
 
@@ -864,7 +859,7 @@ Options:
 
 Behavior:
 
-* Groups are stored in `.tildr-groups.json` in the repository root
+* Groups are stored in `.tildr/groups.json` in the repository root
 * `apply` creates symlinks in `$HOME` for all files in the group
 * `unlink` removes symlinks from `$HOME` for all files in the group
 * Group operations work on files already managed by Tildr
@@ -881,8 +876,8 @@ Some files you manage with Tildr — such as SSH keys, GPG private keys, or any 
 
 Tildr maintains two files at the root of your repository:
 
-* `.tildr-encrypt` — a plaintext manifest listing the relative paths of all registered sensitive files, one per line. This file is committed to the repository.
-* `.tildr-encrypt.gpg` — an encrypted bundle containing all the registered files packed together. This file is also committed to the repository.
+* `.tildr/encrypted-items` — a plaintext manifest listing the relative paths of all registered sensitive files, one per line. This file is committed to the repository.
+* `.tildr/encrypted.gpg` — an encrypted bundle containing all the registered files packed together. This file is also committed to the repository.
 
 The original sensitive files are **never stored in the repository**. When you register a file with `tildr secret add`, Tildr automatically adds it to `.gitignore` and removes it from Git tracking if it was already being tracked. Only the encrypted bundle enters version control.
 
@@ -907,7 +902,7 @@ Tildr supports two GPG encryption modes, configured via `[crypto].mode` in `conf
 In both modes:
 
 * GPG must be installed on the system (`gpg` in `PATH`)
-* Tildr creates a tar archive of all registered files and encrypts it as a single `.tildr-encrypt.gpg` bundle
+* Tildr creates a tar archive of all registered files and encrypts it as a single `.tildr/encrypted.gpg` bundle
 * Files are archived with **relative paths** so they extract correctly to any `$HOME` regardless of username or machine
 * Decryption is always automatic — GPG detects the encryption type from the bundle
 
@@ -935,10 +930,10 @@ tildr secret add ~/.gnupg/private-keys-v1.d/ABC123.key
 Behavior:
 
 * The file must exist in `$HOME`
-* The relative path is added to `.tildr-encrypt`
+* The relative path is added to `.tildr/encrypted-items`
 * The file path is appended to `.gitignore` in the repository root so it is never committed
 * If the file was already tracked by Git, `git rm --cached` is run to remove it from the index without deleting the file from disk
-* All registered files (including the newly added one) are re-packed into a tar archive and re-encrypted into `.tildr-encrypt.gpg`
+* All registered files (including the newly added one) are re-packed into a tar archive and re-encrypted into `.tildr/encrypted.gpg`
 * GPG will prompt for a passphrase (symmetric) or use the configured key (asymmetric) on encryption
 * Auto-commits the repository when `git.auto_commit = true`
 
@@ -956,9 +951,9 @@ tildr secret remove .ssh/id_rsa
 
 Behavior:
 
-* The relative path is removed from `.tildr-encrypt`
+* The relative path is removed from `.tildr/encrypted-items`
 * If other files remain registered, the bundle is re-encrypted without the removed entry
-* If no files remain, `.tildr-encrypt.gpg` is deleted from the repository
+* If no files remain, `.tildr/encrypted.gpg` is deleted from the repository
 * The original file in `$HOME` is not touched
 * Auto-commits the repository when `git.auto_commit = true`
 
@@ -966,7 +961,7 @@ Behavior:
 
 #### `tildr secret list`
 
-Lists all sensitive files currently registered in `.tildr-encrypt`.
+Lists all sensitive files currently registered in `.tildr/encrypted-items`.
 
 ```sh
 tildr secret list
@@ -994,9 +989,9 @@ tildr secret encrypt
 
 Behavior:
 
-* Reads all entries from `.tildr-encrypt`
+* Reads all entries from `.tildr/encrypted-items`
 * Packs the current content of each file from `$HOME` into a tar archive
-* Encrypts the archive into `.tildr-encrypt.gpg`, replacing the previous bundle
+* Encrypts the archive into `.tildr/encrypted.gpg`, replacing the previous bundle
 * In symmetric mode, GPG may prompt for a passphrase depending on the agent cache state
 * In asymmetric mode, GPG uses the configured key silently (subject to GPG Agent caching)
 * Auto-commits the repository when `git.auto_commit = true`
@@ -1015,7 +1010,7 @@ tildr secret decrypt
 
 Behavior:
 
-* Decrypts `.tildr-encrypt.gpg` using GPG — the encryption type (symmetric or asymmetric) is detected automatically from the bundle
+* Decrypts `.tildr/encrypted.gpg` using GPG — the encryption type (symmetric or asymmetric) is detected automatically from the bundle
 * Extracts the tar archive into `$HOME`, restoring each file to its registered path
 * In symmetric mode, GPG prompts for the passphrase via the system pinentry
 * In asymmetric mode, GPG uses the private key silently (subject to GPG Agent caching)
@@ -1035,7 +1030,7 @@ Re-encryption only happens on push scenarios (`PushOnly` and `Diverged`). Pull-o
 
 #### Integration with `tildr import`
 
-When `tildr import` is run and the cloned repository contains a `.tildr-encrypt.gpg` bundle, Tildr automatically decrypts it after applying symlinks.
+When `tildr import` is run and the cloned repository contains a `.tildr/encrypted.gpg` bundle, Tildr automatically decrypts it after applying symlinks.
 
 * In symmetric mode, GPG prompts for the passphrase via the system pinentry
 * In asymmetric mode, GPG uses the private key — which must already be available in the keyring at import time (e.g. restored by `tildr apply` if you manage `~/.gnupg` with Tildr)
@@ -1074,7 +1069,7 @@ This behavior is managed entirely by GPG and the system pinentry — Tildr has n
 To list the files inside the bundle without decrypting them to disk:
 
 ```sh
-gpg --decrypt .tildr-encrypt.gpg 2>/dev/null | tar tv
+gpg --decrypt .tildr/encrypted.gpg 2>/dev/null | tar tv
 ```
 
 This is useful to verify the bundle contents are correct before pushing to a remote repository.

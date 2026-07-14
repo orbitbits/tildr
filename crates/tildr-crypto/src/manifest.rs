@@ -4,6 +4,8 @@ use std::{
   path::{Path, PathBuf},
 };
 
+use tildr_utils::fs::tildr_dir;
+
 pub struct EncryptManifest {
   path: PathBuf,
 }
@@ -11,7 +13,7 @@ pub struct EncryptManifest {
 impl EncryptManifest {
   pub fn new(repo_path: &Path) -> Self {
     Self {
-      path: repo_path.join(".tildr-encrypt"),
+      path: tildr_dir(repo_path).join("encrypted-items"),
     }
   }
 

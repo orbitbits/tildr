@@ -133,9 +133,7 @@ During repository scans, Tildr always excludes the following entries regardless 
 - `.git`
 - `.gitignore`
 - `.tildrignore`
-- `.tildr`
-- `.tildr-encrypt`
-- `.tildr-encrypt.gpg`
+- `.tildr/` — internal directory containing all Tildr configuration files
 - Files ending in `.bak`
 
 # SEE ALSO

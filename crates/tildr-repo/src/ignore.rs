@@ -9,7 +9,7 @@ pub struct IgnoreMatcher {
 }
 
 impl IgnoreMatcher {
-  /// Creates a matcher based on `.tildrignore` within the repository.
+  /// Creates a matcher based on `.tildrignore` at the repository root.
   pub fn from_repo(repo_path: &Path) -> Result<Self> {
     let mut builder = GitignoreBuilder::new(repo_path);
 

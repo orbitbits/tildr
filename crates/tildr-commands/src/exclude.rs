@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tildr_core::context::Context as Ctx;
 use tildr_domain::ExcludeMode;
 use tildr_git::GitIntegration;
@@ -29,8 +29,12 @@ fn auto_commit(ctx: &Ctx, msg: &str) {
   }
 }
 
+fn tildrignore_path(repo_path: &Path) -> PathBuf {
+  repo_path.join(".tildrignore")
+}
+
 fn add_pattern(repo_path: &Path, pattern: &str) -> Result<()> {
-  let ignore_file = repo_path.join(".tildrignore");
+  let ignore_file = tildrignore_path(repo_path);
   let pattern = pattern.trim();
 
   if pattern.is_empty() {
@@ -38,14 +42,14 @@ fn add_pattern(repo_path: &Path, pattern: &str) -> Result<()> {
   }
 
   let mut content = if ignore_file.exists() {
-    fs::read_to_string(&ignore_file).context("Failed to read .tildrignore")?
+    fs::read_to_string(&ignore_file).context("Failed to read .tildr/tildrignore")?
   } else {
     String::new()
   };
 
   // Check for exact match
-  if content.lines().any(|l| l.trim() == pattern) {
-    println!("Pattern '{}' already in .tildrignore", pattern);
+  if content.lines().any(|l: &str| l.trim() == pattern) {
+    println!("Pattern '{}' already in .tildr/tildrignore", pattern);
     return Ok(());
   }
 
@@ -56,19 +60,19 @@ fn add_pattern(repo_path: &Path, pattern: &str) -> Result<()> {
   content.push_str(pattern);
   content.push('\n');
 
-  fs::write(&ignore_file, content).context("Failed to write .tildrignore")?;
-  println!("Added '{}' to .tildrignore", pattern);
+  fs::write(&ignore_file, content).context("Failed to write .tildr/tildrignore")?;
+  println!("Added '{}' to .tildr/tildrignore", pattern);
   Ok(())
 }
 
 fn remove_pattern(repo_path: &Path, pattern: &str) -> Result<()> {
-  let ignore_file = repo_path.join(".tildrignore");
+  let ignore_file = tildrignore_path(repo_path);
 
   if !ignore_file.exists() {
-    anyhow::bail!(".tildrignore does not exist");
+    anyhow::bail!(".tildr/tildrignore does not exist");
   }
 
-  let content = fs::read_to_string(&ignore_file).context("Failed to read .tildrignore")?;
+  let content = fs::read_to_string(&ignore_file).context("Failed to read .tildr/tildrignore")?;
   let pattern = pattern.trim();
 
   let new_content: String = content
@@ -78,7 +82,7 @@ fn remove_pattern(repo_path: &Path, pattern: &str) -> Result<()> {
     .join("\n");
 
   if new_content == content.trim() {
-    anyhow::bail!("Pattern '{}' not found in .tildrignore", pattern);
+    anyhow::bail!("Pattern '{}' not found in .tildr/tildrignore", pattern);
   }
 
   // Ensure trailing newline if content is non-empty
@@ -88,20 +92,20 @@ fn remove_pattern(repo_path: &Path, pattern: &str) -> Result<()> {
     format!("{}\n", new_content)
   };
 
-  fs::write(&ignore_file, final_content).context("Failed to write .tildrignore")?;
-  println!("Removed '{}' from .tildrignore", pattern);
+  fs::write(&ignore_file, final_content).context("Failed to write .tildr/tildrignore")?;
+  println!("Removed '{}' from .tildr/tildrignore", pattern);
   Ok(())
 }
 
 fn list_patterns(repo_path: &Path) -> Result<()> {
-  let ignore_file = repo_path.join(".tildrignore");
+  let ignore_file = tildrignore_path(repo_path);
 
   if !ignore_file.exists() {
-    println!("No .tildrignore file found");
+    println!("No .tildr/tildrignore file found");
     return Ok(());
   }
 
-  let content = fs::read_to_string(&ignore_file).context("Failed to read .tildrignore")?;
+  let content = fs::read_to_string(&ignore_file).context("Failed to read .tildr/tildrignore")?;
 
   let patterns: Vec<&str> = content
     .lines()
@@ -110,7 +114,7 @@ fn list_patterns(repo_path: &Path) -> Result<()> {
     .collect();
 
   if patterns.is_empty() {
-    println!("No patterns in .tildrignore");
+    println!("No patterns in .tildr/tildrignore");
   } else {
     for pattern in &patterns {
       println!("{}", pattern);

@@ -624,7 +624,7 @@ tildr group unlink dev
 
 **Behavior:**
 
-- Groups are stored in `.tildr-groups.json` in the repository root
+- Groups are stored in `.tildr/groups.json` in the repository root
 - `apply` creates symlinks in `$HOME` for all files in the group
 - `unlink` removes symlinks from `$HOME` for all files in the group
 - Group operations work on files already managed by Tildr
@@ -650,7 +650,7 @@ tildr secret decrypt
 :   Unregisters a file from the manifest and re-encrypts the bundle without it. If no files remain, the bundle is deleted. The original file in `$HOME` is not touched.
 
 **list**
-:   Lists all sensitive files currently registered in `.tildr-encrypt`.
+:   Lists all sensitive files currently registered in `.tildr/encrypted-items`.
 
 **encrypt**
 :   Manually re-encrypts all registered files into the bundle using their current content from `$HOME`.
@@ -666,7 +666,7 @@ tildr secret decrypt
   - `asymmetric` — uses an existing GPG key pair; `[crypto].gpg_key` sets the recipient
 - In asymmetric mode, if `gpg_key` is not set, Tildr prompts interactively and saves the chosen key to config
 - The original sensitive files are never stored in plain text in the repository
-- Only the encrypted bundle `.tildr-encrypt.gpg` and the plaintext manifest `.tildr-encrypt` are committed
+- Only the encrypted bundle `.tildr/encrypted.gpg` and the plaintext manifest `.tildr/encrypted-items` are committed
 - `tildr sync` automatically re-encrypts before pushing
 - `tildr import` automatically decrypts after cloning if a bundle is present
 - Auto-commits the repository when `git.auto_commit = true`

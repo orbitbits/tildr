@@ -1165,6 +1165,7 @@ name = "tildr-crypto"
 version = "0.2.0"
 dependencies = [
  "anyhow",
+ "tildr-utils",
 ]
 
 [[package]]

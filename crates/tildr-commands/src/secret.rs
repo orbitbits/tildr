@@ -32,7 +32,7 @@ pub fn run(ctx: &Context, mode: SecretMode) -> Result<()> {
         .to_string();
 
       manifest.add(&relative)?;
-      info(&format!("Added to .tildr-encrypt: {}", relative));
+      info(&format!("Added to .tildr/encrypted-items: {}", relative));
 
       add_to_gitignore(&ctx.repo_path, &relative)?;
       git_untrack_if_tracked(&ctx.repo_path, &relative)?;
@@ -62,9 +62,9 @@ pub fn run(ctx: &Context, mode: SecretMode) -> Result<()> {
     SecretMode::Remove { file } => {
       let removed = manifest.remove(&file)?;
       if !removed {
-        bail!("File not in .tildr-encrypt: {}", file);
+        bail!("File not in .tildr/encrypted-items: {}", file);
       }
-      info(&format!("Removed from .tildr-encrypt: {}", file));
+      info(&format!("Removed from .tildr/encrypted-items: {}", file));
 
       let entries = manifest.entries()?;
       if entries.is_empty() {

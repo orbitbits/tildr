@@ -12,3 +12,4 @@ description.workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
+tildr-utils = { workspace = true }
