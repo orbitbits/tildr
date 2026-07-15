@@ -25,6 +25,6 @@ pub struct Command {
   #[arg(long, value_name = "FILE")]
   pub import: Option<String>,
   /// View the output in an interactive pager
-  #[arg(short, long)]
+  #[arg(long)]
   pub less: bool,
 }

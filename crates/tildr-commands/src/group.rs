@@ -6,6 +6,7 @@ use anyhow::{Context as _, Result};
 use console::style;
 use serde::{Deserialize, Serialize};
 use tildr_core::context::Context;
+use tildr_fs::symlink::{create_symlink, is_symlink, is_symlink_to};
 use tildr_utils::fs::tildr_dir;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -156,29 +157,63 @@ fn apply(ctx: &Context, name: &str) -> Result<()> {
 
   let home = dirs::home_dir().context("Could not determine home directory")?;
 
+  let mut linked = 0;
+  let mut up_to_date = 0;
+  let mut skipped = 0;
+
   for file in files {
     let src = ctx.repo_path.join(file);
     let dst = home.join(file);
+
     if !src.exists() {
       println!(
         "{} {} (source not in repo)",
         style("Skipped:").yellow(),
         file
       );
+      skipped += 1;
       continue;
     }
-    if dst.exists() && !dst.is_symlink() {
+
+    // Correct symlink already in place
+    if is_symlink(&dst) && is_symlink_to(&dst, &src) {
+      up_to_date += 1;
+      continue;
+    }
+
+    // Existing symlink points to wrong target → fix it
+    if is_symlink(&dst) {
+      fs::remove_file(&dst)?;
+    } else if dst.exists() {
       println!(
         "{} {} (not a symlink, use --force?)",
         style("Skipped:").yellow(),
         file
       );
+      skipped += 1;
       continue;
     }
-    tildr_fs::symlink::create_symlink(&src, &dst)
-      .context(format!("Failed to symlink '{}'", file))?;
+
+    if let Some(parent) = dst.parent() {
+      fs::create_dir_all(parent)?;
+    }
+
+    create_symlink(&src, &dst)?;
     println!("{} {}", style("Linked:").green(), file);
+    linked += 1;
   }
+
+  if !files.is_empty() && linked == 0 && skipped == 0 {
+    println!("{}", style("Nothing to do.").dim());
+  } else if !files.is_empty() {
+    println!(
+      "{} linked, {} up-to-date, {} skipped",
+      style(linked).green(),
+      style(up_to_date).dim(),
+      style(skipped).yellow()
+    );
+  }
+
   Ok(())
 }
 
