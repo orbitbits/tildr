@@ -15,6 +15,21 @@ permalink: /tildr/documentation/0.2.0/quick-start/
 
 ## Quick Start
 
+This guide covers installation, first-time setup, and everyday usage of Tildr.
+
+---
+
+### Prerequisites
+
+| Requirement | Minimum | Notes |
+|-------------|---------|-------|
+| **OS** | Linux or macOS | Windows is not currently supported |
+| **Git** | 2.0+ | Optional but recommended for full functionality |
+| **GPG** | 2.0+ | Required only for `tildr secret` commands |
+| **Rust** | 1.90.0+ | Required only for building from source |
+
+---
+
 ### Installation
 
 **Linux — script (any distro):**
@@ -22,6 +37,11 @@ permalink: /tildr/documentation/0.2.0/quick-start/
 ```sh
 curl -fsSL https://orbitbits.com/tildr/linux.sh | sh
 ```
+
+This script:
+- Detects your distribution and installs the appropriate package
+- Installs the Nautilus plugin if GNOME Files is detected
+- Installs the Dolphin plugin if KDE Dolphin is detected
 
 **macOS — script:**
 
@@ -64,39 +84,112 @@ sudo dnf config-manager addrepo \
 sudo dnf install tildr
 ```
 
----
-
-### First setup
+**From source (any platform):**
 
 ```sh
-# Initialize the Tildr repository
-tildr init
+cargo install tildr
+```
 
-# Discover files that could be managed
-tildr suggest
+Or clone and build:
 
-# Add a file to manage
-tildr add .bashrc
-
-# Add a directory (traversed recursively)
-tildr add .config/nvim
-
-# Check the state of managed files
-tildr status
-
-# See what is in the repository
-tildr list
-
-# Verify the setup
-tildr doctor
-
-# Create a safety backup
-tildr backup
+```sh
+git clone https://github.com/orbitbits/tildr.git
+cd tildr
+cargo build --release
+# Binary at target/release/tildr
 ```
 
 ---
 
-### Everyday workflow
+### Verify Installation
+
+```sh
+tildr --version
+tildr info credits
+```
+
+---
+
+### First Setup
+
+#### Step 1 — Initialize
+
+```sh
+tildr init
+```
+
+This creates:
+- `~/.dotfiles/` — your Tildr repository
+- `~/.config/tildr/config.toml` — your configuration file
+- A Git repository inside `~/.dotfiles/` (if Git is available)
+
+#### Step 2 — Discover Files
+
+```sh
+tildr suggest
+```
+
+Tildr scans `$HOME` for common dotfile patterns (shell configs, editor configs, terminal emulators, git, etc.) and suggests files that could be managed.
+
+#### Step 3 — Add Files
+
+```sh
+# Add individual files
+tildr add .bashrc
+tildr add .zshrc .gitconfig .tmux.conf
+
+# Add a directory (traversed recursively)
+tildr add .config/nvim
+
+# Add multiple files at once
+tildr add .bashrc .zshrc .gitconfig
+```
+
+Each `add` command:
+1. Moves the file from `$HOME` into `~/.dotfiles/`
+2. Creates a symlink at the original location
+3. Auto-commits to Git (if `git.auto_commit = true`)
+
+#### Step 4 — Check Status
+
+```sh
+tildr status
+```
+
+Shows the synchronization state of all managed files:
+
+| Status | Meaning |
+|--------|---------|
+| `linked` | Symlink exists and points to the correct repository file |
+| `missing_link` | Repository file exists but the home symlink is absent |
+| `broken_symlink` | A symlink exists but points to a wrong target |
+| `not_a_symlink` | A regular file or directory exists where the symlink should be |
+
+#### Step 5 — Verify Setup
+
+```sh
+tildr doctor
+```
+
+Runs health checks on:
+- Repository existence
+- Config file validity
+- Git repository status
+- File permissions
+- Disk usage
+- Symlink correctness
+
+#### Step 6 — Create Backup
+
+```sh
+tildr backup
+```
+
+Creates a `.tar.gz` archive of the entire repository at `~/.dotfiles-backup-YYYY-MM-DD.tar.gz`.
+
+---
+
+### Everyday Workflow
 
 ```sh
 # Apply repository state to $HOME (repairs symlinks)
@@ -105,14 +198,175 @@ tildr apply
 # Check for drift
 tildr status
 
-# See Git changes inside the repository
-tildr git status
-
 # View statistics about managed files
 tildr stats
 
+# See Git changes inside the repository
+tildr git status
+
 # Sync with a remote (bidirectional pull/push)
 tildr sync
+
+# Open the repository in your file manager
+tildr open
 ```
 
-That is all you need to get started. See the [Command Reference](/tildr/documentation/commands/) for detailed usage of each command.
+---
+
+### Shell Aliases
+
+Add these to your `~/.bashrc` or `~/.zshrc` for a smoother workflow:
+
+```sh
+# Jump to the Tildr repository
+alias tcd='cd "$(tildr repo path)"'
+
+# Quick status check
+alias tstatus='tildr status --counter'
+
+# Quick apply
+alias tapply='tildr apply'
+
+# Quick sync
+alias tsync='tildr sync'
+
+# Edit a managed file by name (no path needed)
+alias tedit='tildr edit'
+
+# Open the repository in your file manager
+alias topen='tildr open'
+```
+
+These are suggestions — only add the ones you actually use. The key one is `tcd`, since a child process cannot change the parent shell's directory, `tildr repo cd` is not possible, but `cd "$(tildr repo path)"` works perfectly as an alias.
+
+---
+
+### Secret File Management
+
+```sh
+# Register a sensitive file
+tildr secret add ~/.ssh/id_rsa
+
+# List registered sensitive files
+tildr secret list
+
+# Manually re-encrypt
+tildr secret encrypt
+
+# Decrypt and restore sensitive files
+tildr secret decrypt
+```
+
+Two encryption modes are available:
+
+| Mode | Configuration | Passphrase Required |
+|------|---------------|---------------------|
+| **Symmetric** (default) | `[crypto] mode = "symmetric"` | Yes — same passphrase for encrypt/decrypt |
+| **Asymmetric** | `[crypto] mode = "asymmetric"` | No — uses GPG key pair |
+
+---
+
+### Batch Operations with Groups
+
+```sh
+# Create a group of related files
+tildr group create dev --files .bashrc .zshrc .tmux.conf
+
+# List all groups
+tildr group list
+
+# Apply all files in a group
+tildr group apply dev
+
+# Remove symlinks for all files in a group
+tildr group unlink dev
+```
+
+---
+
+### Recovery and Maintenance
+
+```sh
+# Check status and diagnose issues
+tildr status
+tildr doctor
+
+# Repair broken symlinks
+tildr apply
+
+# Remove symlinks without deleting files
+tildr unlink .config/nvim
+
+# Move files back from repository to $HOME
+tildr restore .bashrc
+
+# Delete managed files permanently
+tildr del .config/nvim --purge
+```
+
+---
+
+### Troubleshooting
+
+**"Repository must be inside $HOME"**
+
+Tildr requires the repository to be inside your home directory. Move it:
+
+```sh
+mv ~/.dotfiles ~/dotfiles  # if it was outside $HOME
+```
+
+**"Symlinks are broken after moving the repository"**
+
+Run `tildr apply` to repair all symlinks:
+
+```sh
+tildr apply
+```
+
+**"GPG not found"**
+
+Install GPG for your platform:
+
+```sh
+# Debian/Ubuntu
+sudo apt install gnupg
+
+# Arch Linux
+sudo pacman -S gnupg
+
+# macOS
+brew install gnupg
+```
+
+**"File already managed"**
+
+If a file is already managed by Tildr, running `tildr add` on it again is a no-op:
+
+```sh
+tildr add .bashrc    # First time — adds the file
+tildr add .bashrc    # Second time — skipped (already managed)
+```
+
+**"Interactive picker not showing"**
+
+If the number of managed files is below `core.search_threshold` (default: `15`), the picker shows the full list directly. If it exceeds the threshold, a search step appears first.
+
+**"Auto-commit not working"**
+
+Check your config:
+
+```sh
+tildr cat config
+```
+
+Ensure `[git] auto_commit = true` is set. Also ensure Git is available and `git.available = true`.
+
+---
+
+### Next Steps
+
+* [Configuration Reference](/tildr/documentation/configuration/) — complete `config.toml` reference
+* [Repository Model](/tildr/documentation/repository-model/) — how symlinks and Git work together
+* [Commands Reference](/tildr/documentation/commands/) — detailed usage of each command
+* [Secret Management](/tildr/documentation/secret-management/) — GPG encryption details

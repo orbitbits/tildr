@@ -52,6 +52,9 @@ Your `$HOME` should be:
 **Simple**
 :   Without unnecessary complexity.
 
+**Portable**
+:   Move between machines effortlessly.
+
 **Tildr** turns your HOME directory into a predictable and controlled environment.
 
 # OVERVIEW
@@ -66,6 +69,11 @@ Instead of keeping the original file in place, **Tildr** moves the managed file 
 - `restore` moves files back from the repository into `$HOME`
 - `unlink` removes symlinks without deleting repository content
 - `del` removes managed content from the repository and unlinks it from `$HOME`
+- `open` opens the repository in the system file manager
+- `stats` shows statistics about managed files
+- `backup` creates a compressed tarball backup of the repository
+- `suggest` scans `$HOME` for common dotfile patterns that could be managed
+- `group` manages named groups of managed files for batch operations
 
 **Tildr** manages files, not directories as first-class objects. Directory operations are recursive and act on all managed files under the selected path.
 
@@ -91,6 +99,9 @@ $HOME/.dotfiles/.config/nvim/init.lua -> real file
 
 **Config file:**
 :   `~/.config/tildr/config.toml`
+
+**Internal directory:**
+:   `~/.dotfiles/.tildr/`
 
 If XDG config resolution is unavailable, Tildr falls back to `$HOME/.config/tildr/config.toml`.
 
@@ -151,6 +162,24 @@ This means Tildr is not intended for copying files to a repository stored on ano
 **tildr exclude** *\<mode\>*
 :   Manage `.tildrignore` patterns (add, remove, list).
 
+**tildr open**
+:   Open the repository in the system file manager.
+
+**tildr stats**
+:   Show statistics about managed files.
+
+**tildr backup** *[options]*
+:   Create a compressed tarball backup of the repository.
+
+**tildr suggest**
+:   Scan `$HOME` for common dotfile patterns that could be managed.
+
+**tildr snapshot** *[options]*
+:   Generate a reproducible bootstrap script from the current setup.
+
+**tildr group** *\<mode\>*
+:   Manage named groups of managed files for batch operations.
+
 **tildr secret** *\<mode\>*
 :   Manage encryption of sensitive files using GPG.
 
@@ -168,6 +197,160 @@ This means Tildr is not intended for copying files to a repository stored on ano
 
 See **tildr-commands(1)** for full documentation of each command.
 
+# INTERACTIVE BEHAVIOR
+
+When a target is omitted, the following commands open an interactive file picker:
+
+- `add` (picks from `$HOME` instead of the repository)
+- `cat`
+- `edit`
+- `unlink`
+- `restore`
+- `del`
+- `mv`
+
+When the number of managed files exceeds `core.search_threshold` (default: `15`), the picker shows a search step first. Type a fragment to filter the list by fuzzy match, or press enter to skip filtering.
+
+# TYPICAL WORKFLOW
+
+Initial setup:
+
+```sh
+tildr init
+tildr suggest
+tildr add .bashrc
+tildr add .config/nvim
+tildr status
+tildr doctor
+tildr backup
+```
+
+Daily operations:
+
+```sh
+tildr apply
+tildr status
+tildr stats
+tildr git status
+tildr sync
+```
+
+Recovery and maintenance:
+
+```sh
+tildr status
+tildr doctor
+tildr apply
+tildr unlink .config/nvim
+tildr restore .bashrc
+```
+
+Secret file management:
+
+```sh
+tildr secret add ~/.ssh/id_rsa
+tildr secret list
+tildr secret encrypt
+tildr sync
+```
+
+Batch operations with groups:
+
+```sh
+tildr group create dev --files .bashrc .zshrc .tmux.conf
+tildr group apply dev
+tildr group unlink dev
+```
+
+Bootstrap on a new machine:
+
+```sh
+tildr snapshot > setup.sh
+chmod +x setup.sh
+./setup.sh
+```
+
+# SHELL ALIASES
+
+A child process cannot change the parent shell's working directory, so `tildr repo cd` is not possible. Use `tildr repo path` with aliases instead:
+
+```sh
+# Add to ~/.bashrc or ~/.zshrc
+alias tcd='cd "$(tildr repo path)"'
+alias tstatus='tildr status --counter'
+alias tapply='tildr apply'
+alias tsync='tildr sync'
+```
+
+See **tildr-commands(1)** for the full `tildr repo path` documentation.
+
+# OPERATIONAL NOTES
+
+- Tildr is designed for home-directory management on Linux and macOS
+- The repository must stay inside `$HOME`
+- Relative paths for managed targets are interpreted from `$HOME`
+- Directory operations are recursive over all files under that path
+- `apply` does not overwrite conflicting regular files unless `--force` is provided
+- `unlink` removes only symlinks, never repository content
+- `restore` physically moves the real file back out of the repository
+- `del` removes repository content; use `--purge` for permanent deletion, otherwise files go to trash
+- `git.auto_commit` affects `add`, `restore`, `del`, `mv`, and `secret` — not `apply`, `unlink`, `git`, or `sync`
+- `git.enable = false` disables Tildr-managed Git operations even if Git is installed
+- `tildr secret` requires `gpg` to be installed and available in `PATH`
+- Sensitive files registered with `tildr secret add` are never stored in plain text in the repository
+- `crypto.mode` controls whether symmetric (passphrase) or asymmetric (key pair) GPG encryption is used
+- In asymmetric mode, `crypto.gpg_key` is saved automatically after interactive key selection on first use
+- `core.color = false` disables all colored output; `NO_COLOR` environment variable is also respected
+- The `--less` flag is available on `tildr status`, `tildr list`, and `tildr cat` for interactive pager output
+- `.tildrignore` patterns prevent files from being discovered by `list`, `status`, and `apply`
+
+# ENVIRONMENT VARIABLES
+
+**EDITOR**
+:   Editor used by `tildr edit`. Falls back to `$VISUAL`, then `nano`.
+
+**VISUAL**
+:   Alternative editor used by `tildr edit` if `$EDITOR` is not set.
+
+**PAGER**
+:   Pager used by `tildr cat --less` and `tildr status --less`. Falls back to `less -RFX`.
+
+**NO_COLOR**
+:   When set, disables all colored output regardless of `core.color` config.
+
+**GPG_AGENT_INFO**
+:   Used by GPG for passphrase caching in asymmetric mode.
+
+# FILES
+
+**~/.config/tildr/config.toml**
+:   User configuration file. Created by `tildr init`.
+
+**~/.dotfiles/**
+:   Default repository location. Created by `tildr init`.
+
+**~/.dotfiles/.tildr/**
+:   Internal Tildr directory containing encrypted-items, encrypted.gpg, and groups.json.
+
+**~/.dotfiles/.tildrignore**
+:   User-defined ignore patterns for repository scanning.
+
+# EXIT STATUS
+
+**0**
+:   Success.
+
+**1**
+:   General error (missing repository, invalid config, file not found).
+
+**2**
+:   Usage error (invalid arguments, unknown command).
+
 # SEE ALSO
 
 **tildr-commands(1)**, **tildr-config(1)**, **tildr-security(1)**, **tildr-plugins(1)**
+
+# AUTHORS
+
+Maintained by the Tildr contributors.
+Source code and issue tracker: <https://github.com/orbitbits/tildr>

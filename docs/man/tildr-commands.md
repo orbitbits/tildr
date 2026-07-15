@@ -100,6 +100,7 @@ tildr import https://github.com/user/dotfiles --force
 - Runs `apply` automatically to establish symlinks
 - Destination must be inside `$HOME`
 - Refuses to overwrite a config pointing to a different repository unless `--force` is used
+- If a `.tildr/encrypted.gpg` bundle is present, decrypts sensitive files after cloning
 
 ## tildr add
 
@@ -169,6 +170,7 @@ tildr apply --force --verbose
 - Skips regular files already present in `$HOME` unless `--force` is used
 - Uses the repository as the source of truth
 - Does not modify repository content
+- Always idempotent — running multiple times produces the same result
 
 ## tildr status
 
@@ -593,6 +595,33 @@ Run `tildr add <file>` to manage them.
 - Reports suggestions grouped by category
 - Does not modify any files
 
+## tildr snapshot
+
+Generate a reproducible bootstrap script from the current Tildr setup.
+
+```sh
+tildr snapshot > setup.sh
+tildr snapshot --output ~/setup.sh
+chmod +x setup.sh
+./setup.sh
+```
+
+**Options:**
+
+**--output** *\<FILE\>*
+:   Custom output file path. If omitted, prints to stdout.
+
+**Behavior:**
+
+- Generates a shell script that reproduces the entire Tildr setup on a new machine
+- Auto-detects the git remote URL for the clone step
+- Checks prerequisites (git, tildr, optionally gpg)
+- Clones the repository or creates it if it doesn't exist
+- Initializes Tildr config
+- Runs `tildr apply` to create symlinks
+- Decrypts secrets if `.tildr/encrypted.gpg` exists
+- Output is idempotent — safe to run multiple times
+
 ## tildr group
 
 Manages named groups of managed files for batch operations.
@@ -710,6 +739,8 @@ tildr sync --force
 - If both local and remote commits exist, simulates a merge first
 - Aborts safely and reports conflicting files when a merge conflict would occur
 - Uses the saved Git availability from Tildr config instead of probing `PATH` on every run
+- Before pushing, re-encrypts the secret bundle if sensitive files are registered
+- Skips re-encryption when secret files are missing from `$HOME` (warns instead of failing)
 
 ## tildr doctor
 
@@ -833,10 +864,21 @@ Initial setup:
 
 ```sh
 tildr init
+tildr suggest
 tildr add .bashrc
 tildr add .config/nvim
 tildr status
+tildr doctor
+tildr backup
+```
+
+Daily operations:
+
+```sh
 tildr apply
+tildr status
+tildr stats
+tildr git status
 tildr sync
 ```
 
@@ -859,6 +901,14 @@ tildr secret encrypt
 tildr sync
 ```
 
+Batch operations with groups:
+
+```sh
+tildr group create dev --files .bashrc .zshrc .tmux.conf
+tildr group apply dev
+tildr group unlink dev
+```
+
 # OPERATIONAL NOTES
 
 - Tildr is designed for home-directory management on Linux and macOS
@@ -870,10 +920,32 @@ tildr sync
 - `restore` physically moves the real file back out of the repository
 - `del` removes repository content; use `--purge` for permanent deletion
 - `git.auto_commit` affects `add`, `restore`, `del`, `mv`, and `secret` — not `apply`, `unlink`, `git`, or `sync`
+- `git.enable = false` disables Tildr-managed Git operations even if Git is installed
 - `tildr secret` requires `gpg` to be installed and available in `PATH`
-- sensitive files registered with `tildr secret add` are never stored in plain text in the repository
+- Sensitive files registered with `tildr secret add` are never stored in plain text in the repository
 - `core.color = false` in `config.toml` disables all colored output; the `NO_COLOR` environment variable is also respected
+- The `--less` flag is available on `tildr status`, `tildr list`, and `tildr cat` for interactive pager output
+- `.tildrignore` patterns prevent files from being discovered by `list`, `status`, and `apply`
+
+# ENVIRONMENT VARIABLES
+
+**EDITOR**
+:   Editor used by `tildr edit`. Falls back to `$VISUAL`, then `nano`.
+
+**VISUAL**
+:   Alternative editor used by `tildr edit` if `$EDITOR` is not set.
+
+**PAGER**
+:   Pager used by `tildr cat --less` and `tildr status --less`. Falls back to `less -RFX`.
+
+**NO_COLOR**
+:   When set, disables all colored output regardless of `core.color` config.
 
 # SEE ALSO
 
 **tildr(1)**, **tildr-config(1)**, **tildr-security(1)**, **tildr-plugins(1)**
+
+# AUTHORS
+
+Maintained by the Tildr contributors.
+Source code and issue tracker: <https://github.com/orbitbits/tildr>

@@ -711,6 +711,35 @@ Behavior:
 
 ---
 
+### `tildr snapshot`
+
+Generate a reproducible bootstrap script from the current Tildr setup.
+
+```sh
+tildr snapshot > setup.sh
+tildr snapshot --output ~/setup.sh
+chmod +x setup.sh
+./setup.sh
+```
+
+**Options:**
+
+**--output** *\<FILE\>*
+:   Custom output file path. If omitted, prints to stdout.
+
+**Behavior:**
+
+* Generates a shell script that reproduces the entire Tildr setup on a new machine
+* Auto-detects the git remote URL for the clone step
+* Checks prerequisites (git, tildr, optionally gpg)
+* Clones the repository or creates it if it doesn't exist
+* Initializes Tildr config
+* Runs `tildr apply` to create symlinks
+* Decrypts secrets if `.tildr/encrypted.gpg` exists
+* Output is idempotent — safe to run multiple times
+
+---
+
 ### `tildr group`
 
 Manages named groups of managed files for batch operations.

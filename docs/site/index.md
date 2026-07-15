@@ -15,7 +15,7 @@ permalink: /tildr/documentation/0.2.0/
 
 ## Introduction
 
-**Manage, reproduce, and control your entire `$HOME`—declaratively.**
+**Manage, reproduce, and control your entire `$HOME` — declaratively.**
 
 > **More powerful than *stow*. Simpler than *chezmoi*.**
 
@@ -24,6 +24,23 @@ permalink: /tildr/documentation/0.2.0/
 Rather than manually copying dotfiles, syncing directories, or rebuilding your setup from memory, you describe the desired state of your `$HOME` in a declarative configuration. Tildr then ensures your system converges to that state safely and consistently.
 
 Designed around simplicity, predictability, and idempotency, Tildr helps you keep your environment reproducible across new machines, reinstalls, and everyday changes.
+
+---
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Symlink-based model** | Real files live in a Git repository; `$HOME` contains symlinks pointing to them |
+| **Git integration** | Automatic commits, bidirectional sync, and full version history |
+| **Secret management** | GPG encryption for sensitive files (SSH keys, GPG keys, credentials) |
+| **Interactive pickers** | Fuzzy file selection when no target is specified |
+| **Cross-platform** | Works on Linux and macOS with consistent behavior |
+| **Zero-config defaults** | Works out of the box; configure only what you need |
+| **Auto-commit** | Optional automatic Git commits after file operations |
+| **Backup & restore** | Create tarball backups, restore files from repository |
+| **File groups** | Batch operations on named groups of managed files |
+| **File suggestions** | Scan `$HOME` for common dotfile patterns that could be managed |
 
 ---
 
@@ -39,7 +56,7 @@ With **Tildr**, you can:
 * Keep files and directories consistently in sync
 * Recreate your environment reliably at any time
 * Eliminate configuration drift
-* Manage more than dotfiles—manage your **entire home state**
+* Manage more than dotfiles — manage your **entire home state**
 
 ---
 
@@ -47,9 +64,9 @@ With **Tildr**, you can:
 
 The name **Tildr** is inspired by the **tilde** (`~`), one of the most recognizable symbols in Unix and Linux.
 
-For decades, `~` has represented the user's **home directory**—a familiar starting point where configuration, files, and personal workflows naturally live. It's a small symbol with a meaning that every Unix user immediately understands.
+For decades, `~` has represented the user's **home directory** — a familiar starting point where configuration, files, and personal workflows naturally live. It's a small symbol with a meaning that every Unix user immediately understands.
 
-That idea perfectly reflects the project's philosophy: your home directory is more than a place to store dotfiles—it's your personal environment.
+That idea perfectly reflects the project's philosophy: your home directory is more than a place to store dotfiles — it's your personal environment.
 
 Rather than using *Tilde* directly, the name was distilled into **Tildr**: shorter, more distinctive, and better suited as a modern software project while preserving its Unix roots.
 
@@ -68,6 +85,54 @@ Your `$HOME` should be:
 * **Portable** — move between machines effortlessly
 
 `Tildr` turns your HOME directory into a predictable and controlled environment.
+
+---
+
+## Architecture
+
+Tildr follows a three-layer architecture:
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                      CLI Layer                          │
+│              (tildr-cli + clap)                          │
+│         Argument parsing, help text, completions         │
+├─────────────────────────────────────────────────────────┤
+│                     Domain Layer                         │
+│                (tildr-domain)                            │
+│           Command variants, type definitions             │
+├─────────────────────────────────────────────────────────┤
+│                   Commands Layer                         │
+│               (tildr-commands)                           │
+│          Business logic, file operations                 │
+├─────────────────────────────────────────────────────────┤
+│                    Core Layer                            │
+│     (tildr-core, tildr-fs, tildr-git, tildr-repo)      │
+│        Config, filesystem, Git, repository               │
+├─────────────────────────────────────────────────────────┤
+│                   Utils Layer                            │
+│            (tildr-utils, tildr-ui)                       │
+│          Formatting, pager, color, icons                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Crate Structure
+
+| Crate | Purpose |
+|-------|---------|
+| `tildr` | Binary entry point |
+| `tildr-cli` | Clap-based CLI definitions and completions |
+| `tildr-domain` | Language-agnostic command variants and enums |
+| `tildr-commands` | Business logic for all commands |
+| `tildr-core` | Configuration loading, context, error types |
+| `tildr-fs` | Symlink operations, path utilities |
+| `tildr-git` | Git integration (auto-commit, status) |
+| `tildr-repo` | Repository scanning and managed file discovery |
+| `tildr-crypto` | GPG encryption, manifest management |
+| `tildr-utils` | Formatting, pager, filesystem helpers |
+| `tildr-ui` | Terminal output, colors, icons, prompts |
+| `open` | Cross-platform file manager launching |
+| `chrono` | Date formatting for backup timestamps |
 
 ---
 
@@ -113,31 +178,73 @@ When the number of managed files exceeds `core.search_threshold` (default: `15`)
 
 ## Typical Workflow
 
-Initial setup and daily use:
+### Initial Setup
 
 ```sh
+# Initialize the repository
 tildr init
-tildr suggest          # discover files to manage
+
+# Discover files that could be managed
+tildr suggest
+
+# Add files to manage
 tildr add .bashrc
 tildr add .config/nvim
-tildr git status
+tildr add .zshrc .gitconfig .tmux.conf
+
+# Check the state of managed files
 tildr status
+
+# See what is in the repository
+tildr list
+
+# Verify the setup
+tildr doctor
+
+# Create a safety backup
+tildr backup
+```
+
+### Daily Operations
+
+```sh
+# Apply repository state to $HOME (repairs symlinks)
 tildr apply
-tildr backup           # create a safety backup
+
+# Check for drift
+tildr status
+
+# View statistics about managed files
+tildr stats
+
+# See Git changes inside the repository
+tildr git status
+
+# Sync with a remote (bidirectional pull/push)
 tildr sync
 ```
 
-Recovery and maintenance:
+### Recovery and Maintenance
 
 ```sh
+# Check status and diagnose issues
 tildr status
 tildr doctor
+
+# Repair broken symlinks
 tildr apply
+
+# Remove symlinks without deleting files
 tildr unlink .config/nvim
+
+# Move files back from repository to $HOME
 tildr restore .bashrc
+
+# Delete managed files permanently
+tildr del .config/nvim --purge
 ```
 
-Secret file management:
+### Secret File Management
 
 ```sh
 # Symmetric mode (default) — uses a passphrase
@@ -154,6 +261,38 @@ tildr secret add ~/.ssh/id_rsa
 tildr sync
 ```
 
+### Batch Operations with Groups
+
+```sh
+# Create a group of related files
+tildr group create dev --files .bashrc .zshrc .tmux.conf
+
+# Apply all files in a group
+tildr group apply dev
+
+# Remove symlinks for all files in a group
+tildr group unlink dev
+
+# List all groups
+tildr group list
+```
+
+---
+
+## Comparison with Other Tools
+
+| Feature | Tildr | GNU Stow | chezmoi | yadm |
+|---------|-------|----------|---------|------|
+| **Model** | Symlinks | Symlinks | Templates + symlinks | Git + symlinks |
+| **Language** | Rust | Perl | Go | Shell |
+| **Interactive pickers** | Yes | No | No | No |
+| **Secret management** | Built-in GPG | No | Built-in age/GPG | External |
+| **Auto-commit** | Yes | No | Optional | No |
+| **File groups** | Yes | No | No | No |
+| **Suggest unmanaged** | Yes | No | No | No |
+| **Cross-platform** | Linux + macOS | Linux + macOS | Linux + macOS + Windows | Linux + macOS |
+| **Backup** | Built-in | No | No | No |
+
 ---
 
 ## Operational Notes
@@ -169,10 +308,11 @@ tildr sync
 * `git.auto_commit` affects `add`, `restore`, `del`, `mv`, and `secret` — not `apply`, `unlink`, `git`, or `sync`
 * `git.enable = false` disables Tildr-managed Git operations even if Git is installed
 * `tildr secret` requires `gpg` to be installed and available in `PATH`
-* sensitive files registered with `tildr secret add` are never stored in plain text in the repository
+* Sensitive files registered with `tildr secret add` are never stored in plain text in the repository
 * `crypto.mode` controls whether symmetric (passphrase) or asymmetric (key pair) GPG encryption is used
-* in asymmetric mode, `crypto.gpg_key` is saved automatically after interactive key selection on first use
+* In asymmetric mode, `crypto.gpg_key` is saved automatically after interactive key selection on first use
 * `core.color = false` disables all colored output; `NO_COLOR` environment variable is also respected
+* The `--less` flag is available on `tildr status`, `tildr list`, and `tildr cat` for interactive pager output
 
 ---
 
@@ -180,10 +320,42 @@ tildr sync
 
 Tildr turns `$HOME` into a repository-backed declarative environment. Its model is simple:
 
-* store real files in a repository
-* expose them into `$HOME` through symlinks
-* inspect drift with `status`
-* converge state with `apply`
-* recover ownership with `restore`
+* Store real files in a Git repository
+* Expose them into `$HOME` through symlinks
+* Inspect drift with `status`
+* Converge state with `apply`
+* Recover ownership with `restore`
+* Encrypt sensitive files with `secret`
+* Sync across machines with `sync`
 
 For reliable operation, keep the repository in your home directory, use `.tildrignore` to exclude unmanaged artifacts, and treat `tildr repo path` as the canonical way to locate the repository in scripts and shell aliases.
+
+---
+
+## Shell Aliases
+
+A child process (CLI) cannot change the parent shell's working directory. This means `tildr repo cd` is not technically possible. Instead, use `tildr repo path` with shell aliases:
+
+```sh
+# Add to ~/.bashrc or ~/.zshrc
+
+# Jump to the Tildr repository
+alias tcd='cd "$(tildr repo path)"'
+
+# Quick status check
+alias tstatus='tildr status --counter'
+
+# Quick apply
+alias tapply='tildr apply'
+
+# Quick sync
+alias tsync='tildr sync'
+
+# Edit a managed file by name
+alias tedit='tildr edit'
+
+# Open the repository in your file manager
+alias topen='tildr open'
+```
+
+These are suggestions — only add the ones you actually use.
