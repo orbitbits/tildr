@@ -21,12 +21,12 @@ This guide covers installation, first-time setup, and everyday usage of Tildr.
 
 ### Prerequisites
 
-| Requirement | Minimum | Notes |
-|-------------|---------|-------|
-| **OS** | Linux or macOS | Windows is not currently supported |
-| **Git** | 2.0+ | Optional but recommended for full functionality |
-| **GPG** | 2.0+ | Required only for `tildr secret` commands |
-| **Rust** | 1.90.0+ | Required only for building from source |
+| Requirement | Minimum        | Notes                                           |
+|-------------|----------------|-------------------------------------------------|
+| **OS**      | Linux or macOS | Windows is not currently supported              |
+| **Git**     | 2.0+           | Optional but recommended for full functionality |
+| **GPG**     | 2.0+           | Required only for `tildr secret` commands       |
+| **Rust**    | 1.90.0+        | Required only for building from source          |
 
 ---
 
@@ -39,6 +39,7 @@ curl -fsSL https://orbitbits.com/tildr/linux.sh | sh
 ```
 
 This script:
+
 - Detects your distribution and installs the appropriate package
 - Installs the Nautilus plugin if GNOME Files is detected
 - Installs the Dolphin plugin if KDE Dolphin is detected
@@ -119,6 +120,7 @@ tildr init
 ```
 
 This creates:
+
 - `~/.dotfiles/` — your Tildr repository
 - `~/.config/tildr/config.toml` — your configuration file
 - A Git repository inside `~/.dotfiles/` (if Git is available)
@@ -146,6 +148,7 @@ tildr add .bashrc .zshrc .gitconfig
 ```
 
 Each `add` command:
+
 1. Moves the file from `$HOME` into `~/.dotfiles/`
 2. Creates a symlink at the original location
 3. Auto-commits to Git (if `git.auto_commit = true`)
@@ -158,12 +161,12 @@ tildr status
 
 Shows the synchronization state of all managed files:
 
-| Status | Meaning |
-|--------|---------|
-| `linked` | Symlink exists and points to the correct repository file |
-| `missing_link` | Repository file exists but the home symlink is absent |
-| `broken_symlink` | A symlink exists but points to a wrong target |
-| `not_a_symlink` | A regular file or directory exists where the symlink should be |
+| Status           | Meaning                                                        |
+|------------------|----------------------------------------------------------------|
+| `linked`         | Symlink exists and points to the correct repository file       |
+| `missing_link`   | Repository file exists but the home symlink is absent          |
+| `broken_symlink` | A symlink exists but points to a wrong target                  |
+| `not_a_symlink`  | A regular file or directory exists where the symlink should be |
 
 #### Step 5 — Verify Setup
 
@@ -172,6 +175,7 @@ tildr doctor
 ```
 
 Runs health checks on:
+
 - Repository existence
 - Config file validity
 - Git repository status
@@ -259,10 +263,10 @@ tildr secret decrypt
 
 Two encryption modes are available:
 
-| Mode | Configuration | Passphrase Required |
-|------|---------------|---------------------|
-| **Symmetric** (default) | `[crypto] mode = "symmetric"` | Yes — same passphrase for encrypt/decrypt |
-| **Asymmetric** | `[crypto] mode = "asymmetric"` | No — uses GPG key pair |
+| Mode                    | Configuration                  | Passphrase Required                       |
+|-------------------------|--------------------------------|-------------------------------------------|
+| **Symmetric** (default) | `[crypto] mode = "symmetric"`  | Yes — same passphrase for encrypt/decrypt |
+| **Asymmetric**          | `[crypto] mode = "asymmetric"` | No — uses GPG key pair                    |
 
 ---
 
@@ -308,7 +312,7 @@ tildr del .config/nvim --purge
 
 ### Troubleshooting
 
-**"Repository must be inside $HOME"**
+**Repository must be inside $HOME:**
 
 Tildr requires the repository to be inside your home directory. Move it:
 
@@ -316,7 +320,7 @@ Tildr requires the repository to be inside your home directory. Move it:
 mv ~/.dotfiles ~/dotfiles  # if it was outside $HOME
 ```
 
-**"Symlinks are broken after moving the repository"**
+**Symlinks are broken after moving the repository:**
 
 Run `tildr apply` to repair all symlinks:
 
@@ -324,7 +328,7 @@ Run `tildr apply` to repair all symlinks:
 tildr apply
 ```
 
-**"GPG not found"**
+**GPG not found:**
 
 Install GPG for your platform:
 
@@ -339,7 +343,7 @@ sudo pacman -S gnupg
 brew install gnupg
 ```
 
-**"File already managed"**
+**File already managed:**
 
 If a file is already managed by Tildr, running `tildr add` on it again is a no-op:
 
@@ -348,11 +352,11 @@ tildr add .bashrc    # First time — adds the file
 tildr add .bashrc    # Second time — skipped (already managed)
 ```
 
-**"Interactive picker not showing"**
+**Interactive picker not showing:**
 
 If the number of managed files is below `core.search_threshold` (default: `15`), the picker shows the full list directly. If it exceeds the threshold, a search step appears first.
 
-**"Auto-commit not working"**
+**Auto-commit not working:**
 
 Check your config:
 
@@ -366,7 +370,7 @@ Ensure `[git] auto_commit = true` is set. Also ensure Git is available and `git.
 
 ### Next Steps
 
-* [Configuration Reference](/tildr/documentation/configuration/) — complete `config.toml` reference
-* [Repository Model](/tildr/documentation/repository-model/) — how symlinks and Git work together
-* [Commands Reference](/tildr/documentation/commands/) — detailed usage of each command
-* [Secret Management](/tildr/documentation/secret-management/) — GPG encryption details
+- [Configuration Reference](/tildr/documentation/configuration/) — complete `config.toml` reference
+- [Repository Model](/tildr/documentation/repository-model/) — how symlinks and Git work together
+- [Commands Reference](/tildr/documentation/commands/) — detailed usage of each command
+- [Secret Management](/tildr/documentation/secret-management/) — GPG encryption details

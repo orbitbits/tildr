@@ -29,18 +29,18 @@ Designed around simplicity, predictability, and idempotency, Tildr helps you kee
 
 ### Key Features
 
-| Feature | Description |
-|---------|-------------|
-| **Symlink-based model** | Real files live in a Git repository; `$HOME` contains symlinks pointing to them |
-| **Git integration** | Automatic commits, bidirectional sync, and full version history |
-| **Secret management** | GPG encryption for sensitive files (SSH keys, GPG keys, credentials) |
-| **Interactive pickers** | Fuzzy file selection when no target is specified |
-| **Cross-platform** | Works on Linux and macOS with consistent behavior |
-| **Zero-config defaults** | Works out of the box; configure only what you need |
-| **Auto-commit** | Optional automatic Git commits after file operations |
-| **Backup & restore** | Create tarball backups, restore files from repository |
-| **File groups** | Batch operations on named groups of managed files |
-| **File suggestions** | Scan `$HOME` for common dotfile patterns that could be managed |
+| Feature                  | Description                                                                     |
+|--------------------------|---------------------------------------------------------------------------------|
+| **Symlink-based model**  | Real files live in a Git repository; `$HOME` contains symlinks pointing to them |
+| **Git integration**      | Automatic commits, bidirectional sync, and full version history                 |
+| **Secret management**    | GPG encryption for sensitive files (SSH keys, GPG keys, credentials)            |
+| **Interactive pickers**  | Fuzzy file selection when no target is specified                                |
+| **Cross-platform**       | Works on Linux and macOS with consistent behavior                               |
+| **Zero-config defaults** | Works out of the box; configure only what you need                              |
+| **Auto-commit**          | Optional automatic Git commits after file operations                            |
+| **Backup & restore**     | Create tarball backups, restore files from repository                           |
+| **File groups**          | Batch operations on named groups of managed files                               |
+| **File suggestions**     | Scan `$HOME` for common dotfile patterns that could be managed                  |
 
 ---
 
@@ -118,21 +118,21 @@ Tildr follows a three-layer architecture:
 
 ### Crate Structure
 
-| Crate | Purpose |
-|-------|---------|
-| `tildr` | Binary entry point |
-| `tildr-cli` | Clap-based CLI definitions and completions |
-| `tildr-domain` | Language-agnostic command variants and enums |
-| `tildr-commands` | Business logic for all commands |
-| `tildr-core` | Configuration loading, context, error types |
-| `tildr-fs` | Symlink operations, path utilities |
-| `tildr-git` | Git integration (auto-commit, status) |
-| `tildr-repo` | Repository scanning and managed file discovery |
-| `tildr-crypto` | GPG encryption, manifest management |
-| `tildr-utils` | Formatting, pager, filesystem helpers |
-| `tildr-ui` | Terminal output, colors, icons, prompts |
-| `open` | Cross-platform file manager launching |
-| `chrono` | Date formatting for backup timestamps |
+| Crate            | Purpose                                        |
+|------------------|------------------------------------------------|
+| `tildr`          | Binary entry point                             |
+| `tildr-cli`      | Clap-based CLI definitions and completions     |
+| `tildr-domain`   | Language-agnostic command variants and enums   |
+| `tildr-commands` | Business logic for all commands                |
+| `tildr-core`     | Configuration loading, context, error types    |
+| `tildr-fs`       | Symlink operations, path utilities             |
+| `tildr-git`      | Git integration (auto-commit, status)          |
+| `tildr-repo`     | Repository scanning and managed file discovery |
+| `tildr-crypto`   | GPG encryption, manifest management            |
+| `tildr-utils`    | Formatting, pager, filesystem helpers          |
+| `tildr-ui`       | Terminal output, colors, icons, prompts        |
+| `open`           | Cross-platform file manager launching          |
+| `chrono`         | Date formatting for backup timestamps          |
 
 ---
 
@@ -281,17 +281,17 @@ tildr group list
 
 ## Comparison with Other Tools
 
-| Feature | Tildr | GNU Stow | chezmoi | yadm |
-|---------|-------|----------|---------|------|
-| **Model** | Symlinks | Symlinks | Templates + symlinks | Git + symlinks |
-| **Language** | Rust | Perl | Go | Shell |
-| **Interactive pickers** | Yes | No | No | No |
-| **Secret management** | Built-in GPG | No | Built-in age/GPG | External |
-| **Auto-commit** | Yes | No | Optional | No |
-| **File groups** | Yes | No | No | No |
-| **Suggest unmanaged** | Yes | No | No | No |
-| **Cross-platform** | Linux + macOS | Linux + macOS | Linux + macOS + Windows | Linux + macOS |
-| **Backup** | Built-in | No | No | No |
+| Feature                 | Tildr         | GNU Stow      | chezmoi                 | yadm           |
+|-------------------------|---------------|---------------|-------------------------|----------------|
+| **Model**               | Symlinks      | Symlinks      | Templates + symlinks    | Git + symlinks |
+| **Language**            | Rust          | Perl          | Go                      | Shell          |
+| **Interactive pickers** | Yes           | No            | No                      | No             |
+| **Secret management**   | Built-in GPG  | No            | Built-in age/GPG        | External       |
+| **Auto-commit**         | Yes           | No            | Optional                | No             |
+| **File groups**         | Yes           | No            | No                      | No             |
+| **Suggest unmanaged**   | Yes           | No            | No                      | No             |
+| **Cross-platform**      | Linux + macOS | Linux + macOS | Linux + macOS + Windows | Linux + macOS  |
+| **Backup**              | Built-in      | No            | No                      | No             |
 
 ---
 
