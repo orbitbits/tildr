@@ -11,7 +11,7 @@ if ! make build; then
 fi
 
 # ----- Checks if the build generated changes -----
-if ! git diff --cached --quiet -- . ':!hooks'; then
+if ! git diff --quiet -- crates/; then
   echo ""
   echo "[tildr] Detected uncommitted changes after build."
   echo "[tildr] You probably forgot to generate artifacts (man pages, etc)."
