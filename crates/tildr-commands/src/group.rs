@@ -104,14 +104,37 @@ fn create(ctx: &Context, name: &str, files: &[String]) -> Result<()> {
 }
 
 fn add(ctx: &Context, name: &str, files: Option<&[String]>) -> Result<()> {
-  let resolved_files = match files {
+  let raw_files = match files {
     Some(f) if !f.is_empty() => f.to_vec(),
     _ => pick_files_for_group(ctx)?,
   };
 
-  if resolved_files.is_empty() {
+  if raw_files.is_empty() {
     println!("{}", style("No files selected.").dim());
     return Ok(());
+  }
+
+  let mut resolved_files = Vec::new();
+  for file in &raw_files {
+    let path = ctx.repo_path.join(file);
+    if path.is_dir() {
+      for entry in walkdir::WalkDir::new(&path)
+        .into_iter()
+        .filter_map(|e| e.ok())
+      {
+        if entry.file_type().is_file() {
+          let relative = entry
+            .path()
+            .strip_prefix(&ctx.repo_path)
+            .unwrap_or(entry.path())
+            .to_string_lossy()
+            .to_string();
+          resolved_files.push(relative);
+        }
+      }
+    } else {
+      resolved_files.push(file.clone());
+    }
   }
 
   let mut groups = Groups::load(ctx)?;
