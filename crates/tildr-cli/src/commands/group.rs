@@ -22,23 +22,24 @@ pub enum CliGroupMode {
   Create {
     /// Group name
     name: String,
-    /// Files to include (relative paths)
+    /// Files or folders to include (relative paths). Folders are expanded recursively.
     #[arg(long, num_args = 1..)]
     files: Vec<String>,
   },
-  /// Add files to an existing group
+  /// Add files or folders to an existing group
   Add {
     /// Group name
     name: String,
-    /// Files to add (relative paths). If omitted, opens a file picker.
+    /// Files or folders to add (relative paths). Folders are expanded recursively.
+    /// If omitted, opens a file picker.
     #[arg(long, num_args = 1..)]
     files: Option<Vec<String>>,
   },
-  /// Remove files from a group
+  /// Remove files or folders from a group
   Remove {
     /// Group name
     name: String,
-    /// Files to remove (relative paths)
+    /// Files or folders to remove (relative paths). Folders remove all entries inside recursively.
     #[arg(long, num_args = 1..)]
     files: Vec<String>,
   },

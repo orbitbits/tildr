@@ -630,7 +630,9 @@ Manages named groups of managed files for batch operations.
 tildr group list
 tildr group create dev --files .bashrc .config/nvim
 tildr group add dev --files .tmux.conf
+tildr group add term --files .term
 tildr group remove dev --files .tmux.conf
+tildr group remove term --files .term
 tildr group delete dev
 tildr group apply dev
 tildr group unlink dev
@@ -639,13 +641,13 @@ tildr group unlink dev
 **Subcommands:**
 
 **create** *\<NAME\>* **--files** *\<FILES\>*
-:   Create a new group with the specified files.
+:   Create a new group with the specified files or folders. Folders are expanded recursively.
 
 **add** *\<NAME\>* **--files** *\<FILES\>*
-:   Add files to an existing group.
+:   Add files or folders to an existing group. Folders are expanded recursively. If no `--files` is provided, opens a file picker.
 
 **remove** *\<NAME\>* **--files** *\<FILES\>*
-:   Remove files from a group.
+:   Remove files or folders from a group. Folders remove all entries that start with that path recursively.
 
 **delete** *\<NAME\>*
 :   Delete a group.
@@ -662,6 +664,10 @@ tildr group unlink dev
 **Behavior:**
 
 - Groups are stored in `.tildr/groups.json` in the repository root
+- `--files` accepts both files and folders; folders are expanded recursively
+- `add` with a folder adds all files inside it (e.g. `--files .term` adds `.term/*.sh`, etc.)
+- `remove` with a folder removes all entries that start with that path (e.g. `--files .term` removes `.term/behavior.sh`, `.term/colors.sh`, etc.)
+- When no `--files` is provided, `add` opens a file picker in the repository
 - `apply` creates symlinks in `$HOME` for all files in the group
 - `unlink` removes symlinks from `$HOME` for all files in the group
 - Group operations work on files already managed by Tildr
@@ -905,6 +911,7 @@ Batch operations with groups:
 
 ```sh
 tildr group create dev --files .bashrc .zshrc .tmux.conf
+tildr group add term --files .term
 tildr group apply dev
 tildr group unlink dev
 ```

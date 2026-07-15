@@ -258,6 +258,7 @@ Batch operations with groups:
 
 ```sh
 tildr group create dev --files .bashrc .zshrc .tmux.conf
+tildr group add term --files .term
 tildr group apply dev
 tildr group unlink dev
 ```

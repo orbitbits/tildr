@@ -748,7 +748,9 @@ Manages named groups of managed files for batch operations.
 tildr group list
 tildr group create dev --files .bashrc .config/nvim
 tildr group add dev --files .tmux.conf
+tildr group add term --files .term
 tildr group remove dev --files .tmux.conf
+tildr group remove term --files .term
 tildr group delete dev
 tildr group apply dev
 tildr group unlink dev
@@ -756,19 +758,23 @@ tildr group unlink dev
 
 Options:
 
-| Subcommand                        | Description                                     |
-|-----------------------------------|-------------------------------------------------|
-| `create <NAME> --files <FILES>`   | Create a new group with the specified files     |
-| `add <NAME> --files <FILES>`      | Add files to an existing group                  |
-| `remove <NAME> --files <FILES>`   | Remove files from a group                       |
-| `delete <NAME>`                   | Delete a group                                  |
-| `list`                            | List all groups and their files                 |
-| `apply <NAME>`                    | Create symlinks for all files in the group      |
-| `unlink <NAME>`                   | Remove symlinks for all files in the group      |
+| Subcommand                        | Description                                                             |
+|-----------------------------------|-------------------------------------------------------------------------|
+| `create <NAME> --files <FILES>`   | Create a new group with the specified files or folders                  |
+| `add <NAME> --files <FILES>`      | Add files or folders to an existing group                               |
+| `remove <NAME> --files <FILES>`   | Remove files or folders from a group                                    |
+| `delete <NAME>`                   | Delete a group                                                          |
+| `list`                            | List all groups and their files                                         |
+| `apply <NAME>`                    | Create symlinks for all files in the group                              |
+| `unlink <NAME>`                   | Remove symlinks for all files in the group                              |
 
 Behavior:
 
 * Groups are stored in `.tildr/groups.json` in the repository root
+* `--files` accepts both files and folders; folders are expanded recursively
+* `add` with a folder adds all files inside it (e.g. `--files .term` adds `.term/*.sh`, etc.)
+* `remove` with a folder removes all entries that start with that path (e.g. `--files .term` removes `.term/behavior.sh`, `.term/colors.sh`, etc.)
+* When no `--files` is provided, `add` opens a file picker in the repository
 * `apply` creates symlinks in `$HOME` for all files in the group
 * `unlink` removes symlinks from `$HOME` for all files in the group
 * Group operations work on files already managed by Tildr
