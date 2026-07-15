@@ -130,6 +130,7 @@ impl From<CliCommands> for Commands {
       CliCommands::Stats(_) => Commands::Stats,
       CliCommands::Backup(cmd) => Commands::Backup { output: cmd.output },
       CliCommands::Suggest(_) => Commands::Suggest,
+      CliCommands::Snapshot(cmd) => Commands::Snapshot { output: cmd.output },
       CliCommands::Group(cmd) => Commands::Group {
         mode: match cmd.mode {
           CliGroupMode::Create { name, files } => GroupMode::Create { name, files },

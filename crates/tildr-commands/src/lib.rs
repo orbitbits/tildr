@@ -17,6 +17,7 @@ mod open;
 mod repo;
 mod restore;
 mod secret;
+mod snapshot;
 pub mod stats;
 mod status;
 mod suggest;
@@ -237,6 +238,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     Commands::Stats => stats::run(ctx),
     Commands::Backup { output } => backup::run(ctx, output),
     Commands::Suggest => suggest::run(ctx),
+    Commands::Snapshot { output } => snapshot::run(ctx, output),
     Commands::Group { mode } => group::run(ctx, mode),
   }
 }

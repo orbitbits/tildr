@@ -132,6 +132,9 @@ pub enum Commands {
     output: Option<String>,
   },
   Suggest,
+  Snapshot {
+    output: Option<String>,
+  },
   Group {
     mode: GroupMode,
   },
