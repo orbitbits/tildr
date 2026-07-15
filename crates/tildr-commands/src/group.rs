@@ -7,7 +7,7 @@ use console::style;
 use serde::{Deserialize, Serialize};
 use tildr_core::context::Context;
 use tildr_fs::symlink::{create_symlink, is_symlink, is_symlink_to};
-use tildr_utils::fs::tildr_dir;
+use tildr_utils::{fs::tildr_dir, sys::has_display};
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Groups {
@@ -37,10 +37,45 @@ impl Groups {
   }
 }
 
+fn pick_files_for_group(ctx: &Context) -> Result<Vec<String>> {
+  if has_display() {
+    let picked = rfd::FileDialog::new()
+      .set_directory(&ctx.repo_path)
+      .pick_files();
+
+    match picked {
+      Some(paths) => {
+        let mut files = Vec::new();
+        for path in paths {
+          let relative = path
+            .strip_prefix(&ctx.repo_path)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .to_string();
+          files.push(relative);
+        }
+        Ok(files)
+      }
+      None => Ok(Vec::new()),
+    }
+  } else {
+    use tildr_ui::prompt::MinimalTheme;
+    let input: String = dialoguer::Input::with_theme(&MinimalTheme)
+      .with_prompt("File path (relative to repo)")
+      .allow_empty(true)
+      .interact_text()?;
+    if input.is_empty() {
+      Ok(Vec::new())
+    } else {
+      Ok(input.split_whitespace().map(|s| s.to_string()).collect())
+    }
+  }
+}
+
 pub fn run(ctx: &Context, mode: &tildr_domain::GroupMode) -> Result<()> {
   match mode {
     tildr_domain::GroupMode::Create { name, files } => create(ctx, name, files),
-    tildr_domain::GroupMode::Add { name, files } => add(ctx, name, files),
+    tildr_domain::GroupMode::Add { name, files } => add(ctx, name, files.as_deref()),
     tildr_domain::GroupMode::Remove { name, files } => remove(ctx, name, files),
     tildr_domain::GroupMode::Delete { name } => delete(ctx, name),
     tildr_domain::GroupMode::List => list(ctx),
@@ -68,14 +103,24 @@ fn create(ctx: &Context, name: &str, files: &[String]) -> Result<()> {
   Ok(())
 }
 
-fn add(ctx: &Context, name: &str, files: &[String]) -> Result<()> {
+fn add(ctx: &Context, name: &str, files: Option<&[String]>) -> Result<()> {
+  let resolved_files = match files {
+    Some(f) if !f.is_empty() => f.to_vec(),
+    _ => pick_files_for_group(ctx)?,
+  };
+
+  if resolved_files.is_empty() {
+    println!("{}", style("No files selected.").dim());
+    return Ok(());
+  }
+
   let mut groups = Groups::load(ctx)?;
   let group = groups
     .groups
     .entry(name.to_string())
     .or_insert_with(Vec::new);
   let before = group.len();
-  for file in files {
+  for file in &resolved_files {
     if !group.contains(file) {
       group.push(file.clone());
     }

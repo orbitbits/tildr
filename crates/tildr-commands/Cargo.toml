@@ -32,3 +32,4 @@ dialoguer     = { workspace = true }
 open          = { workspace = true }
 chrono        = { workspace = true }
 console       = { workspace = true }
+rfd           = { workspace = true }

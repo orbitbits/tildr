@@ -30,9 +30,9 @@ pub enum CliGroupMode {
   Add {
     /// Group name
     name: String,
-    /// Files to add (relative paths)
+    /// Files to add (relative paths). If omitted, opens a file picker.
     #[arg(long, num_args = 1..)]
-    files: Vec<String>,
+    files: Option<Vec<String>>,
   },
   /// Remove files from a group
   Remove {
