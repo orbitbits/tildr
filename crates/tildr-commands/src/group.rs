@@ -143,7 +143,11 @@ fn remove(ctx: &Context, name: &str, files: &[String]) -> Result<()> {
     .get_mut(name)
     .context(format!("Group '{}' not found.", name))?;
   let before = group.len();
-  group.retain(|f| !files.contains(f));
+  group.retain(|f| {
+    !files
+      .iter()
+      .any(|pattern| f == pattern || f.starts_with(&format!("{pattern}/")))
+  });
   let removed = before - group.len();
   groups.save(ctx)?;
   println!(
