@@ -1126,6 +1126,7 @@ dependencies = [
  "dialoguer",
  "dirs",
  "open",
+ "rfd",
  "serde",
  "serde_json",
  "tildr-cli",
