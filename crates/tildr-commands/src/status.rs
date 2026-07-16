@@ -6,6 +6,8 @@ use tildr_repo::scatildr_repo;
 use tildr_ui::{color::Colorize, symbols::icons};
 use tildr_utils::pager::page_string;
 
+use crate::profile::Profiles;
+
 #[derive(Debug, serde::Serialize)]
 pub struct FileStatus {
   pub path: String,
@@ -36,14 +38,16 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
     return Ok(());
   }
 
+  let profiles = Profiles::load(ctx)?;
   let mut statuses: Vec<FileStatus> = Vec::new();
 
   for entry in &entries {
     let home_path = ctx.home_path.join(&entry.relative);
-    let repo_path = &entry.repo_path;
+    let file_str = entry.relative.display().to_string();
+    let expected = profiles.resolve(&ctx.repo_path, &file_str);
 
     let status = if is_symlink(&home_path) {
-      if is_symlink_to(&home_path, repo_path) {
+      if is_symlink_to(&home_path, &expected) {
         "linked"
       } else {
         "broken_symlink"

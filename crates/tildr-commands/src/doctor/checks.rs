@@ -8,6 +8,7 @@ use tildr_utils::fs::format_size;
 use super::output::compact_issue_summary;
 use super::utils::{check_repo_permissions, repo_size};
 use super::{CheckReport, Doctor, DoctorCheck};
+use crate::profile::Profiles;
 
 pub(super) struct RepositoryCheck;
 
@@ -148,15 +149,18 @@ impl DoctorCheck for SymlinkCheck {
       return Ok(CheckReport::ok("Symlinks"));
     };
 
+    let profiles = Profiles::load(doctor.ctx)?;
     let mut issues = 0usize;
     let mut broken_links = 0usize;
     let mut missing_links = 0usize;
 
     for entry in entries {
       let home_link = doctor.ctx.home_path.join(&entry.relative);
+      let file_str = entry.relative.display().to_string();
+      let expected = profiles.resolve(&doctor.ctx.repo_path, &file_str);
 
       if is_symlink(&home_link) {
-        if !is_symlink_to(&home_link, &entry.repo_path) {
+        if !is_symlink_to(&home_link, &expected) {
           issues += 1;
           broken_links += 1;
         }
