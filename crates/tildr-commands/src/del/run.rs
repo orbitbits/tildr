@@ -1,12 +1,14 @@
 use super::DelArgs;
-use crate::utils::ops::{DeletionMode, ManagedPathOp, cleanup_empty_ancestors};
+use crate::utils::{
+  auto_commit::auto_commit_dry_run,
+  ops::{DeletionMode, ManagedPathOp, cleanup_empty_ancestors},
+};
 use anyhow::{Result, bail};
 use tildr_core::{
   constants::APP_NAME,
   context::Context,
   pick::{self, PickMode},
 };
-use tildr_git::GitIntegration;
 use tildr_repo::ManagedEntry;
 use tildr_ui::{
   color::Colorize,
@@ -70,7 +72,7 @@ fn run_all(ctx: &Context, args: DelArgs) -> Result<()> {
     args.quiet,
   );
 
-  auto_commit(ctx, "delete all", args.dry_run);
+  auto_commit_dry_run(ctx, "delete all", args.dry_run);
 
   Ok(())
 }
@@ -87,7 +89,7 @@ fn run_file(ctx: &Context, entry: ManagedEntry, args: &DelArgs) -> Result<()> {
     args.quiet,
   );
 
-  auto_commit(ctx, &format!("delete {commit_target}"), args.dry_run);
+  auto_commit_dry_run(ctx, &format!("delete {commit_target}"), args.dry_run);
 
   Ok(())
 }
@@ -107,7 +109,7 @@ fn run_dir(ctx: &Context, input: &str, entries: Vec<ManagedEntry>, args: &DelArg
     args.quiet,
   );
 
-  auto_commit(ctx, &format!("delete {input}"), args.dry_run);
+  auto_commit_dry_run(ctx, &format!("delete {input}"), args.dry_run);
 
   Ok(())
 }
@@ -140,11 +142,4 @@ fn execute_delete_entries(
 
     Ok(true)
   })
-}
-
-fn auto_commit(ctx: &Context, msg: &str, dry_run: bool) {
-  if ctx.config.git.auto_commit_enabled() && !dry_run {
-    let git = GitIntegration::new(ctx.repo_path.clone());
-    let _ = git.auto_commit(&format!("{}: {}", APP_NAME, msg));
-  }
 }

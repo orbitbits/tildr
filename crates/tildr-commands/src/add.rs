@@ -4,7 +4,6 @@ use std::{
   path::{Path, PathBuf},
 };
 use tildr_core::{
-  constants::APP_NAME,
   context::Context,
   pick::{PickMode, target as pick_target},
 };
@@ -13,7 +12,6 @@ use tildr_fs::{
   symlink::{create_symlink, is_symlink, is_symlink_to},
   utils::remove_file_or_dir,
 };
-use tildr_git::GitIntegration;
 use tildr_repo::ignore::IgnoreMatcher;
 use tildr_ui::{
   color::Colorize,
@@ -22,6 +20,8 @@ use tildr_ui::{
 };
 use tildr_utils::fs::move_file;
 use walkdir::WalkDir;
+
+use crate::utils::{auto_commit::auto_commit_dry_run, tildrignore};
 
 pub struct AddArgs {
   pub paths: Option<Vec<String>>,
@@ -79,7 +79,11 @@ pub fn run(ctx: &Context, args: AddArgs) -> Result<()> {
     args.quiet,
   );
 
-  auto_commit(ctx, &format!("add {}", commit_label(&targets)), &args);
+  auto_commit_dry_run(
+    ctx,
+    &format!("add {}", commit_label(&targets)),
+    args.dry_run,
+  );
 
   Ok(())
 }
@@ -203,7 +207,7 @@ fn process_add_file(
     } else {
       move_file(source, &target)?;
     }
-    append_to_tildrignore(&ctx.repo_path, &relative)?;
+    tildrignore::append_path(&ctx.repo_path, &relative)?;
 
     return Ok((
       true,
@@ -272,32 +276,4 @@ fn commit_label(targets: &[AddTarget]) -> String {
   }
 
   format!("{} targets", targets.len())
-}
-
-fn auto_commit(ctx: &Context, msg: &str, args: &AddArgs) {
-  if ctx.config.git.auto_commit_enabled() && !args.dry_run {
-    let git = GitIntegration::new(ctx.repo_path.clone());
-    let _ = git.auto_commit(&format!("{}: {}", APP_NAME, msg));
-  }
-}
-
-fn append_to_tildrignore(repo_path: &Path, relative: &Path) -> Result<()> {
-  let ignore_file = repo_path.join(".tildrignore");
-  let mut content = if ignore_file.exists() {
-    fs::read_to_string(&ignore_file)?
-  } else {
-    String::new()
-  };
-
-  let line = relative.display().to_string();
-  if !content.lines().any(|l| l.trim() == line) {
-    if !content.ends_with('\n') && !content.is_empty() {
-      content.push('\n');
-    }
-    content.push_str(&line);
-    content.push('\n');
-    fs::write(&ignore_file, content)?;
-  }
-
-  Ok(())
 }

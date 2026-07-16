@@ -1,5 +1,6 @@
 use super::RestoreArgs;
 use crate::utils::{
+  auto_commit::auto_commit_dry_run,
   confirm::confirm,
   executor::execute_entries,
   ops::{ManagedPathOp, cleanup_empty_ancestors},
@@ -8,11 +9,9 @@ use crate::utils::{
 use anyhow::{Result, bail};
 use std::collections::HashSet;
 use tildr_core::{
-  constants::APP_NAME,
   context::Context,
   pick::{self, PickMode},
 };
-use tildr_git::GitIntegration;
 use tildr_repo::ManagedEntry;
 use tildr_ui::output::{SummaryKind, print_actions, print_summary};
 
@@ -60,7 +59,7 @@ fn run_all(ctx: &Context, args: RestoreArgs) -> Result<()> {
     args.quiet,
   );
 
-  auto_commit(ctx, "restore all", args.dry_run);
+  auto_commit_dry_run(ctx, "restore all", args.dry_run);
 
   Ok(())
 }
@@ -80,7 +79,7 @@ fn run_entries(
     args.quiet,
   );
 
-  auto_commit(ctx, &format!("restore {commit_target}"), args.dry_run);
+  auto_commit_dry_run(ctx, &format!("restore {commit_target}"), args.dry_run);
 
   Ok(())
 }
@@ -103,13 +102,6 @@ fn execute_restore_entries(
 
     Ok(true)
   })
-}
-
-fn auto_commit(ctx: &Context, msg: &str, dry_run: bool) {
-  if ctx.config.git.auto_commit_enabled() && !dry_run {
-    let git = GitIntegration::new(ctx.repo_path.clone());
-    let _ = git.auto_commit(&format!("{}: {}", APP_NAME, msg));
-  }
 }
 
 fn collect_entries(

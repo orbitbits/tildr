@@ -1,7 +1,6 @@
 use anyhow::{Result, bail};
 use std::{fs, path::PathBuf};
 use tildr_core::{
-  constants::APP_NAME,
   context::Context,
   pick::{self, PickMode},
 };
@@ -9,13 +8,14 @@ use tildr_fs::{
   symlink::{create_symlink, is_symlink},
   utils::remove_file_or_dir,
 };
-use tildr_git::GitIntegration;
 use tildr_ui::{
   color::Colorize,
   icons,
   output::{ActionLog, SummaryKind, print_actions, print_summary},
   prompt::MinimalTheme,
 };
+
+use crate::utils::auto_commit::auto_commit_dry_run;
 
 pub struct MvArgs {
   pub source: Option<String>,
@@ -157,18 +157,11 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
   );
 
   // --- Auto commit ---
-  auto_commit(
+  auto_commit_dry_run(
     ctx,
     &format!("mv {} {}", source_rel.display(), dest_rel.display()),
     args.dry_run,
   );
 
   Ok(())
-}
-
-fn auto_commit(ctx: &Context, msg: &str, dry_run: bool) {
-  if ctx.config.git.auto_commit_enabled() && !dry_run {
-    let git = GitIntegration::new(ctx.repo_path.clone());
-    let _ = git.auto_commit(&format!("{}: {}", APP_NAME, msg));
-  }
 }

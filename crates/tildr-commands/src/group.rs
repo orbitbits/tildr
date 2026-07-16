@@ -5,10 +5,11 @@ use std::path::PathBuf;
 use anyhow::{Context as _, Result};
 use console::style;
 use serde::{Deserialize, Serialize};
-use tildr_core::{constants::APP_NAME, context::Context};
+use tildr_core::context::Context;
 use tildr_fs::symlink::{create_symlink, is_symlink, is_symlink_to};
-use tildr_git::GitIntegration;
 use tildr_utils::{fs::tildr_dir, sys::has_display};
+
+use crate::utils::auto_commit::auto_commit;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Groups {
@@ -312,11 +313,4 @@ fn unlink(ctx: &Context, name: &str) -> Result<()> {
     }
   }
   Ok(())
-}
-
-fn auto_commit(ctx: &Context, msg: &str) {
-  if ctx.config.git.auto_commit_enabled() {
-    let git = GitIntegration::new(ctx.repo_path.clone());
-    let _ = git.auto_commit(&format!("{}: {}", APP_NAME, msg));
-  }
 }

@@ -1,11 +1,12 @@
 use anyhow::{Result, bail};
 use std::process::Command;
-use tildr_core::{CryptoMode, config::Config, constants::APP_NAME, context::Context};
+use tildr_core::{CryptoMode, config::Config, context::Context};
 use tildr_crypto::{EncryptManifest, GpgIntegration, detect_gpg_available};
 use tildr_domain::SecretMode;
 use tildr_fs::paths::resolve_home_path;
-use tildr_git::GitIntegration;
 use tildr_ui::{color::Colorize, info, prompt::MinimalTheme, success};
+
+use crate::utils::auto_commit::auto_commit;
 
 pub fn run(ctx: &Context, mode: SecretMode) -> Result<()> {
   if !detect_gpg_available() {
@@ -218,11 +219,4 @@ fn git_untrack_if_tracked(repo_path: &std::path::Path, relative: &str) -> Result
   }
 
   Ok(())
-}
-
-fn auto_commit(ctx: &Context, msg: &str) {
-  if ctx.config.git.auto_commit_enabled() {
-    let git = GitIntegration::new(ctx.repo_path.clone());
-    let _ = git.auto_commit(&format!("{}: {}", APP_NAME, msg));
-  }
 }
