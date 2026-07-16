@@ -81,7 +81,8 @@ Tildr stores internal configuration files in a `.tildr/` directory inside the re
 ~/.dotfiles/.tildr/
 ├── encrypted-items    # manifest of registered sensitive files (plaintext)
 ├── encrypted.gpg      # encrypted bundle of sensitive files (GPG)
-└── groups.json        # named groups for batch operations
+├── groups.json        # named groups for batch operations
+└── profiles.json      # machine-specific profile definitions
 ```
 
 #### `encrypted-items`
@@ -111,6 +112,31 @@ A JSON file storing named groups of managed files for batch operations. Groups a
 }
 ```
 
+#### `profiles.json`
+
+A JSON file storing machine-specific profile definitions. Profiles are created and managed via `tildr profile`.
+
+```json
+{
+  "active": "work",
+  "profiles": {
+    "work": {
+      "description": "Work laptop",
+      "files": {
+        ".bashrc": "profiles/work/.bashrc",
+        ".ssh/config": "profiles/work/.ssh/config"
+      }
+    },
+    "personal": {
+      "description": "Personal desktop",
+      "files": {
+        ".bashrc": "profiles/personal/.bashrc"
+      }
+    }
+  }
+}
+```
+
 **Important:** These files are managed automatically by Tildr and should not be edited manually.
 
 ---
@@ -127,7 +153,8 @@ A typical Tildr repository looks like this:
 ├── .tildr/                        # Internal Tildr directory
 │   ├── encrypted-items            # Secret file manifest
 │   ├── encrypted.gpg              # Encrypted bundle
-│   └── groups.json                # File groups
+│   ├── groups.json                # File groups
+│   └── profiles.json              # Profile definitions
 ├── .bashrc                        # Managed file (real)
 ├── .zshrc                         # Managed file (real)
 ├── .gitconfig                     # Managed file (real)
@@ -137,6 +164,12 @@ A typical Tildr repository looks like this:
 │   │   └── lua/
 │   │       └── plugins.lua        # Managed file (real)
 │   └── starship.toml              # Managed file (real)
+├── profiles/                      # Profile variants
+│   ├── work/
+│   │   ├── .bashrc                # Work variant
+│   │   └── .ssh/config            # Work variant
+│   └── personal/
+│       └── .bashrc                # Personal variant
 └── .tmux.conf                     # Managed file (real)
 ```
 

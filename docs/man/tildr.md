@@ -74,6 +74,7 @@ Instead of keeping the original file in place, **Tildr** moves the managed file 
 - `backup` creates a compressed tarball backup of the repository
 - `suggest` scans `$HOME` for common dotfile patterns that could be managed
 - `group` manages named groups of managed files for batch operations
+- `profile` manages machine-specific dotfile variants for work, personal, laptop, etc.
 
 **Tildr** manages files, not directories as first-class objects. Directory operations are recursive and act on all managed files under the selected path.
 
@@ -263,6 +264,21 @@ tildr group apply dev
 tildr group unlink dev
 ```
 
+Machine-specific profiles:
+
+```sh
+tildr profile create work --description "Work laptop"
+tildr profile add work --files .bashrc .ssh/config
+tildr profile set work
+tildr apply
+
+tildr profile set personal
+tildr apply
+
+tildr profile unset
+tildr apply
+```
+
 Bootstrap on a new machine:
 
 ```sh
@@ -331,7 +347,7 @@ See **tildr-commands(1)** for the full `tildr repo path` documentation.
 :   Default repository location. Created by `tildr init`.
 
 **~/.dotfiles/.tildr/**
-:   Internal Tildr directory containing encrypted-items, encrypted.gpg, and groups.json.
+:   Internal Tildr directory containing encrypted-items, encrypted.gpg, groups.json, and profiles.json.
 
 **~/.dotfiles/.tildrignore**
 :   User-defined ignore patterns for repository scanning.

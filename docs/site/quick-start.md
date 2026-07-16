@@ -288,6 +288,36 @@ tildr group unlink dev
 
 ---
 
+### Machine-specific Profiles
+
+```sh
+# Create a profile for work environment
+tildr profile create work --description "Work laptop"
+
+# Add files to the profile (copies to profiles/work/)
+tildr profile add work --files .bashrc .ssh/config
+
+# Create another profile
+tildr profile create personal --description "Personal desktop"
+tildr profile add personal --files .bashrc .gitconfig
+
+# Activate a profile
+tildr profile set work
+
+# Apply uses the active profile
+tildr apply
+
+# Switch profiles
+tildr profile set personal
+tildr apply
+
+# Deactivate (revert to defaults)
+tildr profile unset
+tildr apply
+```
+
+---
+
 ### Recovery and Maintenance
 
 ```sh

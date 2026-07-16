@@ -40,6 +40,7 @@ Designed around simplicity, predictability, and idempotency, Tildr helps you kee
 | **Auto-commit**          | Optional automatic Git commits after file operations                            |
 | **Backup & restore**     | Create tarball backups, restore files from repository                           |
 | **File groups**          | Batch operations on named groups of managed files                               |
+| **Machine profiles**     | Different dotfile variants for work, personal, laptop, etc.                    |
 | **File suggestions**     | Scan `$HOME` for common dotfile patterns that could be managed                  |
 
 ---
@@ -153,6 +154,7 @@ Instead of keeping the original file in place, `Tildr` moves the managed file in
 * `backup` creates a compressed tarball backup of the repository
 * `suggest` scans `$HOME` for common dotfile patterns that could be managed
 * `group` manages named groups of managed files for batch operations
+* `profile` manages machine-specific dotfile variants for work, personal, laptop, etc.
 
 `Tildr` manages files, not directories as first-class objects. Directory operations are recursive and act on all managed files under the selected path.
 
@@ -277,6 +279,34 @@ tildr group unlink dev
 tildr group list
 ```
 
+### Machine-specific Profiles
+
+```sh
+# Create a profile for work environment
+tildr profile create work --description "Work laptop"
+
+# Add files to the profile (copies to profiles/work/)
+tildr profile add work --files .bashrc .ssh/config
+
+# Create another profile
+tildr profile create personal --description "Personal desktop"
+tildr profile add personal --files .bashrc .gitconfig
+
+# Activate a profile
+tildr profile set work
+
+# Apply uses the active profile
+tildr apply
+
+# Switch profiles
+tildr profile set personal
+tildr apply
+
+# Deactivate (revert to defaults)
+tildr profile unset
+tildr apply
+```
+
 ---
 
 ## Comparison with Other Tools
@@ -289,6 +319,7 @@ tildr group list
 | **Secret management**   | Built-in GPG  | No            | Built-in age/GPG        | External       |
 | **Auto-commit**         | Yes           | No            | Optional                | No             |
 | **File groups**         | Yes           | No            | No                      | No             |
+| **Machine profiles**    | Yes           | No            | Templates               | No             |
 | **Suggest unmanaged**   | Yes           | No            | No                      | No             |
 | **Cross-platform**      | Linux + macOS | Linux + macOS | Linux + macOS + Windows | Linux + macOS  |
 | **Backup**              | Built-in      | No            | No                      | No             |

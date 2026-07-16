@@ -213,7 +213,7 @@ During repository scans, Tildr always excludes the following entries regardless 
 :   User configuration file.
 
 **~/.dotfiles/.tildr/**
-:   Internal Tildr directory containing encrypted-items, encrypted.gpg, and groups.json.
+:   Internal Tildr directory containing encrypted-items, encrypted.gpg, groups.json, and profiles.json.
 
 **~/.dotfiles/.tildrignore**
 :   User-defined ignore patterns.
