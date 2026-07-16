@@ -6,7 +6,7 @@ use clap::{Args, Subcommand};
   after_help = "\
 EXAMPLES:
   tildr profile create work --description 'Work environment'
-  tildr profile add work --file .bashrc --variant profiles/work/.bashrc
+  tildr profile add work --files .bashrc .ssh/config
   tildr profile list
   tildr profile set work
   tildr profile current
@@ -27,24 +27,21 @@ pub enum CliProfileMode {
     #[arg(long)]
     description: Option<String>,
   },
-  /// Add a file variant to a profile
+  /// Add files to a profile (copies them to profiles/<name>/)
   Add {
     /// Profile name
     name: String,
-    /// Original file (relative path, e.g. .bashrc)
-    #[arg(long)]
-    file: String,
-    /// Variant path (relative path, e.g. profiles/work/.bashrc)
-    #[arg(long)]
-    variant: String,
+    /// Files to add (relative paths). Folders are expanded recursively.
+    #[arg(long, num_args = 1..)]
+    files: Vec<String>,
   },
-  /// Remove a file variant from a profile
+  /// Remove files from a profile
   Remove {
     /// Profile name
     name: String,
-    /// Original file (relative path)
-    #[arg(long)]
-    file: String,
+    /// Files to remove (relative paths)
+    #[arg(long, num_args = 1..)]
+    files: Vec<String>,
   },
   /// List all available profiles
   List,

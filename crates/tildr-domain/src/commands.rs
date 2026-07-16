@@ -177,12 +177,11 @@ pub enum ProfileMode {
   },
   Add {
     name: String,
-    file: String,
-    variant: String,
+    files: Vec<String>,
   },
   Remove {
     name: String,
-    file: String,
+    files: Vec<String>,
   },
   List,
   Set {

@@ -678,7 +678,7 @@ Manages profiles for machine-specific dotfile variants. Profiles allow you to ha
 
 ```sh
 tildr profile create work --description "Work environment"
-tildr profile add work --file .bashrc --variant profiles/work/.bashrc
+tildr profile add work --files .bashrc .ssh/config
 tildr profile list
 tildr profile set work
 tildr profile current
@@ -690,11 +690,11 @@ tildr profile unset
 **create** *\<NAME\>* **\[--description** *\<DESC\>***\]**
 :   Create a new profile.
 
-**add** *\<NAME\>* **--file** *\<FILE\>* **--variant** *\<VARIANT\>*
-:   Add a file variant to a profile.
+**add** *\<NAME\>* **--files** *\<FILES\>*
+:   Add files to a profile. Files are copied from the repo root to `profiles/<name>/`. Folders are expanded recursively.
 
-**remove** *\<NAME\>* **--file** *\<FILE\>*
-:   Remove a file variant from a profile.
+**remove** *\<NAME\>* **--files** *\<FILES\>*
+:   Remove files from a profile.
 
 **list**
 :   List all available profiles.
@@ -711,7 +711,7 @@ tildr profile unset
 **Behavior:**
 
 - Profiles are stored in `.tildr/profiles.json` in the repository root
-- Each profile defines file variants in `profiles/<name>/` folders
+- `add` copies files from repo root to `profiles/<name>/` directory
 - `apply` uses the active profile to resolve which file variant to symlink
 - Files not in the active profile fall back to the default (root) version
 - Only one profile can be active at a time

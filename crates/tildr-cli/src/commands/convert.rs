@@ -148,16 +148,8 @@ impl From<CliCommands> for Commands {
       CliCommands::Profile(cmd) => Commands::Profile {
         mode: match cmd.mode {
           CliProfileMode::Create { name, description } => ProfileMode::Create { name, description },
-          CliProfileMode::Add {
-            name,
-            file,
-            variant,
-          } => ProfileMode::Add {
-            name,
-            file,
-            variant,
-          },
-          CliProfileMode::Remove { name, file } => ProfileMode::Remove { name, file },
+          CliProfileMode::Add { name, files } => ProfileMode::Add { name, files },
+          CliProfileMode::Remove { name, files } => ProfileMode::Remove { name, files },
           CliProfileMode::List => ProfileMode::List,
           CliProfileMode::Set { name } => ProfileMode::Set { name },
           CliProfileMode::Unset => ProfileMode::Unset,
