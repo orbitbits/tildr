@@ -781,6 +781,50 @@ Behavior:
 
 ---
 
+### `tildr profile`
+
+Manages profiles for machine-specific dotfile variants. Profiles allow you to have different versions of the same file for different environments (work, personal, laptop, etc.).
+
+```sh
+tildr profile list
+tildr profile set work
+tildr profile unset
+tildr profile current
+```
+
+Options:
+
+| Subcommand             | Description                                        |
+|------------------------|----------------------------------------------------|
+| `list`                 | List all available profiles                        |
+| `set <NAME>`           | Set the active profile                             |
+| `unset`                | Unset the active profile (revert to default)       |
+| `current`              | Show the currently active profile                  |
+
+Behavior:
+
+* Profiles are stored in `.tildr/profiles.json` in the repository root
+* Each profile defines file variants in `profiles/<name>/` folders
+* `apply` uses the active profile to resolve which file variant to symlink
+* Files not in the active profile fall back to the default (root) version
+* Only one profile can be active at a time
+* Auto-commits changes to the repository
+
+Example structure:
+
+```
+.bashrc                              # default version
+.ssh/config                          # default version
+profiles/
+  work/
+    .bashrc                          # work variant
+    .ssh/config                      # work SSH config
+  personal/
+    .bashrc                          # personal variant
+```
+
+---
+
 ### `tildr info`
 
 Displays project metadata.

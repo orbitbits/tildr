@@ -18,6 +18,7 @@ mod init;
 mod list;
 mod mv;
 mod open;
+mod profile;
 mod repo;
 mod restore;
 mod secret;
@@ -56,4 +57,5 @@ pub enum CliCommands {
   Suggest(suggest::Command),
   Snapshot(snapshot::Command),
   Group(group::Command),
+  Profile(profile::Command),
 }

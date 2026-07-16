@@ -12,6 +12,8 @@ use tildr_ui::{
   warn,
 };
 
+use crate::profile::Profiles;
+
 pub struct ApplyArgs {
   pub dry_run: bool,
   pub force: bool,
@@ -26,6 +28,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
   }
 
   let entries = scatildr_repo(&ctx.repo_path)?;
+  let profiles = Profiles::load(ctx)?;
 
   let mut actions = Vec::new();
   let mut created = 0;
@@ -34,19 +37,20 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
 
   for entry in &entries {
     let home = ctx.home_path.join(&entry.relative);
-    let repo = &entry.repo_path;
+    let file_str = entry.relative.display().to_string();
+    let repo = profiles.resolve(&ctx.repo_path, &file_str);
 
     let exists = home.exists();
     let is_link = is_symlink(&home);
 
     // --- Case 1: Correct symlink ---
-    if is_link && is_symlink_to(&home, repo) {
+    if is_link && is_symlink_to(&home, &repo) {
       up_to_date += 1;
 
       if args.verbose && !args.quiet {
         actions.push(ActionLog {
           action: "Unchanged".to_string(),
-          file: entry.relative.display().to_string(),
+          file: file_str,
         });
       }
 
@@ -69,7 +73,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
         if args.verbose && !args.quiet {
           actions.push(ActionLog {
             action: "Skipped".to_string(),
-            file: entry.relative.display().to_string(),
+            file: file_str,
           });
         }
 
@@ -87,7 +91,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
 
       actions.push(ActionLog {
         action: action.to_string(),
-        file: entry.relative.display().to_string(),
+        file: file_str,
       });
 
       if is_update {
@@ -108,11 +112,11 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
       fs::create_dir_all(parent)?;
     }
 
-    create_symlink(repo, &home)?;
+    create_symlink(&repo, &home)?;
 
     actions.push(ActionLog {
       action: action_str.to_string(),
-      file: entry.relative.display().to_string(),
+      file: file_str,
     });
 
     if is_update {

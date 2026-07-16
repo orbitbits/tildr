@@ -14,6 +14,7 @@ mod init;
 mod list;
 mod mv;
 mod open;
+mod profile;
 mod repo;
 mod restore;
 mod secret;
@@ -240,5 +241,6 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     Commands::Suggest => suggest::run(ctx),
     Commands::Snapshot { output } => snapshot::run(ctx, output),
     Commands::Group { mode } => group::run(ctx, mode),
+    Commands::Profile { mode } => profile::run(ctx, mode),
   }
 }

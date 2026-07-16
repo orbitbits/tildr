@@ -1,8 +1,11 @@
 use super::{CliCommands, info::CliInfoMode, secret::CliSecretMode};
 use crate::commands::{
-  exclude::CliExcludeMode, git::CliGitMode, group::CliGroupMode, repo::CliRepoMode,
+  exclude::CliExcludeMode, git::CliGitMode, group::CliGroupMode, profile::CliProfileMode,
+  repo::CliRepoMode,
 };
-use tildr_domain::{Commands, ExcludeMode, GitMode, GroupMode, InfoMode, RepoMode, SecretMode};
+use tildr_domain::{
+  Commands, ExcludeMode, GitMode, GroupMode, InfoMode, ProfileMode, RepoMode, SecretMode,
+};
 
 impl From<CliCommands> for Commands {
   fn from(value: CliCommands) -> Self {
@@ -140,6 +143,14 @@ impl From<CliCommands> for Commands {
           CliGroupMode::List => GroupMode::List,
           CliGroupMode::Apply { name } => GroupMode::Apply { name },
           CliGroupMode::Unlink { name } => GroupMode::Unlink { name },
+        },
+      },
+      CliCommands::Profile(cmd) => Commands::Profile {
+        mode: match cmd.mode {
+          CliProfileMode::List => ProfileMode::List,
+          CliProfileMode::Set { name } => ProfileMode::Set { name },
+          CliProfileMode::Unset => ProfileMode::Unset,
+          CliProfileMode::Current => ProfileMode::Current,
         },
       },
     }

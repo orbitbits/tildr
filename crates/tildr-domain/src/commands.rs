@@ -138,6 +138,9 @@ pub enum Commands {
   Group {
     mode: GroupMode,
   },
+  Profile {
+    mode: ProfileMode,
+  },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -164,4 +167,12 @@ pub enum GroupMode {
   Unlink {
     name: String,
   },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProfileMode {
+  List,
+  Set { name: String },
+  Unset,
+  Current,
 }
