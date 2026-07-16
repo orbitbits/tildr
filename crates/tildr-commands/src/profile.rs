@@ -60,11 +60,83 @@ impl Profiles {
 
 pub fn run(ctx: &Context, mode: &tildr_domain::ProfileMode) -> Result<()> {
   match mode {
+    tildr_domain::ProfileMode::Create { name, description } => create(ctx, name, description),
+    tildr_domain::ProfileMode::Add {
+      name,
+      file,
+      variant,
+    } => add(ctx, name, file, variant),
+    tildr_domain::ProfileMode::Remove { name, file } => remove(ctx, name, file),
     tildr_domain::ProfileMode::List => list(ctx),
     tildr_domain::ProfileMode::Set { name } => set(ctx, name),
     tildr_domain::ProfileMode::Unset => unset(ctx),
     tildr_domain::ProfileMode::Current => current(ctx),
   }
+}
+
+fn create(ctx: &Context, name: &str, description: &Option<String>) -> Result<()> {
+  let mut profiles = Profiles::load(ctx)?;
+  if profiles.profiles.contains_key(name) {
+    anyhow::bail!("Profile '{}' already exists.", name);
+  }
+  let def = ProfileDef {
+    description: description.clone(),
+    files: HashMap::new(),
+  };
+  profiles.profiles.insert(name.to_string(), def);
+  profiles.save(ctx)?;
+  println!(
+    "{} Profile '{}' created.",
+    style("Created:").green().bold(),
+    name
+  );
+  auto_commit(ctx, &format!("profile create {}", name));
+  Ok(())
+}
+
+fn add(ctx: &Context, name: &str, file: &str, variant: &str) -> Result<()> {
+  let mut profiles = Profiles::load(ctx)?;
+  let def = profiles
+    .profiles
+    .get_mut(name)
+    .context(format!("Profile '{}' not found.", name))?;
+  def.files.insert(file.to_string(), variant.to_string());
+  profiles.save(ctx)?;
+  println!(
+    "{} File '{}' mapped to '{}' in profile '{}'.",
+    style("Added:").green().bold(),
+    file,
+    variant,
+    name
+  );
+  auto_commit(ctx, &format!("profile add {} {}", name, file));
+  Ok(())
+}
+
+fn remove(ctx: &Context, name: &str, file: &str) -> Result<()> {
+  let mut profiles = Profiles::load(ctx)?;
+  let def = profiles
+    .profiles
+    .get_mut(name)
+    .context(format!("Profile '{}' not found.", name))?;
+  if def.files.remove(file).is_some() {
+    profiles.save(ctx)?;
+    println!(
+      "{} File '{}' removed from profile '{}'.",
+      style("Removed:").yellow().bold(),
+      file,
+      name
+    );
+    auto_commit(ctx, &format!("profile remove {} {}", name, file));
+  } else {
+    println!(
+      "{} File '{}' not found in profile '{}'.",
+      style("Skipped:").dim(),
+      file,
+      name
+    );
+  }
+  Ok(())
 }
 
 fn list(ctx: &Context) -> Result<()> {

@@ -677,13 +677,24 @@ tildr group unlink dev
 Manages profiles for machine-specific dotfile variants. Profiles allow you to have different versions of the same file for different environments (work, personal, laptop, etc.).
 
 ```sh
+tildr profile create work --description "Work environment"
+tildr profile add work --file .bashrc --variant profiles/work/.bashrc
 tildr profile list
 tildr profile set work
-tildr profile unset
 tildr profile current
+tildr profile unset
 ```
 
 **Subcommands:**
+
+**create** *\<NAME\>* **\[--description** *\<DESC\>***\]**
+:   Create a new profile.
+
+**add** *\<NAME\>* **--file** *\<FILE\>* **--variant** *\<VARIANT\>*
+:   Add a file variant to a profile.
+
+**remove** *\<NAME\>* **--file** *\<FILE\>*
+:   Remove a file variant from a profile.
 
 **list**
 :   List all available profiles.

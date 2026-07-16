@@ -171,8 +171,23 @@ pub enum GroupMode {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProfileMode {
+  Create {
+    name: String,
+    description: Option<String>,
+  },
+  Add {
+    name: String,
+    file: String,
+    variant: String,
+  },
+  Remove {
+    name: String,
+    file: String,
+  },
   List,
-  Set { name: String },
+  Set {
+    name: String,
+  },
   Unset,
   Current,
 }
