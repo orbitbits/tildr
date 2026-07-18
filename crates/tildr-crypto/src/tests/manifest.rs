@@ -1,0 +1,95 @@
+use crate::manifest::*;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+fn temp_dir() -> PathBuf {
+  let nanos = std::time::SystemTime::now()
+    .duration_since(std::time::UNIX_EPOCH)
+    .unwrap()
+    .as_nanos();
+  let dir = std::env::temp_dir().join(format!("tildr-test-manifest-{nanos}"));
+  fs::create_dir_all(&dir).unwrap();
+  dir
+}
+
+fn setup_manifest(dir: &Path) -> EncryptManifest {
+  let tildr = dir.join(".tildr");
+  fs::create_dir_all(&tildr).unwrap();
+  let path = tildr.join("encrypted-items");
+  fs::write(&path, "").unwrap();
+  EncryptManifest { path }
+}
+
+#[test]
+fn entries_returns_empty_when_file_missing() {
+  let manifest = EncryptManifest {
+    path: PathBuf::from("/tmp/nonexistent-tildr-test-file"),
+  };
+  assert!(manifest.entries().unwrap().is_empty());
+}
+
+#[test]
+fn add_entry_appends_to_file() {
+  let dir = temp_dir();
+  let manifest = setup_manifest(&dir);
+  manifest.add(".bashrc").unwrap();
+  let entries = manifest.entries().unwrap();
+  assert_eq!(entries, vec![".bashrc"]);
+  fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn add_entry_is_idempotent() {
+  let dir = temp_dir();
+  let manifest = setup_manifest(&dir);
+  manifest.add(".bashrc").unwrap();
+  manifest.add(".bashrc").unwrap();
+  let entries = manifest.entries().unwrap();
+  assert_eq!(entries, vec![".bashrc"]);
+  fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn add_multiple_entries() {
+  let dir = temp_dir();
+  let manifest = setup_manifest(&dir);
+  manifest.add(".bashrc").unwrap();
+  manifest.add(".zshrc").unwrap();
+  let entries = manifest.entries().unwrap();
+  assert_eq!(entries, vec![".bashrc", ".zshrc"]);
+  fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn remove_entry_returns_true_and_removes() {
+  let dir = temp_dir();
+  let manifest = setup_manifest(&dir);
+  manifest.add(".bashrc").unwrap();
+  assert!(manifest.remove(".bashrc").unwrap());
+  assert!(manifest.entries().unwrap().is_empty());
+  fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn remove_nonexistent_entry_returns_false() {
+  let dir = temp_dir();
+  let manifest = setup_manifest(&dir);
+  assert!(!manifest.remove(".bashrc").unwrap());
+  fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn exists_returns_true_when_file_exists() {
+  let dir = temp_dir();
+  let manifest = setup_manifest(&dir);
+  assert!(manifest.exists());
+  fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn exists_returns_false_when_file_missing() {
+  let manifest = EncryptManifest {
+    path: PathBuf::from("/tmp/nonexistent-tildr-test"),
+  };
+  assert!(!manifest.exists());
+}

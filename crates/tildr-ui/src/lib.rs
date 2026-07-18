@@ -5,3 +5,6 @@ pub mod symbols;
 
 pub use output::{error, info, item, success, warn};
 pub use symbols::*;
+
+#[cfg(test)]
+mod tests;

@@ -244,3 +244,6 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     Commands::Profile { mode } => profile::run(ctx, mode),
   }
 }
+
+#[cfg(test)]
+mod tests;
