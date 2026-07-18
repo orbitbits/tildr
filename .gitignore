@@ -13,6 +13,10 @@ target/
 tmp/
 .idea/
 docs/*
+.claude/
 !/docs/man
 !/docs/site
+.envrc
+opencode.json
+CLAUDE.md
 ANNOTATIONS.txt
