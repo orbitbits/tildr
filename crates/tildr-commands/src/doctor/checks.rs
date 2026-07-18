@@ -1,7 +1,7 @@
 use anyhow::Result;
+use std::fs;
 use std::fs::File;
 use tildr_core::config::Config;
-use tildr_fs::symlink::{is_symlink, is_symlink_to};
 use tildr_git::{GitIntegration, GitStatusIssueKind};
 use tildr_utils::fs::format_size;
 
@@ -159,17 +159,17 @@ impl DoctorCheck for SymlinkCheck {
       let file_str = entry.relative.display().to_string();
       let expected = profiles.resolve(&doctor.ctx.repo_path, &file_str);
 
-      if is_symlink(&home_link) {
-        if !is_symlink_to(&home_link, &expected) {
+      match fs::read_link(&home_link) {
+        Ok(target) if target == expected => {}
+        Ok(_) => {
           issues += 1;
           broken_links += 1;
         }
-        continue;
-      }
-
-      if !home_link.exists() {
-        issues += 1;
-        missing_links += 1;
+        Err(_) if !home_link.exists() => {
+          issues += 1;
+          missing_links += 1;
+        }
+        Err(_) => {}
       }
     }
 

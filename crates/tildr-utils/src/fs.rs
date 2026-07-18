@@ -76,11 +76,11 @@ pub fn format_size(size: u64) -> String {
   const MB: u64 = KB * 1024;
 
   if size >= MB {
-    format!("{:.1}M", size as f64 / MB as f64)
+    format!("{:.1} MB", size as f64 / MB as f64)
   } else if size >= KB {
-    format!("{:.1}K", size as f64 / KB as f64)
+    format!("{:.1} KB", size as f64 / KB as f64)
   } else {
-    format!("{}B", size)
+    format!("{size} B")
   }
 }
 

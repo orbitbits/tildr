@@ -43,7 +43,9 @@ fn resolve_pager() -> Option<String> {
 fn run_pager(cmd: &str, content: &str) -> Result<()> {
   let mut parts = cmd.split_whitespace();
 
-  let program = parts.next().unwrap();
+  let program = parts
+    .next()
+    .ok_or_else(|| anyhow::anyhow!("Empty pager command"))?;
   let args: Vec<&str> = parts.collect();
 
   let mut child = Command::new(program)

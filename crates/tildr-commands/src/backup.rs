@@ -3,6 +3,7 @@ use std::process::Command as StdCommand;
 use anyhow::{Context as _, Result};
 use console::style;
 use tildr_core::context::Context;
+use tildr_utils::fs::format_size;
 
 pub fn run(ctx: &Context, output: &Option<String>) -> Result<()> {
   let backup_path = match output {
@@ -39,14 +40,4 @@ pub fn run(ctx: &Context, output: &Option<String>) -> Result<()> {
   );
 
   Ok(())
-}
-
-fn format_size(size: u64) -> String {
-  if size >= 1_048_576 {
-    format!("{:.1} MB", size as f64 / 1_048_576.0)
-  } else if size >= 1024 {
-    format!("{:.1} KB", size as f64 / 1024.0)
-  } else {
-    format!("{} B", size)
-  }
 }

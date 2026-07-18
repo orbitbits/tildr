@@ -3,13 +3,13 @@ use std::path::{Path, PathBuf};
 pub fn expand_home(path: &str) -> PathBuf {
   // HOME
   if path == "~" {
-    return dirs::home_dir().expect("Cannot find home directory");
+    return dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
   }
 
   if let Some(p) = path.strip_prefix("~/") {
     return dirs::home_dir()
-      .expect("Cannot find home directory")
-      .join(&p[2..]);
+      .unwrap_or_else(|| PathBuf::from("/"))
+      .join(p);
   }
 
   // It's already absolute → it returns directly
@@ -20,7 +20,7 @@ pub fn expand_home(path: &str) -> PathBuf {
 
   // Otherwise → path relative to CWD
   std::env::current_dir()
-    .expect("Cannot get current directory")
+    .unwrap_or_else(|_| PathBuf::from("."))
     .join(p)
 }
 

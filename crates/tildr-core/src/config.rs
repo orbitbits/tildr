@@ -92,8 +92,8 @@ impl Config {
     dirs::config_dir()
       .unwrap_or_else(|| {
         dirs::home_dir()
-          .expect("Cannot determine home directory")
-          .join(".config")
+          .map(|h| h.join(".config"))
+          .unwrap_or_else(|| PathBuf::from("."))
       })
       .join(APP_NAME)
       .join("config.toml")

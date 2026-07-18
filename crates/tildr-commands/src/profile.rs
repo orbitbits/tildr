@@ -121,7 +121,10 @@ fn add(ctx: &Context, name: &str, files: &[String]) -> Result<()> {
     }
   }
 
-  let def = profiles.profiles.get_mut(name).unwrap();
+  let def = profiles
+    .profiles
+    .get_mut(name)
+    .context(format!("Profile '{name}' not found"))?;
   let mut added = 0;
   for file in &raw_files {
     let src = ctx.repo_path.join(file);
@@ -250,7 +253,7 @@ fn unset(ctx: &Context) -> Result<()> {
   println!(
     "{} Profile '{}' deactivated.",
     style("Unset:").yellow().bold(),
-    old.unwrap()
+    old.unwrap_or_default()
   );
   auto_commit(ctx, "profile unset");
   Ok(())
