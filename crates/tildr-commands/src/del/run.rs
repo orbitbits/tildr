@@ -17,7 +17,7 @@ use tildr_ui::{
   output::{SummaryKind, print_actions, print_summary},
 };
 
-use crate::utils::confirm::confirm;
+use tildr_utils::confirm::confirm;
 use tildr_utils::ops::{DeletionMode, ManagedPathOp, cleanup_empty_ancestors};
 
 pub fn run(ctx: &Context, target: Option<String>, args: DelArgs) -> Result<()> {

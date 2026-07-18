@@ -13,7 +13,7 @@ use tildr_core::{
 use tildr_repo::ManagedEntry;
 use tildr_ui::output::{SummaryKind, print_actions, print_summary};
 
-use crate::utils::confirm::confirm;
+use tildr_utils::confirm::confirm;
 use tildr_utils::ops::{ManagedPathOp, cleanup_empty_ancestors};
 
 pub fn run(ctx: &Context, targets: Vec<String>, args: RestoreArgs) -> Result<()> {
