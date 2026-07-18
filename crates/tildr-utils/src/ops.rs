@@ -1,8 +1,8 @@
+use crate::fs::move_to_trash;
 use anyhow::Result;
 use std::{fs, path::Path};
 use tildr_fs::symlink::is_symlink;
 use tildr_ui::warn;
-use tildr_utils::fs::move_to_trash;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeletionMode {

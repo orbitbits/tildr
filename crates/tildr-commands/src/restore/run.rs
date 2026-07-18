@@ -1,9 +1,7 @@
 use super::RestoreArgs;
 use crate::utils::{
   auto_commit::auto_commit_dry_run,
-  confirm::confirm,
   executor::execute_entries,
-  ops::{ManagedPathOp, cleanup_empty_ancestors},
   target::{ResolvedTarget, resolve_targets, scan_all_entries},
 };
 use anyhow::{Result, bail};
@@ -14,6 +12,9 @@ use tildr_core::{
 };
 use tildr_repo::ManagedEntry;
 use tildr_ui::output::{SummaryKind, print_actions, print_summary};
+
+use crate::utils::confirm::confirm;
+use tildr_utils::ops::{ManagedPathOp, cleanup_empty_ancestors};
 
 pub fn run(ctx: &Context, targets: Vec<String>, args: RestoreArgs) -> Result<()> {
   if args.all {

@@ -12,6 +12,10 @@ description.workspace = true
 
 [dependencies]
 
+# -------- built-in --------
+tildr-fs = { workspace = true }
+tildr-ui = { workspace = true }
+
 # -------- vendors --------
 anyhow = {workspace = true }
 trash = { workspace = true }

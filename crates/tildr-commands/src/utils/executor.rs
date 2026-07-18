@@ -2,8 +2,7 @@ use anyhow::Result;
 use tildr_repo::ManagedEntry;
 use tildr_ui::output::ActionLog;
 
-// Thank you AI for helping me with this function 'execute_entries'.
-// Suggested by Claude (claude.ai) — Anthropic.
+/// Generic executor for processing entries with dry-run support.
 pub fn execute_entries<F>(
   entries: Vec<ManagedEntry>,
   dry_run: bool,

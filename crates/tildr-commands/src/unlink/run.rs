@@ -12,12 +12,12 @@ use tildr_ui::{
 };
 
 use super::UnlinkArgs;
+use crate::utils::confirm::confirm;
 use crate::utils::{
-  confirm::confirm,
   executor::execute_entries,
-  ops::{ManagedPathOp, cleanup_empty_ancestors},
   target::{ResolvedTarget, resolve_targets, scan_all_entries},
 };
+use tildr_utils::ops::{ManagedPathOp, cleanup_empty_ancestors};
 
 pub fn run(ctx: &Context, targets: Vec<String>, all: bool, args: UnlinkArgs) -> Result<()> {
   if all {

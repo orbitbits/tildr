@@ -1,7 +1,8 @@
 use super::DelArgs;
 use crate::utils::{
   auto_commit::auto_commit_dry_run,
-  ops::{DeletionMode, ManagedPathOp, cleanup_empty_ancestors},
+  executor::execute_entries,
+  target::{ResolvedTarget, resolve_target, scan_all_entries},
 };
 use anyhow::{Result, bail};
 use tildr_core::{
@@ -16,11 +17,8 @@ use tildr_ui::{
   output::{SummaryKind, print_actions, print_summary},
 };
 
-use crate::utils::{
-  confirm::confirm,
-  executor::execute_entries,
-  target::{ResolvedTarget, resolve_target, scan_all_entries},
-};
+use crate::utils::confirm::confirm;
+use tildr_utils::ops::{DeletionMode, ManagedPathOp, cleanup_empty_ancestors};
 
 pub fn run(ctx: &Context, target: Option<String>, args: DelArgs) -> Result<()> {
   if args.all {
