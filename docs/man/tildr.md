@@ -191,7 +191,7 @@ This means Tildr is not intended for copying files to a repository stored on ano
 :   Run a health check against the Tildr environment.
 
 **tildr completions** *\<shell\>*
-:   Generate shell completion scripts for bash, zsh, or fish.
+:   Generate shell completion scripts for bash, zsh, fish, powershell, or elvish.
 
 **tildr info** *\<mode\>*
 :   Display project metadata (credits or license).

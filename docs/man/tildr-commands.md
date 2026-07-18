@@ -239,7 +239,7 @@ tildr list --import ~/tildr-files.json
 **-l**, **--long**
 :   Show type and file size for each entry.
 
-**-l**, **--less**
+**--less**
 :   View the output in an interactive pager (uses `$PAGER` or `less -RFX`).
 
 **--export** *\<FILE\>*
@@ -316,7 +316,7 @@ PAGER=bat tildr cat --less
 
 **Options:**
 
-**-l**, **--less**
+**--less**
 :   Open output in a pager.
 
 **Behavior:**
@@ -846,7 +846,7 @@ tildr completions fish
 
 **Argument:**
 
-The shell to generate completions for: `bash`, `zsh`, or `fish`.
+The shell to generate completions for: `bash`, `zsh`, `fish`, `powershell`, or `elvish`.
 
 **Installation:**
 
