@@ -592,7 +592,7 @@ Manages patterns in `.tildrignore` without editing the file manually.
 ```sh
 tildr exclude add *.log
 tildr exclude add cache/
-tildr exclude remove *.log
+tildr exclude rm *.log
 tildr exclude list
 ```
 
@@ -601,7 +601,7 @@ Options:
 | Subcommand        | Description                                              |
 |-------------------|----------------------------------------------------------|
 | `add <PATTERN>`   | Add a gitignore-style pattern to `.tildrignore`          |
-| `remove <PATTERN>`| Remove the exact pattern from `.tildrignore`             |
+| `rm <PATTERN>`    | Remove the exact pattern from `.tildrignore`             |
 | `list`            | Print all patterns in `.tildrignore`                     |
 
 Behavior:
@@ -749,8 +749,8 @@ tildr group list
 tildr group create dev --files .bashrc .config/nvim
 tildr group add dev --files .tmux.conf
 tildr group add term --files .term
-tildr group remove dev --files .tmux.conf
-tildr group remove term --files .term
+tildr group rm dev --files .tmux.conf
+tildr group rm term --files .term
 tildr group delete dev
 tildr group apply dev
 tildr group unlink dev
@@ -762,7 +762,7 @@ Options:
 |-----------------------------------|-------------------------------------------------------------------------|
 | `create <NAME> --files <FILES>`   | Create a new group with the specified files or folders                  |
 | `add <NAME> --files <FILES>`      | Add files or folders to an existing group                               |
-| `remove <NAME> --files <FILES>`   | Remove files or folders from a group                                    |
+| `rm <NAME> --files <FILES>`       | Remove files or folders from a group                                    |
 | `delete <NAME>`                   | Delete a group                                                          |
 | `list`                            | List all groups and their files                                         |
 | `apply <NAME>`                    | Create symlinks for all files in the group                              |
@@ -773,7 +773,7 @@ Behavior:
 * Groups are stored in `.tildr/groups.json` in the repository root
 * `--files` accepts both files and folders; folders are expanded recursively
 * `add` with a folder adds all files inside it (e.g. `--files .term` adds `.term/*.sh`, etc.)
-* `remove` with a folder removes all entries that start with that path (e.g. `--files .term` removes `.term/behavior.sh`, `.term/colors.sh`, etc.)
+* `rm` with a folder removes all entries that start with that path (e.g. `--files .term` removes `.term/behavior.sh`, `.term/colors.sh`, etc.)
 * When no `--files` is provided, `add` opens a file picker in the repository
 * `apply` creates symlinks in `$HOME` for all files in the group
 * `unlink` removes symlinks from `$HOME` for all files in the group
@@ -788,10 +788,13 @@ Manages profiles for machine-specific dotfile variants. Profiles allow you to ha
 ```sh
 tildr profile create work --description "Work environment"
 tildr profile add work --files .bashrc .ssh/config
-tildr profile list
-tildr profile set work
-tildr profile current
-tildr profile unset
+  tildr profile list
+  tildr profile list --long
+  tildr profile list work --long
+  tildr profile list --less
+  tildr profile set work
+  tildr profile current
+  tildr profile unset
 ```
 
 Options:
@@ -800,11 +803,19 @@ Options:
 |--------------------------------------------------------|----------------------------------------------------|
 | `create <NAME> [--description <DESC>]`                 | Create a new profile                               |
 | `add <NAME> --files <FILES>`                            | Add files to a profile (copies to profiles/<name>/) |
-| `remove <NAME> --files <FILES>`                         | Remove files from a profile                        |
-| `list`                                                 | List all available profiles                        |
+| `rm <NAME> --files <FILES>`                             | Remove files from a profile                        |
+| `list [<NAME>] [--long] [--less]`                      | List all available profiles                        |
 | `set <NAME>`                                           | Set the active profile                             |
 | `unset`                                                | Unset the active profile (revert to default)       |
 | `current`                                              | Show the currently active profile                  |
+
+List options:
+
+| Option                      | Description                                        |
+|-----------------------------|----------------------------------------------------|
+| `--long`, `-l`              | Show the files in each profile                     |
+| `--less`                    | Page the output through less                       |
+| `<NAME>`                    | Show only the specified profile                    |
 
 Behavior:
 

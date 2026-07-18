@@ -8,6 +8,7 @@ EXAMPLES:
   tildr group list
   tildr group create dev --files .bashrc .config/nvim
   tildr group add dev --files .tmux.conf
+  tildr group rm dev --files .tmux.conf
   tildr group apply dev
   tildr group unlink dev\n"
 )]
@@ -36,6 +37,7 @@ pub enum CliGroupMode {
     files: Option<Vec<String>>,
   },
   /// Remove files or folders from a group
+  #[command(name = "rm")]
   Remove {
     /// Group name
     name: String,

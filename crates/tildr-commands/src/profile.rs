@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -6,7 +7,7 @@ use anyhow::{Context as _, Result};
 use console::style;
 use serde::{Deserialize, Serialize};
 use tildr_core::context::Context;
-use tildr_utils::fs::tildr_dir;
+use tildr_utils::{fs::tildr_dir, pager::page_string};
 use walkdir::WalkDir;
 
 use crate::utils::auto_commit::auto_commit;
@@ -65,7 +66,9 @@ pub fn run(ctx: &Context, mode: &tildr_domain::ProfileMode) -> Result<()> {
     tildr_domain::ProfileMode::Create { name, description } => create(ctx, name, description),
     tildr_domain::ProfileMode::Add { name, files } => add(ctx, name, files),
     tildr_domain::ProfileMode::Remove { name, files } => remove(ctx, name, files),
-    tildr_domain::ProfileMode::List => list(ctx),
+    tildr_domain::ProfileMode::List { long, less, name } => {
+      list(ctx, *long, *less, name.as_deref())
+    }
     tildr_domain::ProfileMode::Set { name } => set(ctx, name),
     tildr_domain::ProfileMode::Unset => unset(ctx),
     tildr_domain::ProfileMode::Current => current(ctx),
@@ -196,33 +199,65 @@ fn remove(ctx: &Context, name: &str, files: &[String]) -> Result<()> {
   Ok(())
 }
 
-fn list(ctx: &Context) -> Result<()> {
+fn list(ctx: &Context, long: bool, less: bool, name: Option<&str>) -> Result<()> {
   let profiles = Profiles::load(ctx)?;
-  if profiles.profiles.is_empty() {
-    println!("{}", style("No profiles defined.").dim());
-    return Ok(());
-  }
 
-  let mut names: Vec<&String> = profiles.profiles.keys().collect();
-  names.sort();
+  let names: Vec<&String> = if let Some(name) = name {
+    if !profiles.profiles.contains_key(name) {
+      anyhow::bail!("Profile '{}' not found.", name);
+    }
+    vec![profiles.profiles.get_key_value(name).unwrap().0]
+  } else {
+    if profiles.profiles.is_empty() {
+      println!("{}", style("No profiles defined.").dim());
+      return Ok(());
+    }
+    let mut names: Vec<&String> = profiles.profiles.keys().collect();
+    names.sort();
+    names
+  };
+
+  let mut buf = String::new();
 
   for name in names {
-    let def = &profiles.profiles[name];
+    let def = &profiles.profiles[name.as_str()];
     let marker = if profiles.active.as_deref() == Some(name.as_str()) {
       style(" (active)").green().bold().to_string()
     } else {
       String::new()
     };
     let desc = def.description.as_deref().unwrap_or("no description");
-    let count = def.files.len();
-    println!(
-      "  {} {} — {} [{} file(s)]",
-      marker,
-      style(name).cyan(),
-      desc,
-      count
-    );
+
+    if long {
+      writeln!(buf, "  {}{} — {}", marker, style(name).cyan(), desc)?;
+      if def.files.is_empty() {
+        writeln!(buf, "    (no files)")?;
+      } else {
+        let mut files: Vec<&String> = def.files.keys().collect();
+        files.sort();
+        for file in files {
+          writeln!(buf, "    {}", file)?;
+        }
+      }
+    } else {
+      let count = def.files.len();
+      writeln!(
+        buf,
+        "  {}{} — {} [{} file(s)]",
+        marker,
+        style(name).cyan(),
+        desc,
+        count
+      )?;
+    }
   }
+
+  if less {
+    page_string(&buf)?;
+  } else {
+    print!("{buf}");
+  }
+
   Ok(())
 }
 

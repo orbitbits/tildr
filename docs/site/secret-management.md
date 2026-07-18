@@ -59,7 +59,7 @@ In both modes:
 
 ```sh
 tildr secret add <FILE>
-tildr secret remove <FILE>
+tildr secret rm <FILE>
 tildr secret list
 tildr secret encrypt
 tildr secret decrypt
@@ -90,12 +90,12 @@ Behavior:
 
 ---
 
-#### `tildr secret remove`
+#### `tildr secret rm`
 
-Unregisters a sensitive file from the manifest and re-encrypts the bundle without it.
+  Remove a file from the encrypted bundle.
 
-```sh
-tildr secret remove .ssh/id_rsa
+  ```sh
+  tildr secret rm .ssh/id_rsa
 ```
 
 Behavior:

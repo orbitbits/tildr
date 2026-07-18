@@ -7,7 +7,7 @@ use clap::{Args, Subcommand};
 EXAMPLES:
   tildr exclude add *.log
   tildr exclude add cache/
-  tildr exclude remove *.log
+  tildr exclude rm *.log
   tildr exclude list\n"
 )]
 pub struct Command {
@@ -24,6 +24,7 @@ pub enum CliExcludeMode {
   },
 
   /// Remove a pattern from .tildrignore
+  #[command(name = "rm")]
   Remove {
     /// The exact pattern to remove
     pattern: String,

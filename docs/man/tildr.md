@@ -161,7 +161,7 @@ This means Tildr is not intended for copying files to a repository stored on ano
 :   Rename or move a managed file inside the repository.
 
 **tildr exclude** *\<mode\>*
-:   Manage `.tildrignore` patterns (add, remove, list).
+:   Manage `.tildrignore` patterns (add, rm, list).
 
 **tildr open**
 :   Open the repository in the system file manager.

@@ -486,7 +486,7 @@ Manages patterns in `.tildrignore` without editing the file manually.
 ```sh
 tildr exclude add *.log
 tildr exclude add cache/
-tildr exclude remove *.log
+tildr exclude rm *.log
 tildr exclude list
 ```
 
@@ -495,7 +495,7 @@ tildr exclude list
 **add** *\<PATTERN\>*
 :   Adds a gitignore-style pattern to `.tildrignore`. Duplicate patterns are ignored.
 
-**remove** *\<PATTERN\>*
+**rm** *\<PATTERN\>*
 :   Removes the exact pattern from `.tildrignore`. Fails if the pattern is not found.
 
 **list**
@@ -631,8 +631,8 @@ tildr group list
 tildr group create dev --files .bashrc .config/nvim
 tildr group add dev --files .tmux.conf
 tildr group add term --files .term
-tildr group remove dev --files .tmux.conf
-tildr group remove term --files .term
+tildr group rm dev --files .tmux.conf
+tildr group rm term --files .term
 tildr group delete dev
 tildr group apply dev
 tildr group unlink dev
@@ -646,7 +646,7 @@ tildr group unlink dev
 **add** *\<NAME\>* **--files** *\<FILES\>*
 :   Add files or folders to an existing group. Folders are expanded recursively. If no `--files` is provided, opens a file picker.
 
-**remove** *\<NAME\>* **--files** *\<FILES\>*
+**rm** *\<NAME\>* **--files** *\<FILES\>*
 :   Remove files or folders from a group. Folders remove all entries that start with that path recursively.
 
 **delete** *\<NAME\>*
@@ -666,7 +666,7 @@ tildr group unlink dev
 - Groups are stored in `.tildr/groups.json` in the repository root
 - `--files` accepts both files and folders; folders are expanded recursively
 - `add` with a folder adds all files inside it (e.g. `--files .term` adds `.term/*.sh`, etc.)
-- `remove` with a folder removes all entries that start with that path (e.g. `--files .term` removes `.term/behavior.sh`, `.term/colors.sh`, etc.)
+- `rm` with a folder removes all entries that start with that path (e.g. `--files .term` removes `.term/behavior.sh`, `.term/colors.sh`, etc.)
 - When no `--files` is provided, `add` opens a file picker in the repository
 - `apply` creates symlinks in `$HOME` for all files in the group
 - `unlink` removes symlinks from `$HOME` for all files in the group
@@ -679,10 +679,13 @@ Manages profiles for machine-specific dotfile variants. Profiles allow you to ha
 ```sh
 tildr profile create work --description "Work environment"
 tildr profile add work --files .bashrc .ssh/config
-tildr profile list
-tildr profile set work
-tildr profile current
-tildr profile unset
+  tildr profile list
+  tildr profile list --long
+  tildr profile list work --long
+  tildr profile list --less
+  tildr profile set work
+  tildr profile current
+  tildr profile unset
 ```
 
 **Subcommands:**
@@ -693,11 +696,20 @@ tildr profile unset
 **add** *\<NAME\>* **--files** *\<FILES\>*
 :   Add files to a profile. Files are copied from the repo root to `profiles/<name>/`. Folders are expanded recursively.
 
-**remove** *\<NAME\>* **--files** *\<FILES\>*
+**rm** *\<NAME\>* **--files** *\<FILES\>*
 :   Remove files from a profile.
 
 **list**
 :   List all available profiles.
+
+    `--long`, `-l`
+:   Show the files in each profile.
+
+    `--less`
+:   Page the output through less.
+
+    `<NAME>`
+:   Show only the specified profile.
 
 **set** *\<NAME\>*
 :   Set the active profile.
@@ -736,7 +748,7 @@ Manages encryption of sensitive files in your dotfiles repository using GPG.
 
 ```sh
 tildr secret add ~/.ssh/id_rsa
-tildr secret remove .ssh/id_rsa
+tildr secret rm .ssh/id_rsa
 tildr secret list
 tildr secret encrypt
 tildr secret decrypt
@@ -747,7 +759,7 @@ tildr secret decrypt
 **add** *\<FILE\>*
 :   Registers a file as sensitive, adds it to `.gitignore`, removes it from Git tracking if already tracked, and re-encrypts the full bundle.
 
-**remove** *\<FILE\>*
+**rm** *\<FILE\>*
 :   Unregisters a file from the manifest and re-encrypts the bundle without it. If no files remain, the bundle is deleted. The original file in `$HOME` is not touched.
 
 **list**

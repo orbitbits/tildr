@@ -183,7 +183,11 @@ pub enum ProfileMode {
     name: String,
     files: Vec<String>,
   },
-  List,
+  List {
+    long: bool,
+    less: bool,
+    name: Option<String>,
+  },
   Set {
     name: String,
   },

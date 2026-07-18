@@ -150,7 +150,7 @@ impl From<CliCommands> for Commands {
           CliProfileMode::Create { name, description } => ProfileMode::Create { name, description },
           CliProfileMode::Add { name, files } => ProfileMode::Add { name, files },
           CliProfileMode::Remove { name, files } => ProfileMode::Remove { name, files },
-          CliProfileMode::List => ProfileMode::List,
+          CliProfileMode::List { long, less, name } => ProfileMode::List { long, less, name },
           CliProfileMode::Set { name } => ProfileMode::Set { name },
           CliProfileMode::Unset => ProfileMode::Unset,
           CliProfileMode::Current => ProfileMode::Current,

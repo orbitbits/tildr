@@ -153,10 +153,10 @@ When `true`, Tildr automatically commits changes after these commands:
 | `tildr del` | Commits after deleting files |
 | `tildr mv` | Commits after moving/renaming files |
 | `tildr secret add` | Commits after registering a secret file |
-| `tildr secret remove` | Commits after unregistering a secret file |
+| `tildr secret rm` | Commits after unregistering a secret file |
 | `tildr secret encrypt` | Commits after re-encrypting the bundle |
 | `tildr exclude add` | Commits after adding an ignore pattern |
-| `tildr exclude remove` | Commits after removing an ignore pattern |
+| `tildr exclude rm` | Commits after removing an ignore pattern |
 
 Commands that do **not** trigger auto-commit: `tildr apply`, `tildr unlink`, `tildr status`, `tildr list`, `tildr git`, `tildr sync`, `tildr doctor`.
 

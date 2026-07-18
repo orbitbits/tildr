@@ -132,7 +132,7 @@ The `tildr exclude` command manages `.tildrignore` patterns without editing the 
 tildr exclude add *.log
 
 # Remove a pattern
-tildr exclude remove *.log
+tildr exclude rm *.log
 
 # List all patterns
 tildr exclude list

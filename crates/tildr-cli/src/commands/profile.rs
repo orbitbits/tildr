@@ -7,7 +7,11 @@ use clap::{Args, Subcommand};
 EXAMPLES:
   tildr profile create work --description 'Work environment'
   tildr profile add work --files .bashrc .ssh/config
+  tildr profile rm work --files .bashrc
   tildr profile list
+  tildr profile list --long
+  tildr profile list work --long
+  tildr profile list --less
   tildr profile set work
   tildr profile current
   tildr profile unset\n"
@@ -36,6 +40,7 @@ pub enum CliProfileMode {
     files: Vec<String>,
   },
   /// Remove files from a profile
+  #[command(name = "rm")]
   Remove {
     /// Profile name
     name: String,
@@ -44,7 +49,16 @@ pub enum CliProfileMode {
     files: Vec<String>,
   },
   /// List all available profiles
-  List,
+  List {
+    /// Show files in each profile
+    #[arg(short, long)]
+    long: bool,
+    /// Page output through less
+    #[arg(long)]
+    less: bool,
+    /// Profile name to show
+    name: Option<String>,
+  },
   /// Set the active profile
   Set {
     /// Profile name
