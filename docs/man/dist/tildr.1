@@ -50,6 +50,9 @@ Always matching your desired state.
 .TP
 \f[B]Simple\f[R]
 Without unnecessary complexity.
+.TP
+\f[B]Portable\f[R]
+Move between machines effortlessly.
 .PP
 \f[B]Tildr\f[R] turns your HOME directory into a predictable and
 controlled environment.
@@ -75,6 +78,21 @@ The repository becomes the source of truth
 .IP \[bu] 2
 \f[CR]del\f[R] removes managed content from the repository and unlinks
 it from \f[CR]$HOME\f[R]
+.IP \[bu] 2
+\f[CR]open\f[R] opens the repository in the system file manager
+.IP \[bu] 2
+\f[CR]stats\f[R] shows statistics about managed files
+.IP \[bu] 2
+\f[CR]backup\f[R] creates a compressed tarball backup of the repository
+.IP \[bu] 2
+\f[CR]suggest\f[R] scans \f[CR]$HOME\f[R] for common dotfile patterns
+that could be managed
+.IP \[bu] 2
+\f[CR]group\f[R] manages named groups of managed files for batch
+operations
+.IP \[bu] 2
+\f[CR]profile\f[R] manages machine\-specific dotfile variants for work,
+personal, laptop, etc.
 .PP
 \f[B]Tildr\f[R] manages files, not directories as first\-class objects.
 Directory operations are recursive and act on all managed files under
@@ -102,6 +120,9 @@ $HOME/.dotfiles/.config/nvim/init.lua \-> real file
 .TP
 \f[B]Config file:\f[R]
 \f[CR]\[ti]/.config/tildr/config.toml\f[R]
+.TP
+\f[B]Internal directory:\f[R]
+\f[CR]\[ti]/.dotfiles/.tildr/\f[R]
 .PP
 If XDG config resolution is unavailable, Tildr falls back to
 \f[CR]$HOME/.config/tildr/config.toml\f[R].
@@ -166,7 +187,25 @@ Delete managed files from the repository and unlink from
 Rename or move a managed file inside the repository.
 .TP
 \f[B]tildr exclude\f[R] \f[I]<mode>\f[R]
-Manage \f[CR].tildrignore\f[R] patterns (add, remove, list).
+Manage \f[CR].tildrignore\f[R] patterns (add, rm, list).
+.TP
+\f[B]tildr open\f[R]
+Open the repository in the system file manager.
+.TP
+\f[B]tildr stats\f[R]
+Show statistics about managed files.
+.TP
+\f[B]tildr backup\f[R] \f[I][options]\f[R]
+Create a compressed tarball backup of the repository.
+.TP
+\f[B]tildr suggest\f[R]
+Scan \f[CR]$HOME\f[R] for common dotfile patterns that could be managed.
+.TP
+\f[B]tildr snapshot\f[R] \f[I][options]\f[R]
+Generate a reproducible bootstrap script from the current setup.
+.TP
+\f[B]tildr group\f[R] \f[I]<mode>\f[R]
+Manage named groups of managed files for batch operations.
 .TP
 \f[B]tildr secret\f[R] \f[I]<mode>\f[R]
 Manage encryption of sensitive files using GPG.
@@ -178,12 +217,225 @@ Synchronize the repository with its Git remote in both directions.
 Run a health check against the Tildr environment.
 .TP
 \f[B]tildr completions\f[R] \f[I]<shell>\f[R]
-Generate shell completion scripts for bash, zsh, or fish.
+Generate shell completion scripts for bash, zsh, fish, powershell, or
+elvish.
 .TP
 \f[B]tildr info\f[R] \f[I]<mode>\f[R]
 Display project metadata (credits or license).
 .PP
 See \f[B]tildr\-commands(1)\f[R] for full documentation of each command.
+.SH INTERACTIVE BEHAVIOR
+When a target is omitted, the following commands open an interactive
+file picker:
+.IP \[bu] 2
+\f[CR]add\f[R] (picks from \f[CR]$HOME\f[R] instead of the repository)
+.IP \[bu] 2
+\f[CR]cat\f[R]
+.IP \[bu] 2
+\f[CR]edit\f[R]
+.IP \[bu] 2
+\f[CR]unlink\f[R]
+.IP \[bu] 2
+\f[CR]restore\f[R]
+.IP \[bu] 2
+\f[CR]del\f[R]
+.IP \[bu] 2
+\f[CR]mv\f[R]
+.PP
+When the number of managed files exceeds
+\f[CR]core.search_threshold\f[R] (default: \f[CR]15\f[R]), the picker
+shows a search step first.
+Type a fragment to filter the list by fuzzy match, or press enter to
+skip filtering.
+.SH TYPICAL WORKFLOW
+Initial setup:
+.IP
+.EX
+tildr init
+tildr suggest
+tildr add .bashrc
+tildr add .config/nvim
+tildr status
+tildr doctor
+tildr backup
+.EE
+.PP
+Daily operations:
+.IP
+.EX
+tildr apply
+tildr status
+tildr stats
+tildr git status
+tildr sync
+.EE
+.PP
+Recovery and maintenance:
+.IP
+.EX
+tildr status
+tildr doctor
+tildr apply
+tildr unlink .config/nvim
+tildr restore .bashrc
+.EE
+.PP
+Secret file management:
+.IP
+.EX
+tildr secret add \[ti]/.ssh/id_rsa
+tildr secret list
+tildr secret encrypt
+tildr sync
+.EE
+.PP
+Batch operations with groups:
+.IP
+.EX
+tildr group create dev \-\-files .bashrc .zshrc .tmux.conf
+tildr group add term \-\-files .term
+tildr group apply dev
+tildr group unlink dev
+.EE
+.PP
+Machine\-specific profiles:
+.IP
+.EX
+tildr profile create work \-\-description \[dq]Work laptop\[dq]
+tildr profile add work \-\-files .bashrc .ssh/config
+tildr profile set work
+tildr apply
+
+tildr profile set personal
+tildr apply
+
+tildr profile unset
+tildr apply
+.EE
+.PP
+Bootstrap on a new machine:
+.IP
+.EX
+tildr snapshot > setup.sh
+chmod +x setup.sh
+\&./setup.sh
+.EE
+.SH SHELL ALIASES
+A child process cannot change the parent shell\[cq]s working directory,
+so \f[CR]tildr repo cd\f[R] is not possible.
+Use \f[CR]tildr repo path\f[R] with aliases instead:
+.IP
+.EX
+\f[I]# Add to \[ti]/.bashrc or \[ti]/.zshrc\f[R]
+alias tcd=\[aq]cd \[dq]$(tildr repo path)\[dq]\[aq]
+alias tstatus=\[aq]tildr status \-\-counter\[aq]
+alias tapply=\[aq]tildr apply\[aq]
+alias tsync=\[aq]tildr sync\[aq]
+.EE
+.PP
+See \f[B]tildr\-commands(1)\f[R] for the full \f[CR]tildr repo path\f[R]
+documentation.
+.SH OPERATIONAL NOTES
+.IP \[bu] 2
+Tildr is designed for home\-directory management on Linux and macOS
+.IP \[bu] 2
+The repository must stay inside \f[CR]$HOME\f[R]
+.IP \[bu] 2
+Relative paths for managed targets are interpreted from \f[CR]$HOME\f[R]
+.IP \[bu] 2
+Directory operations are recursive over all files under that path
+.IP \[bu] 2
+\f[CR]apply\f[R] does not overwrite conflicting regular files unless
+\f[CR]\-\-force\f[R] is provided
+.IP \[bu] 2
+\f[CR]unlink\f[R] removes only symlinks, never repository content
+.IP \[bu] 2
+\f[CR]restore\f[R] physically moves the real file back out of the
+repository
+.IP \[bu] 2
+\f[CR]del\f[R] removes repository content; use \f[CR]\-\-purge\f[R] for
+permanent deletion, otherwise files go to trash
+.IP \[bu] 2
+\f[CR]git.auto_commit\f[R] affects \f[CR]add\f[R], \f[CR]restore\f[R],
+\f[CR]del\f[R], \f[CR]mv\f[R], and \f[CR]secret\f[R] \[em] not
+\f[CR]apply\f[R], \f[CR]unlink\f[R], \f[CR]git\f[R], or \f[CR]sync\f[R]
+.IP \[bu] 2
+\f[CR]git.enable = false\f[R] disables Tildr\-managed Git operations
+even if Git is installed
+.IP \[bu] 2
+\f[CR]tildr secret\f[R] requires \f[CR]gpg\f[R] to be installed and
+available in \f[CR]PATH\f[R]
+.IP \[bu] 2
+Sensitive files registered with \f[CR]tildr secret add\f[R] are never
+stored in plain text in the repository
+.IP \[bu] 2
+\f[CR]crypto.mode\f[R] controls whether symmetric (passphrase) or
+asymmetric (key pair) GPG encryption is used
+.IP \[bu] 2
+In asymmetric mode, \f[CR]crypto.gpg_key\f[R] is saved automatically
+after interactive key selection on first use
+.IP \[bu] 2
+\f[CR]core.color = false\f[R] disables all colored output;
+\f[CR]NO_COLOR\f[R] environment variable is also respected
+.IP \[bu] 2
+The \f[CR]\-\-less\f[R] flag is available on \f[CR]tildr status\f[R],
+\f[CR]tildr list\f[R], and \f[CR]tildr cat\f[R] for interactive pager
+output
+.IP \[bu] 2
+\f[CR].tildrignore\f[R] patterns prevent files from being discovered by
+\f[CR]list\f[R], \f[CR]status\f[R], and \f[CR]apply\f[R]
+.SH ENVIRONMENT VARIABLES
+.TP
+\f[B]EDITOR\f[R]
+Editor used by \f[CR]tildr edit\f[R].
+Falls back to \f[CR]$VISUAL\f[R], then \f[CR]nano\f[R].
+.TP
+\f[B]VISUAL\f[R]
+Alternative editor used by \f[CR]tildr edit\f[R] if \f[CR]$EDITOR\f[R]
+is not set.
+.TP
+\f[B]PAGER\f[R]
+Pager used by \f[CR]tildr cat \-\-less\f[R] and
+\f[CR]tildr status \-\-less\f[R].
+Falls back to \f[CR]less \-RFX\f[R].
+.TP
+\f[B]NO_COLOR\f[R]
+When set, disables all colored output regardless of
+\f[CR]core.color\f[R] config.
+.TP
+\f[B]GPG_AGENT_INFO\f[R]
+Used by GPG for passphrase caching in asymmetric mode.
+.SH FILES
+.TP
+\f[B]\[ti]/.config/tildr/config.toml\f[R]
+User configuration file.
+Created by \f[CR]tildr init\f[R].
+.TP
+\f[B]\[ti]/.dotfiles/\f[R]
+Default repository location.
+Created by \f[CR]tildr init\f[R].
+.TP
+\f[B]\[ti]/.dotfiles/.tildr/\f[R]
+Internal Tildr directory containing encrypted\-items, encrypted.gpg,
+groups.json, and profiles.json.
+.TP
+\f[B]\[ti]/.dotfiles/.tildrignore\f[R]
+User\-defined ignore patterns for repository scanning.
+.SH EXIT STATUS
+.TP
+\f[B]0\f[R]
+Success.
+.TP
+\f[B]1\f[R]
+General error (missing repository, invalid config, file not found).
+.TP
+\f[B]2\f[R]
+Usage error (invalid arguments, unknown command).
 .SH SEE ALSO
 \f[B]tildr\-commands(1)\f[R], \f[B]tildr\-config(1)\f[R],
 \f[B]tildr\-security(1)\f[R], \f[B]tildr\-plugins(1)\f[R]
+.SH AUTHORS
+Maintained by the Tildr contributors.
+Source code and issue tracker: \c
+.UR https://github.com/orbitbits/tildr
+.UE \c

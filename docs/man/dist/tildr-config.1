@@ -16,25 +16,9 @@ The config file is created by \f[B]tildr init\f[R] and is never written
 automatically outside of that command.
 If the file does not exist at startup, all default values are applied
 silently.
-.PP
-Example configuration:
-.IP
-.EX
-\f[B][core]\f[R]
-repo = \[dq]\[ti]/.dotfiles\[dq]
-search_threshold = 15
-color = true
-
-\f[B][git]\f[R]
-available = true
-auto_commit = true
-
-\f[B][crypto]\f[R]
-mode = \[dq]symmetric\[dq]
-\f[I]# gpg_key = \[dq]william\[at]email.com\[dq]   # only used when mode = \[dq]asymmetric\[dq]\f[R]
-.EE
-.SH SUPPORTED KEYS
+.SH CONFIGURATION SECTIONS
 .SS [core]
+The \f[CR][core]\f[R] section controls general Tildr behavior.
 .TP
 \f[B]core.repo\f[R]
 Repository path used by the CLI.
@@ -43,12 +27,30 @@ Accepts \f[CR]\[ti]/...\f[R] notation or an absolute path inside
 The repository must be inside \f[CR]$HOME\f[R] and cannot be
 \f[CR]$HOME\f[R] itself.
 Default: \f[CR]\[ti]/.dotfiles\f[R]
+.RS
+.PP
+Example:
+.IP
+.EX
+\f[B][core]\f[R]
+repo = \[dq]\[ti]/.dotfiles\[dq]
+.EE
+.RE
 .TP
 \f[B]core.search_threshold\f[R]
 Number of managed files above which interactive pickers show a
 search/filter step before the selection list.
 Type a fragment to filter by fuzzy match, or press enter to skip.
 Default: \f[CR]15\f[R]
+.RS
+.PP
+Example:
+.IP
+.EX
+\f[B][core]\f[R]
+search_threshold = 20
+.EE
+.RE
 .TP
 \f[B]core.color\f[R]
 When \f[CR]false\f[R], disables all colored output by setting
@@ -56,19 +58,42 @@ When \f[CR]false\f[R], disables all colored output by setting
 The \f[CR]NO_COLOR\f[R] environment variable is also respected
 regardless of this setting.
 Default: \f[CR]true\f[R]
+.RS
+.PP
+Example:
+.IP
+.EX
+\f[B][core]\f[R]
+color = false
+.EE
+.RE
 .SS [git]
+The \f[CR][git]\f[R] section controls Git integration.
 .TP
 \f[B]git.available\f[R]
 Whether Git was detected by \f[B]tildr init\f[R].
 Written automatically by Tildr and used by Git\-aware commands such as
 \f[B]sync\f[R], \f[B]git status\f[R], and auto\-commit flows.
 Default when no config exists: \f[CR]true\f[R]
+.RS
+.PP
+This value is updated automatically when you run \f[CR]tildr init\f[R].
+.RE
 .TP
 \f[B]git.enable\f[R]
 Optional manual override.
 When explicitly set to \f[CR]false\f[R], Tildr skips Git operations even
 if Git is installed and \f[CR]git.available = true\f[R].
 Default: unset
+.RS
+.PP
+Example:
+.IP
+.EX
+\f[B][git]\f[R]
+enable = false
+.EE
+.RE
 .TP
 \f[B]git.auto_commit\f[R]
 When \f[CR]true\f[R], Tildr automatically runs \f[CR]git add \-A\f[R]
@@ -77,7 +102,18 @@ and \f[CR]git commit\f[R] after \f[B]add\f[R], \f[B]restore\f[R],
 Does not affect \f[B]apply\f[R], \f[B]unlink\f[R], \f[B]git\f[R], or
 \f[B]sync\f[R].
 Default: \f[CR]true\f[R]
+.RS
+.PP
+Example:
+.IP
+.EX
+\f[B][git]\f[R]
+auto_commit = true
+.EE
+.RE
 .SS [crypto]
+The \f[CR][crypto]\f[R] section controls GPG encryption for sensitive
+files.
 .TP
 \f[B]crypto.mode\f[R]
 Encryption mode used by \f[B]tildr secret\f[R].
@@ -95,6 +131,13 @@ Decryption uses the private key and requires no additional passphrase
 (subject to GPG Agent caching).
 .PP
 Default: \f[CR]symmetric\f[R]
+.PP
+Example:
+.IP
+.EX
+\f[B][crypto]\f[R]
+mode = \[dq]symmetric\[dq]
+.EE
 .RE
 .TP
 \f[B]crypto.gpg_key\f[R]
@@ -104,6 +147,32 @@ When empty, Tildr prompts interactively on first use and saves the
 chosen key to this field automatically.
 Ignored when \f[CR]crypto.mode = \[dq]symmetric\[dq]\f[R].
 Default: empty
+.RS
+.PP
+Example:
+.IP
+.EX
+\f[B][crypto]\f[R]
+mode = \[dq]asymmetric\[dq]
+gpg_key = \[dq]william\[at]email.com\[dq]
+.EE
+.RE
+.SH FULL EXAMPLE
+.IP
+.EX
+\f[B][core]\f[R]
+repo = \[dq]\[ti]/.dotfiles\[dq]
+search_threshold = 15
+color = true
+
+\f[B][git]\f[R]
+available = true
+auto_commit = true
+
+\f[B][crypto]\f[R]
+mode = \[dq]symmetric\[dq]
+\f[I]# gpg_key = \[dq]william\[at]email.com\[dq]   # only used when mode = \[dq]asymmetric\[dq]\f[R]
+.EE
 .SH PATH RESOLUTION RULES
 Most path arguments to Tildr commands are interpreted relative to
 \f[CR]$HOME\f[R].
@@ -167,6 +236,40 @@ Files ending in \f[CR].tmp\f[R]
 Files ending in \f[CR].swp\f[R]
 .IP \[bu] 2
 Files ending in \f[CR]\[ti]\f[R]
+.SH ENVIRONMENT VARIABLES
+.TP
+\f[B]NO_COLOR\f[R]
+When set, disables all colored output regardless of
+\f[CR]core.color\f[R] config.
+.TP
+\f[B]EDITOR\f[R]
+Editor used by \f[CR]tildr edit\f[R].
+Falls back to \f[CR]$VISUAL\f[R], then \f[CR]nano\f[R].
+.TP
+\f[B]VISUAL\f[R]
+Alternative editor used by \f[CR]tildr edit\f[R] if \f[CR]$EDITOR\f[R]
+is not set.
+.TP
+\f[B]PAGER\f[R]
+Pager used by \f[CR]tildr cat \-\-less\f[R] and
+\f[CR]tildr status \-\-less\f[R].
+Falls back to \f[CR]less \-RFX\f[R].
+.SH FILES
+.TP
+\f[B]\[ti]/.config/tildr/config.toml\f[R]
+User configuration file.
+.TP
+\f[B]\[ti]/.dotfiles/.tildr/\f[R]
+Internal Tildr directory containing encrypted\-items, encrypted.gpg,
+groups.json, and profiles.json.
+.TP
+\f[B]\[ti]/.dotfiles/.tildrignore\f[R]
+User\-defined ignore patterns.
 .SH SEE ALSO
 \f[B]tildr(1)\f[R], \f[B]tildr\-commands(1)\f[R],
 \f[B]tildr\-security(1)\f[R], \f[B]tildr\-plugins(1)\f[R]
+.SH AUTHORS
+Maintained by the Tildr contributors.
+Source code and issue tracker: \c
+.UR https://github.com/orbitbits/tildr
+.UE \c

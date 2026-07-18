@@ -104,6 +104,9 @@ Destination must be inside \f[CR]$HOME\f[R]
 .IP \[bu] 2
 Refuses to overwrite a config pointing to a different repository unless
 \f[CR]\-\-force\f[R] is used
+.IP \[bu] 2
+If a \f[CR].tildr/encrypted.gpg\f[R] bundle is present, decrypts
+sensitive files after cloning
 .SS tildr add
 Adds a file or a directory tree from \f[CR]$HOME\f[R] into the
 repository and replaces each file with a symlink.
@@ -187,6 +190,8 @@ Skips regular files already present in \f[CR]$HOME\f[R] unless
 Uses the repository as the source of truth
 .IP \[bu] 2
 Does not modify repository content
+.IP \[bu] 2
+Always idempotent \[em] running multiple times produces the same result
 .SS tildr status
 Shows the synchronization state of all managed files.
 .IP
@@ -252,7 +257,7 @@ Show the repository as a directory tree.
 \f[B]\-l\f[R], \f[B]\[en]long\f[R]
 Show type and file size for each entry.
 .TP
-\f[B]\-l\f[R], \f[B]\[en]less\f[R]
+\f[B]\[en]less\f[R]
 View the output in an interactive pager (uses \f[CR]$PAGER\f[R] or
 \f[CR]less \-RFX\f[R]).
 .TP
@@ -342,7 +347,7 @@ PAGER=bat tildr cat \-\-less
 .PP
 \f[B]Options:\f[R]
 .TP
-\f[B]\-l\f[R], \f[B]\[en]less\f[R]
+\f[B]\[en]less\f[R]
 Open output in a pager.
 .PP
 \f[B]Behavior:\f[R]
@@ -543,7 +548,7 @@ manually.
 .EX
 tildr exclude add *.log
 tildr exclude add cache/
-tildr exclude remove *.log
+tildr exclude rm *.log
 tildr exclude list
 .EE
 .PP
@@ -553,7 +558,7 @@ tildr exclude list
 Adds a gitignore\-style pattern to \f[CR].tildrignore\f[R].
 Duplicate patterns are ignored.
 .TP
-\f[B]remove\f[R] \f[I]<PATTERN>\f[R]
+\f[B]rm\f[R] \f[I]<PATTERN>\f[R]
 Removes the exact pattern from \f[CR].tildrignore\f[R].
 Fails if the pattern is not found.
 .TP
@@ -663,6 +668,40 @@ Skips files already managed by Tildr
 Reports suggestions grouped by category
 .IP \[bu] 2
 Does not modify any files
+.SS tildr snapshot
+Generate a reproducible bootstrap script from the current Tildr setup.
+.IP
+.EX
+tildr snapshot > setup.sh
+tildr snapshot \-\-output \[ti]/setup.sh
+chmod +x setup.sh
+\&./setup.sh
+.EE
+.PP
+\f[B]Options:\f[R]
+.TP
+\f[B]\[en]output\f[R] \f[I]<FILE>\f[R]
+Custom output file path.
+If omitted, prints to stdout.
+.PP
+\f[B]Behavior:\f[R]
+.IP \[bu] 2
+Generates a shell script that reproduces the entire Tildr setup on a new
+machine
+.IP \[bu] 2
+Auto\-detects the git remote URL for the clone step
+.IP \[bu] 2
+Checks prerequisites (git, tildr, optionally gpg)
+.IP \[bu] 2
+Clones the repository or creates it if it doesn\[cq]t exist
+.IP \[bu] 2
+Initializes Tildr config
+.IP \[bu] 2
+Runs \f[CR]tildr apply\f[R] to create symlinks
+.IP \[bu] 2
+Decrypts secrets if \f[CR].tildr/encrypted.gpg\f[R] exists
+.IP \[bu] 2
+Output is idempotent \[em] safe to run multiple times
 .SS tildr group
 Manages named groups of managed files for batch operations.
 .IP
@@ -670,7 +709,9 @@ Manages named groups of managed files for batch operations.
 tildr group list
 tildr group create dev \-\-files .bashrc .config/nvim
 tildr group add dev \-\-files .tmux.conf
-tildr group remove dev \-\-files .tmux.conf
+tildr group add term \-\-files .term
+tildr group rm dev \-\-files .tmux.conf
+tildr group rm term \-\-files .term
 tildr group delete dev
 tildr group apply dev
 tildr group unlink dev
@@ -679,13 +720,17 @@ tildr group unlink dev
 \f[B]Subcommands:\f[R]
 .TP
 \f[B]create\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
-Create a new group with the specified files.
+Create a new group with the specified files or folders.
+Folders are expanded recursively.
 .TP
 \f[B]add\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
-Add files to an existing group.
+Add files or folders to an existing group.
+Folders are expanded recursively.
+If no \f[CR]\-\-files\f[R] is provided, opens a file picker.
 .TP
-\f[B]remove\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
-Remove files from a group.
+\f[B]rm\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
+Remove files or folders from a group.
+Folders remove all entries that start with that path recursively.
 .TP
 \f[B]delete\f[R] \f[I]<NAME>\f[R]
 Delete a group.
@@ -704,6 +749,19 @@ Remove symlinks for all files in the group.
 Groups are stored in \f[CR].tildr/groups.json\f[R] in the repository
 root
 .IP \[bu] 2
+\f[CR]\-\-files\f[R] accepts both files and folders; folders are
+expanded recursively
+.IP \[bu] 2
+\f[CR]add\f[R] with a folder adds all files inside it
+(e.g.\ \f[CR]\-\-files .term\f[R] adds \f[CR].term/*.sh\f[R], etc.)
+.IP \[bu] 2
+\f[CR]rm\f[R] with a folder removes all entries that start with that
+path (e.g.\ \f[CR]\-\-files .term\f[R] removes
+\f[CR].term/behavior.sh\f[R], \f[CR].term/colors.sh\f[R], etc.)
+.IP \[bu] 2
+When no \f[CR]\-\-files\f[R] is provided, \f[CR]add\f[R] opens a file
+picker in the repository
+.IP \[bu] 2
 \f[CR]apply\f[R] creates symlinks in \f[CR]$HOME\f[R] for all files in
 the group
 .IP \[bu] 2
@@ -711,13 +769,99 @@ the group
 in the group
 .IP \[bu] 2
 Group operations work on files already managed by Tildr
+.SS tildr profile
+Manages profiles for machine\-specific dotfile variants.
+Profiles allow you to have different versions of the same file for
+different environments (work, personal, laptop, etc.).
+.IP
+.EX
+tildr profile create work \-\-description \[dq]Work environment\[dq]
+tildr profile add work \-\-files .bashrc .ssh/config
+  tildr profile list
+  tildr profile list \-\-long
+  tildr profile list work \-\-long
+  tildr profile list \-\-less
+  tildr profile set work
+  tildr profile current
+  tildr profile unset
+.EE
+.PP
+\f[B]Subcommands:\f[R]
+.TP
+\f[B]create\f[R] \f[I]<NAME>\f[R] \f[B][\[en]description\f[R] \f[I]<DESC>\f[R]\f[B]]\f[R]
+Create a new profile.
+.TP
+\f[B]add\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
+Add files to a profile.
+Files are copied from the repo root to \f[CR]profiles/<name>/\f[R].
+Folders are expanded recursively.
+.TP
+\f[B]rm\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
+Remove files from a profile.
+.TP
+\f[B]list\f[R]
+List all available profiles.
+.RS
+.PP
+\f[CR]\-\-long\f[R], \f[CR]\-l\f[R]
+.RE
+Show the files in each profile.
+.RS
+.PP
+\f[CR]\-\-less\f[R]
+.RE
+Page the output through less.
+.RS
+.PP
+\f[CR]<NAME>\f[R]
+.RE
+Show only the specified profile.
+.TP
+\f[B]set\f[R] \f[I]<NAME>\f[R]
+Set the active profile.
+.TP
+\f[B]unset\f[R]
+Unset the active profile (revert to default).
+.TP
+\f[B]current\f[R]
+Show the currently active profile.
+.PP
+\f[B]Behavior:\f[R]
+.IP \[bu] 2
+Profiles are stored in \f[CR].tildr/profiles.json\f[R] in the repository
+root
+.IP \[bu] 2
+\f[CR]add\f[R] copies files from repo root to
+\f[CR]profiles/<name>/\f[R] directory
+.IP \[bu] 2
+\f[CR]apply\f[R] uses the active profile to resolve which file variant
+to symlink
+.IP \[bu] 2
+Files not in the active profile fall back to the default (root) version
+.IP \[bu] 2
+Only one profile can be active at a time
+.IP \[bu] 2
+Auto\-commits changes to the repository
+.PP
+\f[B]Example structure:\f[R]
+.IP
+.EX
+\&.bashrc                              # default version
+\&.ssh/config                          # default version
+profiles/
+  work/
+    .bashrc                          # work variant
+    .ssh/config                      # work SSH config
+  personal/
+    .bashrc                          # personal variant
+.EE
 .SS tildr secret
 Manages encryption of sensitive files in your dotfiles repository using
 GPG.
 .IP
 .EX
 tildr secret add \[ti]/.ssh/id_rsa
-tildr secret remove .ssh/id_rsa
+tildr secret rm .ssh/id_rsa
 tildr secret list
 tildr secret encrypt
 tildr secret decrypt
@@ -730,7 +874,7 @@ Registers a file as sensitive, adds it to \f[CR].gitignore\f[R], removes
 it from Git tracking if already tracked, and re\-encrypts the full
 bundle.
 .TP
-\f[B]remove\f[R] \f[I]<FILE>\f[R]
+\f[B]rm\f[R] \f[I]<FILE>\f[R]
 Unregisters a file from the manifest and re\-encrypts the bundle without
 it.
 If no files remain, the bundle is deleted.
@@ -818,6 +962,12 @@ occur
 .IP \[bu] 2
 Uses the saved Git availability from Tildr config instead of probing
 \f[CR]PATH\f[R] on every run
+.IP \[bu] 2
+Before pushing, re\-encrypts the secret bundle if sensitive files are
+registered
+.IP \[bu] 2
+Skips re\-encryption when secret files are missing from \f[CR]$HOME\f[R]
+(warns instead of failing)
 .SS tildr doctor
 Runs a health check against the Tildr environment and reports any
 issues.
@@ -858,7 +1008,7 @@ tildr completions fish
 \f[B]Argument:\f[R]
 .PP
 The shell to generate completions for: \f[CR]bash\f[R], \f[CR]zsh\f[R],
-or \f[CR]fish\f[R].
+\f[CR]fish\f[R], \f[CR]powershell\f[R], or \f[CR]elvish\f[R].
 .PP
 \f[B]Installation:\f[R]
 .PP
@@ -951,10 +1101,21 @@ Initial setup:
 .IP
 .EX
 tildr init
+tildr suggest
 tildr add .bashrc
 tildr add .config/nvim
 tildr status
+tildr doctor
+tildr backup
+.EE
+.PP
+Daily operations:
+.IP
+.EX
 tildr apply
+tildr status
+tildr stats
+tildr git status
 tildr sync
 .EE
 .PP
@@ -975,6 +1136,15 @@ tildr secret add \[ti]/.ssh/id_rsa
 tildr secret list
 tildr secret encrypt
 tildr sync
+.EE
+.PP
+Batch operations with groups:
+.IP
+.EX
+tildr group create dev \-\-files .bashrc .zshrc .tmux.conf
+tildr group add term \-\-files .term
+tildr group apply dev
+tildr group unlink dev
 .EE
 .SH OPERATIONAL NOTES
 .IP \[bu] 2
@@ -1001,15 +1171,48 @@ permanent deletion
 \f[CR]del\f[R], \f[CR]mv\f[R], and \f[CR]secret\f[R] \[em] not
 \f[CR]apply\f[R], \f[CR]unlink\f[R], \f[CR]git\f[R], or \f[CR]sync\f[R]
 .IP \[bu] 2
+\f[CR]git.enable = false\f[R] disables Tildr\-managed Git operations
+even if Git is installed
+.IP \[bu] 2
 \f[CR]tildr secret\f[R] requires \f[CR]gpg\f[R] to be installed and
 available in \f[CR]PATH\f[R]
 .IP \[bu] 2
-sensitive files registered with \f[CR]tildr secret add\f[R] are never
+Sensitive files registered with \f[CR]tildr secret add\f[R] are never
 stored in plain text in the repository
 .IP \[bu] 2
 \f[CR]core.color = false\f[R] in \f[CR]config.toml\f[R] disables all
 colored output; the \f[CR]NO_COLOR\f[R] environment variable is also
 respected
+.IP \[bu] 2
+The \f[CR]\-\-less\f[R] flag is available on \f[CR]tildr status\f[R],
+\f[CR]tildr list\f[R], and \f[CR]tildr cat\f[R] for interactive pager
+output
+.IP \[bu] 2
+\f[CR].tildrignore\f[R] patterns prevent files from being discovered by
+\f[CR]list\f[R], \f[CR]status\f[R], and \f[CR]apply\f[R]
+.SH ENVIRONMENT VARIABLES
+.TP
+\f[B]EDITOR\f[R]
+Editor used by \f[CR]tildr edit\f[R].
+Falls back to \f[CR]$VISUAL\f[R], then \f[CR]nano\f[R].
+.TP
+\f[B]VISUAL\f[R]
+Alternative editor used by \f[CR]tildr edit\f[R] if \f[CR]$EDITOR\f[R]
+is not set.
+.TP
+\f[B]PAGER\f[R]
+Pager used by \f[CR]tildr cat \-\-less\f[R] and
+\f[CR]tildr status \-\-less\f[R].
+Falls back to \f[CR]less \-RFX\f[R].
+.TP
+\f[B]NO_COLOR\f[R]
+When set, disables all colored output regardless of
+\f[CR]core.color\f[R] config.
 .SH SEE ALSO
 \f[B]tildr(1)\f[R], \f[B]tildr\-config(1)\f[R],
 \f[B]tildr\-security(1)\f[R], \f[B]tildr\-plugins(1)\f[R]
+.SH AUTHORS
+Maintained by the Tildr contributors.
+Source code and issue tracker: \c
+.UR https://github.com/orbitbits/tildr
+.UE \c
