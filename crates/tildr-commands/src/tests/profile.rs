@@ -34,8 +34,10 @@ fn resolve_without_active_profile_uses_default() {
 
 #[test]
 fn resolve_with_active_profile_uses_variant() {
-  let mut profiles = Profiles::default();
-  profiles.active = Some("work".to_string());
+  let mut profiles = Profiles {
+    active: Some("work".to_string()),
+    ..Default::default()
+  };
   profiles.profiles.insert(
     "work".to_string(),
     ProfileDef {
@@ -51,7 +53,10 @@ fn resolve_with_active_profile_uses_variant() {
 
 #[test]
 fn resolve_without_matching_file_uses_default() {
-  let mut profiles = Profiles::default();
+  let mut profiles = Profiles {
+    active: Some("work".to_string()),
+    ..Default::default()
+  };
   profiles.active = Some("work".to_string());
   profiles.profiles.insert(
     "work".to_string(),
@@ -68,7 +73,10 @@ fn resolve_without_matching_file_uses_default() {
 fn profiles_save_and_load_roundtrip() {
   let (root, ctx) = test_ctx("roundtrip");
 
-  let mut profiles = Profiles::default();
+  let mut profiles = Profiles {
+    active: Some("work".to_string()),
+    ..Default::default()
+  };
   profiles.active = Some("personal".to_string());
   profiles
     .profiles
