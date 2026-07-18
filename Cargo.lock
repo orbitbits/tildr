@@ -1210,6 +1210,8 @@ name = "tildr-utils"
 version = "0.2.0"
 dependencies = [
  "anyhow",
+ "tildr-fs",
+ "tildr-ui",
  "trash",
 ]
 
