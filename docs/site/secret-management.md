@@ -165,7 +165,7 @@ Behavior:
 * In asymmetric mode, GPG uses the private key silently (subject to GPG Agent caching)
 * Files are extracted with relative paths — they always land correctly regardless of username
 
-Use this command when you need to restore sensitive files manually, for example after running `tildr secret remove` or after setting up a new machine without going through `tildr import`.
+Use this command when you need to restore sensitive files manually, for example after running `tildr secret rm` or after setting up a new machine without going through `tildr import`.
 
 ---
 
