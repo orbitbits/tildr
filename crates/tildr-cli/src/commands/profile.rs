@@ -6,8 +6,10 @@ use clap::{Args, Subcommand};
   after_help = "\
 EXAMPLES:
   tildr profile create work --description 'Work environment'
-  tildr profile add work --files .bashrc .ssh/config
-  tildr profile rm work --files .bashrc
+  tildr profile add default --files .bashrc --to work
+  tildr profile mv work --to default
+  tildr profile mv default -f .bashrc --to work
+  tildr profile del work
   tildr profile list
   tildr profile list --long
   tildr profile list work --long
@@ -31,22 +33,33 @@ pub enum CliProfileMode {
     #[arg(long)]
     description: Option<String>,
   },
-  /// Add files to a profile (copies them to profiles/<name>/)
+  /// Copy files between the default location and a profile
   Add {
-    /// Profile name
-    name: String,
-    /// Files to add (relative paths). Folders are expanded recursively.
-    #[arg(long, num_args = 1..)]
+    /// Files to copy (omit to copy all)
+    #[arg(short, long, num_args = 1..)]
     files: Vec<String>,
+    /// Source (profile name or "default")
+    from: String,
+    /// Destination (profile name or "default")
+    #[arg(short, long)]
+    to: String,
   },
-  /// Remove files from a profile
-  #[command(name = "rm")]
-  Remove {
+  /// Move files between the default location and a profile
+  Mv {
+    /// Files to move (omit to move all)
+    #[arg(short, long, num_args = 1..)]
+    files: Vec<String>,
+    /// Source (profile name or "default")
+    from: String,
+    /// Destination (profile name or "default")
+    #[arg(short, long)]
+    to: String,
+  },
+  /// Delete a profile entirely (restores files to default)
+  #[command(name = "del")]
+  Delete {
     /// Profile name
     name: String,
-    /// Files to remove (relative paths)
-    #[arg(long, num_args = 1..)]
-    files: Vec<String>,
   },
   /// List all available profiles
   List {

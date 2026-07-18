@@ -295,11 +295,11 @@ tildr group unlink dev
 tildr profile create work --description "Work laptop"
 
 # Add files to the profile (copies to profiles/work/)
-tildr profile add work --files .bashrc .ssh/config
+tildr profile add default --files .bashrc .ssh/config --to work
 
 # Create another profile
 tildr profile create personal --description "Personal desktop"
-tildr profile add personal --files .bashrc .gitconfig
+tildr profile add default --files .bashrc .gitconfig --to personal
 
 # Activate a profile
 tildr profile set work

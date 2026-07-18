@@ -168,13 +168,22 @@ tildr status --counter
 tildr status --less
 ```
 
+Output example:
+
+```text
+PROFILE   FILEPATH              STATUS
+default   .zshrc                ✔ linked
+default   Templates/main.sh     ✔ linked
+archlinux .bashrc               ✔ linked
+```
+
 Options:
 
-| Flag        | Short| Description                                            |
-|-------------|------|--------------------------------------------------------|
-| `--json`    | `-j` | Emit structured JSON output                            |
-| `--counter` | `-c` | Print aggregated counters only                         |
-| `--less`    | `-l` | View the output in an interactive pager (`less -RFX`)  |
+| Flag        | Short | Description                                            |
+|-------------|-------|--------------------------------------------------------|
+| `--json`    | `-j`  | Emit structured JSON output                            |
+| `--counter` | `-c`  | Print aggregated counters only                         |
+| `--less`    | `-l`  | View the output in an interactive pager (`less -RFX`)  |
 
 Status values:
 
@@ -210,13 +219,31 @@ tildr list --export ~/tildr-files.json
 tildr list --import ~/tildr-files.json
 ```
 
+Output example (default):
+
+```text
+PROFILE   FILEPATH
+default   .zshrc
+default   Templates/main.sh
+archlinux .bashrc
+```
+
+Output example (`--long`):
+
+```text
+PROFILE   FILEPATH              TYPE  SIZE
+default   .zshrc                file  2.1 KiB
+default   Templates/main.sh     file  892 B
+archlinux .bashrc               file  3.4 KiB
+```
+
 **Options:**
 
 **-t**, **--tree**
 :   Show the repository as a directory tree.
 
 **-l**, **--long**
-:   Show type and file size for each entry.
+:   Show profile, type and file size for each entry.
 
 **--less**
 :   View the output in an interactive pager (uses `$PAGER` or `less -RFX`).
@@ -242,7 +269,7 @@ tildr list --import ~/tildr-files.json
 
 Notes:
 
-* Standard listing includes only managed files discovered by repository scanning
+* Standard listing includes managed files from both the repository root and profile directories
 * Tree view prints the repository directory structure directly
 * `.tildrignore` patterns and internally excluded files are not shown
 
@@ -787,23 +814,29 @@ Manages profiles for machine-specific dotfile variants. Profiles allow you to ha
 
 ```sh
 tildr profile create work --description "Work environment"
-tildr profile add work --files .bashrc .ssh/config
-  tildr profile list
-  tildr profile list --long
-  tildr profile list work --long
-  tildr profile list --less
-  tildr profile set work
-  tildr profile current
-  tildr profile unset
+tildr profile add default --files .bashrc .ssh/config --to work
+tildr profile mv default --to work                              # move all orphans to work
+tildr profile mv default -f .bashrc --to work                   # move .bashrc to work
+tildr profile mv work --to default                              # restore all from work to default
+tildr profile add work -f .bashrc --to personal                 # copy .bashrc between profiles
+tildr profile del work
+tildr profile list
+tildr profile list --long
+tildr profile list work --long
+tildr profile list --less
+tildr profile set work
+tildr profile current
+tildr profile unset
 ```
 
 Options:
 
 | Subcommand                                             | Description                                        |
 |--------------------------------------------------------|----------------------------------------------------|
-| `create <NAME> [--description <DESC>]`                 | Create a new profile                               |
-| `add <NAME> --files <FILES>`                            | Add files to a profile (copies to profiles/<name>/) |
-| `rm <NAME> --files <FILES>`                             | Remove files from a profile                        |
+| `create <NAME> [--description <DESC>]`                 | Create a new profile (`"default"` is reserved)     |
+| `add <FROM> [-f <FILES>] --to <TO>`                     | Copy files between default and a profile            |
+| `mv <FROM> [-f <FILES>] --to <TO>`                     | Move files between default and a profile            |
+| `del <NAME>`                                            | Delete a profile and restore orphans                |
 | `list [<NAME>] [--long] [--less]`                      | List all available profiles                        |
 | `set <NAME>`                                           | Set the active profile                             |
 | `unset`                                                | Unset the active profile (revert to default)       |
@@ -820,7 +853,10 @@ List options:
 Behavior:
 
 * Profiles are stored in `.tildr/profiles.json` in the repository root
-* `add` copies files from repo root to `profiles/<name>/` directory
+* `default` is a special name representing files at the repo root (no `profiles/default/` directory)
+* `add` copies files preserving the source; `mv` moves files (copies then removes originals)
+* Without `-f`, `add`/`mv` operate on all eligible files (orphans for `default`, all tracked files for a profile)
+* `del` removes the profile directory and restores orphaned files to the repo root
 * `apply` uses the active profile to resolve which file variant to symlink
 * Files not in the active profile fall back to the default (root) version
 * Only one profile can be active at a time

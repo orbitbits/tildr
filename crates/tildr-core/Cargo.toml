@@ -27,6 +27,7 @@ crossterm       = { workspace = true }
 libc            = { workspace = true }
 rfd             = { workspace = true }
 fuzzy-matcher   = "0.3"
+walkdir         = { workspace = true }
 
 # -------- build --------
 [build-dependencies]

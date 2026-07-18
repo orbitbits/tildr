@@ -3,9 +3,10 @@ use serde::{Deserialize, Serialize};
 use std::{fmt::Write, fs, path::Path, path::PathBuf};
 use tildr_core::context::Context;
 use tildr_fs::symlink::create_symlink;
-use tildr_repo::ManagedEntry;
 use tildr_ui::info;
 use tildr_utils::{fs::format_size, pager::page_string};
+
+use crate::utils::target::{ManagedEntryProfile, scan_all_entries_with_profile};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ExportFile {
@@ -46,7 +47,7 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
     return Ok(());
   }
 
-  let entries = tildr_repo::scatildr_repo(&ctx.repo_path)?;
+  let entries = scan_all_entries_with_profile(ctx)?;
 
   if entries.is_empty() {
     info("No managed files. Run `tildr add <file>` to start.");
@@ -59,9 +60,7 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   if args.long {
     write_long(&entries, &mut buf)?;
   } else {
-    for entry in &entries {
-      writeln!(buf, "{}", entry.relative.display())?;
-    }
+    write_list(&entries, &mut buf)?;
   }
 
   writeln!(buf, "\n{} file(s) managed", count)?;
@@ -75,8 +74,95 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   Ok(())
 }
 
+fn write_list(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
+  let profile_width = entries
+    .iter()
+    .map(|e| e.profile.len())
+    .max()
+    .unwrap_or(7)
+    .max(7);
+
+  let filepath_width = entries
+    .iter()
+    .map(|e| e.filepath.display().to_string().len())
+    .max()
+    .unwrap_or(8)
+    .max(8);
+
+  writeln!(
+    buf,
+    "{:<width_p$}  {:<width_f$}",
+    "PROFILE",
+    "FILEPATH",
+    width_p = profile_width,
+    width_f = filepath_width
+  )?;
+
+  for entry in entries {
+    writeln!(
+      buf,
+      "{:<width_p$}  {:<width_f$}",
+      entry.profile,
+      entry.filepath.display(),
+      width_p = profile_width,
+      width_f = filepath_width
+    )?;
+  }
+
+  Ok(())
+}
+
+fn write_long(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
+  let profile_width = entries
+    .iter()
+    .map(|e| e.profile.len())
+    .max()
+    .unwrap_or(7)
+    .max(7);
+
+  let filepath_width = entries
+    .iter()
+    .map(|e| e.filepath.display().to_string().len())
+    .max()
+    .unwrap_or(8)
+    .max(8);
+
+  writeln!(
+    buf,
+    "{:<width_p$}  {:<width_f$}  TYPE  SIZE",
+    "PROFILE",
+    "FILEPATH",
+    width_p = profile_width,
+    width_f = filepath_width
+  )?;
+
+  for entry in entries {
+    let metadata = fs::metadata(&entry.repo_path)?;
+
+    let file_type = if metadata.is_dir() { "dir" } else { "file" };
+    let size = if metadata.is_file() {
+      format_size(metadata.len())
+    } else {
+      format_size(0)
+    };
+
+    writeln!(
+      buf,
+      "{:<width_p$}  {:<width_f$}  {:<4}  {}",
+      entry.profile,
+      entry.filepath.display(),
+      file_type,
+      size,
+      width_p = profile_width,
+      width_f = filepath_width
+    )?;
+  }
+
+  Ok(())
+}
+
 fn export_to_file(ctx: &Context, path: &str) -> Result<()> {
-  let entries = tildr_repo::scatildr_repo(&ctx.repo_path)?;
+  let entries = scan_all_entries_with_profile(ctx)?;
 
   if entries.is_empty() {
     info("No managed files to export.");
@@ -85,7 +171,7 @@ fn export_to_file(ctx: &Context, path: &str) -> Result<()> {
 
   let files: Vec<String> = entries
     .iter()
-    .map(|e| e.relative.display().to_string())
+    .map(|e| e.filepath.display().to_string())
     .collect();
 
   let export = ExportFile { version: 1, files };
@@ -162,38 +248,6 @@ fn import_from_file(ctx: &Context, path: &str) -> Result<()> {
     "Imported: {} created, {} skipped (already correct), {} not found in repo",
     created, skipped, not_found
   );
-
-  Ok(())
-}
-
-fn write_long(entries: &[ManagedEntry], buf: &mut String) -> Result<()> {
-  let max_len = entries
-    .iter()
-    .map(|e| e.relative.display().to_string().len())
-    .max()
-    .unwrap_or(0);
-
-  writeln!(buf, "{:<width$}  TYPE  SIZE", "FILE", width = max_len + 2)?;
-
-  for entry in entries {
-    let metadata = fs::metadata(&entry.repo_path)?;
-
-    let file_type = if metadata.is_dir() { "dir" } else { "file" };
-    let size = if metadata.is_file() {
-      format_size(metadata.len())
-    } else {
-      format_size(0)
-    };
-
-    writeln!(
-      buf,
-      "{:<width$}  {:<4}  {}",
-      entry.relative.display(),
-      file_type,
-      size,
-      width = max_len + 2
-    )?;
-  }
 
   Ok(())
 }

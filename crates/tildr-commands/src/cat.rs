@@ -6,6 +6,8 @@ use tildr_core::{
 };
 use tildr_utils::pager::page_string;
 
+use crate::utils::target::resolve_repo_file;
+
 pub struct CatArgs {
   pub target: Option<String>,
   pub less: bool,
@@ -19,7 +21,7 @@ pub fn run(ctx: &Context, args: CatArgs) -> Result<()> {
     Some("Select a file\n-------------\n"),
     PickMode::Managed,
   )?;
-  let path = ctx.repo_path.join(target);
+  let path = resolve_repo_file(ctx, &target)?;
   let content = fs::read_to_string(&path)?;
 
   if args.less {

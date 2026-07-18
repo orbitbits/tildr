@@ -1,8 +1,9 @@
 use crate::status::*;
 
-fn file_status(path: &str, status: &str) -> FileStatus {
+fn file_status(profile: &str, filepath: &str, status: &str) -> FileStatus {
   FileStatus {
-    path: path.to_string(),
+    profile: profile.to_string(),
+    filepath: filepath.to_string(),
     status: status.to_string(),
   }
 }
@@ -16,7 +17,10 @@ fn counter_all_empty() {
 
 #[test]
 fn counter_all_linked_only() {
-  let statuses = vec![file_status("a", "linked"), file_status("b", "linked")];
+  let statuses = vec![
+    file_status("default", "a", "linked"),
+    file_status("work", "b", "linked"),
+  ];
   let result = counter_all(&statuses).unwrap();
   assert_eq!(result.0, 2);
   assert_eq!(result.1, vec![2, 0, 0, 0]);
@@ -25,10 +29,10 @@ fn counter_all_linked_only() {
 #[test]
 fn counter_all_mixed_statuses() {
   let statuses = vec![
-    file_status("a", "linked"),
-    file_status("b", "missing_link"),
-    file_status("c", "broken_symlink"),
-    file_status("d", "not_a_symlink"),
+    file_status("default", "a", "linked"),
+    file_status("work", "b", "missing_link"),
+    file_status("personal", "c", "broken_symlink"),
+    file_status("archlinux", "d", "not_a_symlink"),
   ];
   let result = counter_all(&statuses).unwrap();
   assert_eq!(result.0, 4);
@@ -37,7 +41,7 @@ fn counter_all_mixed_statuses() {
 
 #[test]
 fn counter_all_unknown_status_is_ignored() {
-  let statuses = vec![file_status("a", "unknown")];
+  let statuses = vec![file_status("default", "a", "unknown")];
   let result = counter_all(&statuses).unwrap();
   assert_eq!(result.1, vec![0, 0, 0, 0]);
 }
@@ -45,10 +49,12 @@ fn counter_all_unknown_status_is_ignored() {
 #[test]
 fn file_status_serialization() {
   let fs = FileStatus {
-    path: ".bashrc".to_string(),
+    profile: "default".to_string(),
+    filepath: ".bashrc".to_string(),
     status: "linked".to_string(),
   };
   let json = serde_json::to_string(&fs).unwrap();
-  assert!(json.contains("\"path\":\".bashrc\""));
+  assert!(json.contains("\"profile\":\"default\""));
+  assert!(json.contains("\"filepath\":\".bashrc\""));
   assert!(json.contains("\"status\":\"linked\""));
 }

@@ -1,15 +1,16 @@
 use anyhow::Result;
 use std::{fmt::Write, fs};
 use tildr_core::{constants::APP_NAME, context::Context};
-use tildr_repo::scatildr_repo;
 use tildr_ui::{color::Colorize, symbols::icons};
 use tildr_utils::pager::page_string;
 
 use crate::profile::Profiles;
+use crate::utils::target::scan_all_entries_with_profile;
 
 #[derive(Debug, serde::Serialize)]
 pub struct FileStatus {
-  pub path: String,
+  pub profile: String,
+  pub filepath: String,
   pub status: String,
 }
 
@@ -26,10 +27,7 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
     return Ok(());
   }
 
-  let entries = scatildr_repo(&ctx.repo_path)?
-    .into_iter()
-    .filter(|e| !e.relative.extension().map(|e| e == "bak").unwrap_or(false))
-    .collect::<Vec<_>>();
+  let entries = scan_all_entries_with_profile(ctx)?;
 
   if entries.is_empty() {
     let msg = format!("No managed files. Run `{} add <file>` to start.", APP_NAME);
@@ -41,8 +39,8 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
   let mut statuses: Vec<FileStatus> = Vec::new();
 
   for entry in &entries {
-    let home_path = ctx.home_path.join(&entry.relative);
-    let file_str = entry.relative.display().to_string();
+    let home_path = ctx.home_path.join(&entry.filepath);
+    let file_str = entry.filepath.display().to_string();
     let expected = profiles.resolve(&ctx.repo_path, &file_str);
 
     let status = match fs::read_link(&home_path) {
@@ -53,7 +51,8 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
     };
 
     statuses.push(FileStatus {
-      path: entry.relative.display().to_string(),
+      profile: entry.profile.clone(),
+      filepath: file_str,
       status: status.to_string(),
     });
   }
@@ -84,12 +83,31 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
     return Ok(());
   }
 
-  // --- default ---
+  // --- TABLE ---
   let mut buf = String::new();
-  let max_len = statuses.iter().map(|s| s.path.len()).max().unwrap_or(0);
 
-  writeln!(buf)?;
-  writeln!(buf, "{:<width$}  STATUS", "FILE", width = max_len + 2)?;
+  let profile_width = statuses
+    .iter()
+    .map(|s| s.profile.len())
+    .max()
+    .unwrap_or(7)
+    .max(7);
+
+  let filepath_width = statuses
+    .iter()
+    .map(|s| s.filepath.len())
+    .max()
+    .unwrap_or(8)
+    .max(8);
+
+  writeln!(
+    buf,
+    "{:<width_p$}  {:<width_f$}  STATUS",
+    "PROFILE",
+    "FILEPATH",
+    width_p = profile_width,
+    width_f = filepath_width
+  )?;
 
   for s in &statuses {
     let (symbol, label) = match s.status.as_str() {
@@ -108,13 +126,16 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
 
     writeln!(
       buf,
-      "{}{:<width$}  {}",
+      "{:<width_p$}  {:<width_f$}  {}{}",
+      s.profile,
+      s.filepath,
       symbol,
-      s.path,
       label,
-      width = max_len + 2
+      width_p = profile_width,
+      width_f = filepath_width
     )?;
   }
+
   if result.1[1] > 0 || result.1[2] > 0 || result.1[3] > 0 {
     writeln!(
       buf,

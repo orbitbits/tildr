@@ -268,7 +268,7 @@ Machine-specific profiles:
 
 ```sh
 tildr profile create work --description "Work laptop"
-tildr profile add work --files .bashrc .ssh/config
+tildr profile add default --files .bashrc .ssh/config --to work
 tildr profile set work
 tildr apply
 

@@ -183,6 +183,15 @@ tildr status --counter
 tildr status --less
 ```
 
+**Output example:**
+
+```text
+PROFILE   FILEPATH              STATUS
+default   .zshrc                ✔ linked
+default   Templates/main.sh     ✔ linked
+archlinux .bashrc               ✔ linked
+```
+
 **Options:**
 
 **-j**, **--json**
@@ -231,13 +240,31 @@ tildr list --export ~/tildr-files.json
 tildr list --import ~/tildr-files.json
 ```
 
+**Output example (default):**
+
+```text
+PROFILE   FILEPATH
+default   .zshrc
+default   Templates/main.sh
+archlinux .bashrc
+```
+
+**Output example (`--long`):**
+
+```text
+PROFILE   FILEPATH              TYPE  SIZE
+default   .zshrc                file  2.1 KiB
+default   Templates/main.sh     file  892 B
+archlinux .bashrc               file  3.4 KiB
+```
+
 **Options:**
 
 **-t**, **--tree**
 :   Show the repository as a directory tree.
 
 **-l**, **--long**
-:   Show type and file size for each entry.
+:   Show profile, type and file size for each entry.
 
 **--less**
 :   View the output in an interactive pager (uses `$PAGER` or `less -RFX`).
@@ -263,7 +290,7 @@ tildr list --import ~/tildr-files.json
 
 **Notes:**
 
-- Standard listing includes only managed files discovered by repository scanning
+- Standard listing includes managed files from both the repository root and profile directories
 - Tree view prints the repository directory structure directly
 - `.tildrignore` patterns and internally excluded files are not shown
 - Export creates a portable snapshot of managed files for use on other machines
@@ -678,26 +705,34 @@ Manages profiles for machine-specific dotfile variants. Profiles allow you to ha
 
 ```sh
 tildr profile create work --description "Work environment"
-tildr profile add work --files .bashrc .ssh/config
-  tildr profile list
-  tildr profile list --long
-  tildr profile list work --long
-  tildr profile list --less
-  tildr profile set work
-  tildr profile current
-  tildr profile unset
+tildr profile add default --files .bashrc .ssh/config --to work
+tildr profile mv default --to work                              # move all orphans to work
+tildr profile mv default -f .bashrc --to work                   # move .bashrc to work
+tildr profile mv work --to default                              # restore all from work to default
+tildr profile add work -f .bashrc --to personal                 # copy .bashrc between profiles
+tildr profile del work
+tildr profile list
+tildr profile list --long
+tildr profile list work --long
+tildr profile list --less
+tildr profile set work
+tildr profile current
+tildr profile unset
 ```
 
 **Subcommands:**
 
 **create** *\<NAME\>* **\[--description** *\<DESC\>***\]**
-:   Create a new profile.
+:   Create a new profile. `"default"` is reserved and cannot be used as a profile name.
 
-**add** *\<NAME\>* **--files** *\<FILES\>*
-:   Add files to a profile. Files are copied from the repo root to `profiles/<name>/`. Folders are expanded recursively.
+**add** *\<FROM\>* **\[-f** *\<FILES\>***\] --to** *\<TO\>*
+:   Copy files between the default location (`default`) and a profile. With no `-f`, copies all orphan files from source. Folders are expanded recursively.
 
-**rm** *\<NAME\>* **--files** *\<FILES\>*
-:   Remove files from a profile.
+**mv** *\<FROM\>* **\[-f** *\<FILES\>***\] --to** *\<TO\>*
+:   Move files between the default location and a profile. Same as `add` but removes the source files.
+
+**del** *\<NAME\>*
+:   Delete a profile entirely. Removes it from `profiles.json`, deletes the `profiles/<name>/` directory, and restores orphaned files to the repo root.
 
 **list**
 :   List all available profiles.
@@ -723,7 +758,10 @@ tildr profile add work --files .bashrc .ssh/config
 **Behavior:**
 
 - Profiles are stored in `.tildr/profiles.json` in the repository root
-- `add` copies files from repo root to `profiles/<name>/` directory
+- `default` is a special name representing files at the repo root (no `profiles/default/` directory)
+- `add` copies files preserving the source; `mv` moves files (copies then removes originals)
+- Without `-f`, `add`/`mv` operate on all eligible files (orphans for `default`, all tracked files for a profile)
+- `del` removes the profile directory and restores orphaned files to the repo root
 - `apply` uses the active profile to resolve which file variant to symlink
 - Files not in the active profile fall back to the default (root) version
 - Only one profile can be active at a time

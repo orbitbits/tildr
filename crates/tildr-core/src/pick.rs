@@ -5,11 +5,13 @@ use crossterm::{
   execute, terminal,
 };
 use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use tildr_fs::paths::resolve_home_path;
 use tildr_repo::scatildr_repo;
 use tildr_ui::{color::Colorize, prompt::MinimalTheme};
 use tildr_utils::sys::has_display;
+use walkdir::WalkDir;
 
 pub enum PickMode {
   Managed,
@@ -110,14 +112,47 @@ pub fn target(
 
     // --- PickMode::Managed: Select interactive ---
     let entries = scatildr_repo(&ctx.repo_path)?;
-    if entries.is_empty() {
+
+    // Build logical-path → repo-path map, including profile variants.
+    let root_set: std::collections::HashSet<PathBuf> =
+      entries.iter().map(|e| e.relative.clone()).collect();
+    let mut path_map: HashMap<String, PathBuf> = entries
+      .iter()
+      .map(|e| (e.relative.display().to_string(), e.repo_path.clone()))
+      .collect();
+
+    let profiles_dir = ctx.repo_path.join("profiles");
+    if profiles_dir.is_dir() {
+      for entry in std::fs::read_dir(&profiles_dir)
+        .into_iter()
+        .flatten()
+        .filter_map(|e| e.ok())
+      {
+        let dir = entry.path();
+        if !dir.is_dir() {
+          continue;
+        }
+        for variant in WalkDir::new(&dir)
+          .into_iter()
+          .filter_map(|e| e.ok())
+          .filter(|e| e.file_type().is_file())
+        {
+          let full = variant.path();
+          let logical = full.strip_prefix(&dir).unwrap_or(full).to_path_buf();
+          let key = logical.display().to_string();
+          if !root_set.contains(&logical) && !path_map.contains_key(&key) {
+            path_map.insert(key, full.to_path_buf());
+          }
+        }
+      }
+    }
+
+    if path_map.is_empty() {
       bail!("No managed files found");
     }
 
-    let all_items: Vec<String> = entries
-      .iter()
-      .map(|e| e.relative.display().to_string())
-      .collect();
+    let mut all_items: Vec<String> = path_map.keys().cloned().collect();
+    all_items.sort();
 
     // Saves the current position before printing anything
     let (cursor_x, cursor_y) = position().unwrap_or((0, 0));
@@ -203,9 +238,24 @@ pub fn target(
 
   let repo_file = ctx.repo_path.join(&relative);
 
-  if !repo_file.exists() {
-    bail!("File is not managed by tildr: {}", relative.display());
+  if repo_file.exists() {
+    return Ok(repo_file);
   }
 
-  Ok(repo_file)
+  // Check profile variant directories.
+  let profiles_dir = ctx.repo_path.join("profiles");
+  if profiles_dir.is_dir() {
+    for entry in std::fs::read_dir(&profiles_dir)
+      .into_iter()
+      .flatten()
+      .filter_map(|e| e.ok())
+    {
+      let variant = entry.path().join(&relative);
+      if variant.is_file() {
+        return Ok(variant);
+      }
+    }
+  }
+
+  bail!("File is not managed by tildr: {}", relative.display());
 }

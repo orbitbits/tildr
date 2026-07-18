@@ -176,12 +176,17 @@ pub enum ProfileMode {
     description: Option<String>,
   },
   Add {
-    name: String,
     files: Vec<String>,
+    from: String,
+    to: String,
   },
-  Remove {
-    name: String,
+  Mv {
     files: Vec<String>,
+    from: String,
+    to: String,
+  },
+  Delete {
+    name: String,
   },
   List {
     long: bool,

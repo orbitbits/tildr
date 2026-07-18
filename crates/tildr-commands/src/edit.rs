@@ -5,6 +5,8 @@ use tildr_core::{
   pick::{self, PickMode},
 };
 
+use crate::utils::target::resolve_repo_file;
+
 pub struct EditArgs {
   pub target: Option<String>,
 }
@@ -21,7 +23,7 @@ pub fn run(ctx: &Context, args: EditArgs) -> Result<()> {
     Some("Select a file\n-------------\n"),
     PickMode::Managed,
   )?;
-  let path = ctx.repo_path.join(target);
+  let path = resolve_repo_file(ctx, &target)?;
 
   {
     let status = Command::new(&editor).arg(&path).status()?;

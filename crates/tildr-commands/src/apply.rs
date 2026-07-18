@@ -30,15 +30,38 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
   let entries = scatildr_repo(&ctx.repo_path)?;
   let profiles = Profiles::load(ctx)?;
 
+  let mut files: Vec<String> = entries
+    .into_iter()
+    .map(|e| e.relative.to_string_lossy().to_string())
+    .collect();
+
+  // Also process files tracked by the active profile that may not exist
+  // at the repo root (e.g. after a `mv` into a profile).
+  if let Some(ref active) = profiles.active
+    && let Some(profile) = profiles.profiles.get(active)
+  {
+    for file in profile.files.keys() {
+      if !files.contains(file) {
+        files.push(file.clone());
+      }
+    }
+  }
+
+  files.sort();
+
   let mut actions = Vec::new();
   let mut created = 0;
   let mut updated = 0;
   let mut up_to_date = 0;
 
-  for entry in &entries {
-    let home = ctx.home_path.join(&entry.relative);
-    let file_str = entry.relative.display().to_string();
-    let repo = profiles.resolve(&ctx.repo_path, &file_str);
+  for file_str in &files {
+    let home = ctx.home_path.join(file_str);
+    let repo = profiles.resolve(&ctx.repo_path, file_str);
+
+    // Skip if the resolved target doesn't exist on disk
+    if !repo.exists() {
+      continue;
+    }
 
     let exists = home.exists();
     let is_link = is_symlink(&home);
@@ -50,7 +73,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
       if args.verbose && !args.quiet {
         actions.push(ActionLog {
           action: "Unchanged".to_string(),
-          file: file_str,
+          file: file_str.clone(),
         });
       }
 
@@ -58,13 +81,11 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
     }
 
     // --- Decide action type ---
-    let (action_str, is_update, needs_removal) = if !exists {
-      ("Created", false, false)
-    } else if is_link {
-      // Broken or wrong symlink → FIX automatically
+    let (action_str, is_update, needs_removal) = if is_link {
       ("Updated", true, true)
+    } else if !exists {
+      ("Created", false, false)
     } else {
-      // Regular file / dir
       if args.force {
         ("Updated", true, true)
       } else {
@@ -73,7 +94,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
         if args.verbose && !args.quiet {
           actions.push(ActionLog {
             action: "Skipped".to_string(),
-            file: file_str,
+            file: file_str.clone(),
           });
         }
 
@@ -91,7 +112,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
 
       actions.push(ActionLog {
         action: action.to_string(),
-        file: file_str,
+        file: file_str.clone(),
       });
 
       if is_update {
@@ -116,7 +137,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
 
     actions.push(ActionLog {
       action: action_str.to_string(),
-      file: file_str,
+      file: file_str.clone(),
     });
 
     if is_update {

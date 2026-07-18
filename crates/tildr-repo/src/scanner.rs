@@ -112,7 +112,9 @@ fn scan_entry(
   let file_type = entry.file_type();
   let is_dir = file_type.is_some_and(|kind| kind.is_dir());
 
-  if path.file_name() == Some(OsStr::new(".git")) {
+  if let Some(name) = path.file_name()
+    && (name == OsStr::new(".git") || name == OsStr::new("profiles"))
+  {
     return if is_dir {
       WalkState::Skip
     } else {
