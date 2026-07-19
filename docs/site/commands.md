@@ -188,7 +188,6 @@ Shows the synchronization state of all managed files.
 
 ```sh
 tildr status
-tildr status --long
 tildr status --json
 tildr status --counter
 tildr status --less
@@ -197,26 +196,16 @@ tildr status --less
 Output example:
 
 ```text
-PROFILE  FILEPATH           STATUS
-common   .zshrc             ✔ linked
-common   Templates/main.sh   ✔ linked
-linux    .bashrc            ✔ linked
-```
-
-Output example (`--long`):
-
-```text
-PROFILE  FILEPATH           SOURCE                    STATUS
-common   .zshrc             common/.zshrc             ✔ linked
-common   Templates/main.sh   common/Templates/main.sh  ✔ linked
-linux    .bashrc            profiles/linux/.bashrc    ✔ linked
+PROFILE  FILEPATH            STATUS
+common   ~/.zshrc            ✔ linked
+common   ~/Templates/main.sh  ✔ linked
+linux    ~/.bashrc           ✔ linked
 ```
 
 The table output always includes the `PROFILE` column. Without `--profile`,
 Tildr shows the effective variant for each logical file. By default `FILEPATH`
 is the home-relative path you can pass to commands such as `restore`, `unlink`,
-`cat`, and `del`; use `--long` to see the repository source path in a separate
-`SOURCE` column.
+`cat`, and `del`; use `list --source` or `source-path` to inspect repository source files.
 
 Options:
 
@@ -224,7 +213,6 @@ Options:
 |-------------|-------|---------------------------------------------------------------|
 | `--json`    | `-j`  | Emit structured JSON output                                   |
 | `--counter` | `-c`  | Print aggregated counters only                                |
-| `--long`    |       | Show the repository source path in a separate `SOURCE` column |
 | `--less`    | `-l`  | View the output in an interactive pager (`less -RFX`)         |
 
 Status values:
@@ -250,11 +238,12 @@ Not symlink: 1
 
 ### `tildr list`
 
-Lists managed files in the repository.
+Lists managed files as HOME paths.
 
 ```sh
 tildr list
 tildr list --long
+tildr list --source
 tildr list --tree
 tildr list --less
 tildr list --export ~/tildr-files.json
@@ -265,18 +254,26 @@ Output example (default):
 
 ```text
 PROFILE  FILEPATH
-common   .zshrc
-common   Templates/main.sh
-linux    .bashrc
+common   ~/.zshrc
+common   ~/Templates/main.sh
+linux    ~/.bashrc
 ```
 
 Output example (`--long`):
 
 ```text
-PROFILE  FILEPATH           SOURCE                    TYPE  SIZE
-common   .zshrc             common/.zshrc             file  2.1 KiB
-common   Templates/main.sh   common/Templates/main.sh  file  892 B
-linux    .bashrc            profiles/linux/.bashrc    file  3.4 KiB
+PROFILE  FILEPATH            TYPE  SIZE
+common   ~/.zshrc            file  2.1 KiB
+common   ~/Templates/main.sh  file  892 B
+linux    ~/.bashrc           file  3.4 KiB
+```
+
+Output example (`--source`):
+
+```text
+PROFILE  PATH
+common   ~/.dotfiles/common/.zshrc
+linux    ~/.dotfiles/profiles/linux/.bashrc
 ```
 
 **Options:**
@@ -285,7 +282,10 @@ linux    .bashrc            profiles/linux/.bashrc    file  3.4 KiB
 :   Show the repository as a directory tree.
 
 **-l**, **--long**
-:   Show profile, logical path, repository source path, type and file size for each entry.
+:   Show profile, HOME path, type and file size for each entry.
+
+**--source**
+:   Show repository source paths instead of HOME paths.
 
 **--less**
 :   View the output in an interactive pager (uses `$PAGER` or `less -RFX`).
@@ -311,13 +311,36 @@ linux    .bashrc            profiles/linux/.bashrc    file  3.4 KiB
 
 Notes:
 
-* `FILEPATH` is always the logical home-relative path, for example `.bashrc`
-* `SOURCE` is only shown with `--long` and points to the repository file, for example `common/.bashrc` or `profiles/linux/.bashrc`
+* `FILEPATH` is always the HOME path, for example `~/.bashrc`
 * Commands that manipulate files should use the logical path: `tildr restore .bashrc`
 * Use `--profile` to target a variant explicitly: `tildr restore .bashrc --profile linux`, `tildr del .bashrc --profile common`, or `tildr cat .bashrc --profile linux`
-* Storage paths copied from `SOURCE` are accepted as compatibility aliases, but they are not the recommended command input
-* Tree view prints the repository directory structure directly
+* Use `tildr list --source` to inspect all repository source paths
+* Use `tildr source-path <file>` to inspect the repository source path for one file
+* Tree view prints the managed HOME path tree
 * `.tildrignore` patterns and internally excluded files are not shown
+
+---
+
+### `tildr source-path`
+
+Prints the repository source path for one managed HOME file.
+
+```sh
+tildr source-path ~/.bash_profile
+tildr source-path .bashrc --profile linux
+```
+
+Output example:
+
+```text
+~/.dotfiles/profiles/linux/.bash_profile
+```
+
+Options:
+
+| Flag        | Description                                                   |
+|-------------|---------------------------------------------------------------|
+| `--profile` | Resolve the file from a specific profile variant              |
 
 ---
 
