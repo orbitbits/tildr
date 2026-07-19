@@ -30,6 +30,29 @@ permalink: /tildr/documentation/0.2.0/commands/
 > tildr unlink '.config/my app/config.toml' .config/nvim/init.vim
 > ```
 
+### Path Input
+
+Commands that receive files accept several equivalent HOME-based paths:
+
+```sh
+tildr add .config/starship.toml
+tildr add ~/.config/starship.toml
+tildr add $HOME/.config/starship.toml
+```
+
+Absolute paths inside `$HOME` also work. When your current directory is inside
+`$HOME`, relative paths are resolved from that directory when possible:
+
+```sh
+cd ~/Documents
+tildr add document.ods
+tildr restore document.ods
+```
+
+The commands above are treated like `~/Documents/document.ods`. This applies to
+managed-file commands such as `add`, `restore`, `unlink`, `cat`, `edit`, `del`,
+and `mv`.
+
 ---
 
 ### `tildr init`
@@ -102,6 +125,8 @@ Adds a file or a directory tree from `$HOME` into the repository and replaces ea
 ```sh
 tildr add .bashrc
 tildr add .config/nvim
+tildr add ~/.config/starship.toml
+tildr add $HOME/.config/starship.toml
 tildr add .config/nvim/init.lua --dry-run
 tildr add .bashrc .config/nvim/init.lua
 tildr add .config/app01.json --nolink
@@ -195,12 +220,12 @@ is the home-relative path you can pass to commands such as `restore`, `unlink`,
 
 Options:
 
-| Flag        | Short | Description                                            |
-|-------------|-------|--------------------------------------------------------|
-| `--json`    | `-j`  | Emit structured JSON output                            |
-| `--counter` | `-c`  | Print aggregated counters only                         |
+| Flag        | Short | Description                                                   |
+|-------------|-------|---------------------------------------------------------------|
+| `--json`    | `-j`  | Emit structured JSON output                                   |
+| `--counter` | `-c`  | Print aggregated counters only                                |
 | `--long`    |       | Show the repository source path in a separate `SOURCE` column |
-| `--less`    | `-l`  | View the output in an interactive pager (`less -RFX`)  |
+| `--less`    | `-l`  | View the output in an interactive pager (`less -RFX`)         |
 
 Status values:
 
@@ -344,9 +369,9 @@ tildr cat
 
 Options:
 
-| Flag        | Short | Description                                  |
-|-------------|-------|----------------------------------------------|
-| `--less`    | `-l`  | Open output in a pager                       |
+| Flag        | Short | Description                                   |
+|-------------|-------|-----------------------------------------------|
+| `--less`    | `-l`  | Open output in a pager                        |
 | `--profile` |       | Read the file from a specific profile variant |
 
 Behavior:
@@ -370,8 +395,15 @@ Opens a managed file in the repository with the configured editor.
 
 ```sh
 tildr edit .bashrc
+tildr edit .bashrc --profile linux
 tildr edit
 ```
+
+Options:
+
+| Flag        | Description                                    |
+|-------------|------------------------------------------------|
+| `--profile` | Edit the file from a specific profile variant  |
 
 Behavior:
 
@@ -901,9 +933,9 @@ This means **all managed files are always processed** — the active profile onl
 
 Example: if the active profile is `work` and it tracks `.bashrc` and `.ssh/config`:
 
-- `~/.bashrc` → `profiles/work/.bashrc` (profile variant)
-- `~/.ssh/config` → `profiles/work/.ssh/config` (profile variant)
-- `~/.gitconfig` → `common/.gitconfig` (common version, not in profile)
+* `~/.bashrc` → `profiles/work/.bashrc` (profile variant)
+* `~/.ssh/config` → `profiles/work/.ssh/config` (profile variant)
+* `~/.gitconfig` → `common/.gitconfig` (common version, not in profile)
 
 Switching profiles applies the new links right away:
 
@@ -994,7 +1026,7 @@ Behavior:
 
 Example structure:
 
-```
+```sh
 common/
   .bashrc                            # common version
   .ssh/config                        # common SSH config

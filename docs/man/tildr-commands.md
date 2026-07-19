@@ -31,6 +31,29 @@ If a path contains spaces, use single or double quotes:
 tildr unlink '.config/my app/config.toml' .config/nvim/init.vim
 ```
 
+# PATH INPUT
+
+Commands that receive files accept several equivalent HOME-based paths:
+
+```sh
+tildr add .config/starship.toml
+tildr add ~/.config/starship.toml
+tildr add $HOME/.config/starship.toml
+```
+
+Absolute paths inside `$HOME` also work. When your current directory is inside
+`$HOME`, relative paths are resolved from that directory when possible:
+
+```sh
+cd ~/Documents
+tildr add document.ods
+tildr restore document.ods
+```
+
+The commands above are treated like `~/Documents/document.ods`. This applies to
+managed-file commands such as `add`, `restore`, `unlink`, `cat`, `edit`, `del`,
+and `mv`.
+
 # COMMANDS
 
 ## tildr init
@@ -109,6 +132,8 @@ Adds a file or a directory tree from `$HOME` into the repository and replaces ea
 ```sh
 tildr add .bashrc
 tildr add .config/nvim
+tildr add ~/.config/starship.toml
+tildr add $HOME/.config/starship.toml
 tildr add .config/nvim/init.lua --dry-run
 tildr add .bashrc .config/nvim/init.lua
 tildr add .config/app01.json --nolink
@@ -386,6 +411,7 @@ Opens a managed file in the repository with the configured editor.
 
 ```sh
 tildr edit .bashrc
+tildr edit .bashrc --profile linux
 tildr edit
 ```
 
@@ -394,6 +420,11 @@ You can open it with your preferred editor using the `EDITOR` environment variab
 ```sh
 EDITOR=vim tildr edit .bashrc
 ```
+
+**Options:**
+
+**--profile** *\<NAME\>*
+:   Edit the file from a specific profile variant.
 
 **Behavior:**
 
@@ -1157,7 +1188,7 @@ tildr group unlink dev
 
 - Tildr is designed for home-directory management on Linux and macOS
 - The repository must stay inside `$HOME`
-- Relative paths for managed targets are interpreted from `$HOME`
+- Relative paths for managed targets are interpreted from `$HOME`, or from the current directory when you are inside `$HOME` and the path matches there
 - Directory operations are recursive over all files under that path
 - `apply` does not overwrite conflicting regular files unless `--force` is provided
 - `unlink` removes only symlinks, never repository content
