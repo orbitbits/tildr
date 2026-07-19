@@ -58,6 +58,7 @@ pub enum Commands {
     export: Option<String>,
     import: Option<String>,
     less: bool,
+    profile: Option<String>,
   },
 
   Apply {
@@ -80,6 +81,7 @@ pub enum Commands {
     json: bool,
     counter: bool,
     less: bool,
+    profile: Option<String>,
   },
 
   Doctor,

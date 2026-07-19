@@ -1,6 +1,6 @@
 use anyhow::{Context as AnyhowContext, Result};
 use serde::{Deserialize, Serialize};
-use std::{fmt::Write, fs, path::Path, path::PathBuf};
+use std::{collections::HashMap, fmt::Write, fs, path::Path, path::PathBuf};
 use tildr_core::context::Context;
 use tildr_fs::symlink::create_symlink;
 use tildr_ui::info;
@@ -20,6 +20,7 @@ pub struct ListArgs {
   pub export: Option<String>,
   pub import: Option<String>,
   pub less: bool,
+  pub profile: Option<String>,
 }
 
 pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
@@ -54,13 +55,40 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
     return Ok(());
   }
 
-  let count = entries.len();
+  // Group entries by logical filepath to detect variants
+  let mut by_filepath: HashMap<PathBuf, Vec<ManagedEntryProfile>> = HashMap::new();
+  for entry in entries {
+    by_filepath
+      .entry(entry.filepath.clone())
+      .or_default()
+      .push(entry);
+  }
+
+  // If --profile is specified, filter to only that profile's files
+  let entries_to_show: Vec<ManagedEntryProfile> = if let Some(ref profile_name) = args.profile {
+    by_filepath
+      .values()
+      .flat_map(|v| v.iter().filter(|e| e.profile == *profile_name).cloned())
+      .collect()
+  } else {
+    by_filepath
+      .values()
+      .flat_map(|v| v.first().cloned())
+      .collect()
+  };
+
+  if entries_to_show.is_empty() {
+    info("No managed files for the specified profile.");
+    return Ok(());
+  }
+
+  let count = entries_to_show.len();
   let mut buf = String::new();
 
-  if args.long {
-    write_long(&entries, &mut buf)?;
+  if args.long || args.profile.is_some() {
+    write_long(&entries_to_show, &mut buf, &by_filepath)?;
   } else {
-    write_list(&entries, &mut buf)?;
+    write_compact(&entries_to_show, &mut buf)?;
   }
 
   writeln!(buf, "\n{} file(s) managed", count)?;
@@ -74,37 +102,21 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   Ok(())
 }
 
-fn write_list(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
-  let profile_width = entries
-    .iter()
-    .map(|e| e.profile.len())
-    .max()
-    .unwrap_or(7)
-    .max(7);
-
+fn write_compact(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
   let filepath_width = entries
     .iter()
-    .map(|e| e.repo_relative.display().to_string().len())
+    .map(|e| e.filepath.display().to_string().len())
     .max()
     .unwrap_or(8)
     .max(8);
 
-  writeln!(
-    buf,
-    "{:<width_p$}  {:<width_f$}",
-    "PROFILE",
-    "FILEPATH",
-    width_p = profile_width,
-    width_f = filepath_width
-  )?;
+  writeln!(buf, "{:<width_f$}", "FILEPATH", width_f = filepath_width)?;
 
   for entry in entries {
     writeln!(
       buf,
-      "{:<width_p$}  {:<width_f$}",
-      entry.profile,
-      entry.repo_relative.display(),
-      width_p = profile_width,
+      "{:<width_f$}",
+      entry.filepath.display(),
       width_f = filepath_width
     )?;
   }
@@ -112,7 +124,11 @@ fn write_list(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
   Ok(())
 }
 
-fn write_long(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
+fn write_long(
+  entries: &[ManagedEntryProfile],
+  buf: &mut String,
+  by_filepath: &HashMap<PathBuf, Vec<ManagedEntryProfile>>,
+) -> Result<()> {
   let profile_width = entries
     .iter()
     .map(|e| e.profile.len())
@@ -156,6 +172,25 @@ fn write_long(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
       width_p = profile_width,
       width_f = filepath_width
     )?;
+
+    // Show variants if this file exists in multiple profiles
+    if let Some(variants) = by_filepath.get(&entry.filepath)
+      && variants.len() > 1
+    {
+      let variant_profiles: Vec<String> = variants
+        .iter()
+        .filter(|v| v.profile != entry.profile)
+        .map(|v| v.profile.clone())
+        .collect();
+      if !variant_profiles.is_empty() {
+        writeln!(
+          buf,
+          "    {} variants: {}",
+          entry.filepath.display(),
+          variant_profiles.join(", ")
+        )?;
+      }
+    }
   }
 
   Ok(())

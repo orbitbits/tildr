@@ -9,7 +9,9 @@ EXAMPLES:
   tildr list --tree
   tildr list --less
   tildr list --export ~/tildr-files.json
-  tildr list --import ~/tildr-files.json\n"
+  tildr list --import ~/tildr-files.json
+  tildr list --profile work
+  tildr list --long --profile common\n"
 )]
 pub struct Command {
   /// Show files in a tree view
@@ -27,4 +29,7 @@ pub struct Command {
   /// View the output in an interactive pager
   #[arg(long)]
   pub less: bool,
+  /// Filter by profile name (shows full path with variants)
+  #[arg(long, value_name = "NAME")]
+  pub profile: Option<String>,
 }

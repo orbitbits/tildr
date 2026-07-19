@@ -6,7 +6,8 @@ use clap::Args;
   after_help = "\
 EXAMPLES:
   tildr status
-  tildr status --less\n"
+  tildr status --less
+  tildr status --profile work\n"
 )]
 pub struct Command {
   /// Output status information in JSON format
@@ -20,4 +21,8 @@ pub struct Command {
   /// View the output in an interactive pager
   #[arg(short, long)]
   pub less: bool,
+
+  /// Filter by profile name
+  #[arg(long, value_name = "NAME")]
+  pub profile: Option<String>,
 }

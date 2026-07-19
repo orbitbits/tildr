@@ -1,11 +1,11 @@
 use anyhow::Result;
-use std::{fmt::Write, fs};
+use std::{collections::HashMap, fmt::Write, fs, path::PathBuf};
 use tildr_core::{constants::APP_NAME, context::Context};
 use tildr_ui::{color::Colorize, symbols::icons};
 use tildr_utils::pager::page_string;
 
 use crate::profile::Profiles;
-use crate::utils::target::scan_all_entries_with_profile;
+use crate::utils::target::{ManagedEntryProfile, scan_all_entries_with_profile};
 
 #[derive(Debug, serde::Serialize)]
 pub struct FileStatus {
@@ -18,6 +18,7 @@ pub struct StatusArgs {
   pub json: bool,
   pub counter: bool,
   pub less: bool,
+  pub profile: Option<String>,
 }
 
 pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
@@ -35,10 +36,37 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
     return Ok(());
   }
 
+  // Group entries by logical filepath to detect variants
+  let mut by_filepath: HashMap<PathBuf, Vec<ManagedEntryProfile>> = HashMap::new();
+  for entry in entries {
+    by_filepath
+      .entry(entry.filepath.clone())
+      .or_default()
+      .push(entry);
+  }
+
+  // If --profile is specified, filter to only that profile's files
+  let entries_to_show: Vec<ManagedEntryProfile> = if let Some(ref profile_name) = args.profile {
+    by_filepath
+      .values()
+      .flat_map(|v| v.iter().filter(|e| e.profile == *profile_name).cloned())
+      .collect()
+  } else {
+    by_filepath
+      .values()
+      .flat_map(|v| v.first().cloned())
+      .collect()
+  };
+
+  if entries_to_show.is_empty() {
+    tildr_ui::info("No managed files for the specified profile.");
+    return Ok(());
+  }
+
   let profiles = Profiles::load(ctx)?;
   let mut statuses: Vec<FileStatus> = Vec::new();
 
-  for entry in &entries {
+  for entry in &entries_to_show {
     let home_path = ctx.home_path.join(&entry.filepath);
     let file_str = entry.filepath.display().to_string();
     let expected = profiles.resolve(&ctx.repo_path, &file_str);
@@ -50,9 +78,17 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
       Err(_) => "missing_link",
     };
 
+    // In compact mode (no --profile, no --json, no --counter), show only filepath
+    // Otherwise show repo_relative with profile prefix
+    let filepath_display = if args.profile.is_none() && !args.json && !args.counter {
+      entry.filepath.display().to_string()
+    } else {
+      entry.repo_relative.display().to_string()
+    };
+
     statuses.push(FileStatus {
       profile: entry.profile.clone(),
-      filepath: entry.repo_relative.display().to_string(),
+      filepath: filepath_display,
       status: status.to_string(),
     });
   }
@@ -86,54 +122,98 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
   // --- TABLE ---
   let mut buf = String::new();
 
-  let profile_width = statuses
-    .iter()
-    .map(|s| s.profile.len())
-    .max()
-    .unwrap_or(7)
-    .max(7);
+  // In compact mode (no profile filter, no json, no counter), don't show PROFILE column
+  let show_profile = args.profile.is_some() || args.json || args.counter;
 
-  let filepath_width = statuses
-    .iter()
-    .map(|s| s.filepath.len())
-    .max()
-    .unwrap_or(8)
-    .max(8);
+  if show_profile {
+    let profile_width = statuses
+      .iter()
+      .map(|s| s.profile.len())
+      .max()
+      .unwrap_or(7)
+      .max(7);
 
-  writeln!(
-    buf,
-    "{:<width_p$}  {:<width_f$}  STATUS",
-    "PROFILE",
-    "FILEPATH",
-    width_p = profile_width,
-    width_f = filepath_width
-  )?;
-
-  for s in &statuses {
-    let (symbol, label) = match s.status.as_str() {
-      "linked" => (icons().none, format!("{}linked", icons().check).green()),
-      "missing_link" => (icons().none, format!("{}missing link", icons().cross).red()),
-      "broken_symlink" => (
-        icons().none,
-        format!("{}broken symlink", icons().cross).red(),
-      ),
-      "not_a_symlink" => (
-        icons().none,
-        format!("{}not a symlink", icons().warn).yellow(),
-      ),
-      _ => (icons().none, "unknown".to_string()),
-    };
+    let filepath_width = statuses
+      .iter()
+      .map(|s| s.filepath.len())
+      .max()
+      .unwrap_or(8)
+      .max(8);
 
     writeln!(
       buf,
-      "{:<width_p$}  {:<width_f$}  {}{}",
-      s.profile,
-      s.filepath,
-      symbol,
-      label,
+      "{:<width_p$}  {:<width_f$}  STATUS",
+      "PROFILE",
+      "FILEPATH",
       width_p = profile_width,
       width_f = filepath_width
     )?;
+
+    for s in &statuses {
+      let (symbol, label) = match s.status.as_str() {
+        "linked" => (icons().none, format!("{}linked", icons().check).green()),
+        "missing_link" => (icons().none, format!("{}missing link", icons().cross).red()),
+        "broken_symlink" => (
+          icons().none,
+          format!("{}broken symlink", icons().cross).red(),
+        ),
+        "not_a_symlink" => (
+          icons().none,
+          format!("{}not a symlink", icons().warn).yellow(),
+        ),
+        _ => (icons().none, "unknown".to_string()),
+      };
+
+      writeln!(
+        buf,
+        "{:<width_p$}  {:<width_f$}  {}{}",
+        s.profile,
+        s.filepath,
+        symbol,
+        label,
+        width_p = profile_width,
+        width_f = filepath_width
+      )?;
+    }
+  } else {
+    let filepath_width = statuses
+      .iter()
+      .map(|s| s.filepath.len())
+      .max()
+      .unwrap_or(8)
+      .max(8);
+
+    writeln!(
+      buf,
+      "{:<width_f$}  STATUS",
+      "FILEPATH",
+      width_f = filepath_width
+    )?;
+
+    for s in &statuses {
+      let (symbol, label) = match s.status.as_str() {
+        "linked" => (icons().none, format!("{}linked", icons().check).green()),
+        "missing_link" => (icons().none, format!("{}missing link", icons().cross).red()),
+        "broken_symlink" => (
+          icons().none,
+          format!("{}broken symlink", icons().cross).red(),
+        ),
+        "not_a_symlink" => (
+          icons().none,
+          format!("{}not a symlink", icons().warn).yellow(),
+        ),
+        _ => (icons().none, "unknown".to_string()),
+      };
+
+      writeln!(
+        buf,
+        "{:<width_f$}  {}{}",
+        s.filepath,
+        symbol,
+        label,
+        width_f = filepath_width
+      )?;
+    }
   }
 
   if result.1[1] > 0 || result.1[2] > 0 || result.1[3] > 0 {

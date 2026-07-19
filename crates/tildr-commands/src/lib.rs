@@ -136,6 +136,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
       export,
       import,
       less,
+      profile,
     } => list::run(
       ctx,
       list::ListArgs {
@@ -144,6 +145,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
         export: export.clone(),
         import: import.clone(),
         less: *less,
+        profile: profile.clone(),
       },
     ),
 
@@ -176,12 +178,14 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
       json,
       counter,
       less,
+      profile,
     } => status::run(
       ctx,
       status::StatusArgs {
         json: *json,
         counter: *counter,
         less: *less,
+        profile: profile.clone(),
       },
     ),
 
