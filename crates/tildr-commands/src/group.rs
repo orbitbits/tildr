@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::PathBuf;
 
@@ -6,11 +6,13 @@ use anyhow::{Context as _, Result};
 use console::style;
 use serde::{Deserialize, Serialize};
 use tildr_core::context::Context;
+use tildr_fs::paths::resolve_home_path;
 use tildr_fs::symlink::{create_symlink, is_symlink, is_symlink_to};
 use tildr_utils::{fs::tildr_dir, sys::has_display};
 
 use crate::profile::Profiles;
 use crate::utils::auto_commit::auto_commit;
+use crate::utils::target::{ResolvedTarget, resolve_targets};
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Groups {
@@ -34,15 +36,28 @@ impl Groups {
 
   fn save(&self, ctx: &Context) -> Result<()> {
     let path = Self::path(ctx);
+    if let Some(parent) = path.parent() {
+      fs::create_dir_all(parent).context("Failed to create groups directory")?;
+    }
     let data = serde_json::to_string_pretty(self).context("Failed to serialize groups")?;
     fs::write(&path, data).context("Failed to write groups file")?;
     Ok(())
   }
 }
 
-/// Strip `profiles/<name>/` prefix from a repo-relative path to get the HOME-relative path.
-fn strip_profile_prefix(_repo_path: &std::path::Path, full: &str) -> String {
-  if let Some(stripped) = full.strip_prefix("profiles/")
+/// Convert a repository storage path to the HOME-relative path managed by Tildr.
+fn storage_to_home_relative(repo_path: &std::path::Path, path: &std::path::Path) -> String {
+  let relative = path
+    .strip_prefix(repo_path)
+    .unwrap_or(path)
+    .to_string_lossy()
+    .to_string();
+
+  if let Some(stripped) = relative.strip_prefix("common/") {
+    return stripped.to_string();
+  }
+
+  if let Some(stripped) = relative.strip_prefix("profiles/")
     && let Some(rest) = stripped.find('/')
   {
     let after = &stripped[rest + 1..];
@@ -50,7 +65,8 @@ fn strip_profile_prefix(_repo_path: &std::path::Path, full: &str) -> String {
       return after.to_string();
     }
   }
-  full.to_string()
+
+  relative
 }
 
 fn pick_files_for_group(ctx: &Context) -> Result<Vec<String>> {
@@ -68,9 +84,10 @@ fn pick_files_for_group(ctx: &Context) -> Result<Vec<String>> {
             .unwrap_or(&path)
             .to_string_lossy()
             .to_string();
-          // Convert repo-relative path to HOME-relative path
-          let home_relative = strip_profile_prefix(&ctx.repo_path, &relative);
-          files.push(home_relative);
+          files.push(storage_to_home_relative(
+            &ctx.repo_path,
+            std::path::Path::new(&relative),
+          ));
         }
         Ok(files)
       }
@@ -110,11 +127,7 @@ fn create(ctx: &Context, name: &str, files: &[String]) -> Result<()> {
       name
     );
   }
-  // Normalize all paths to HOME-relative
-  let normalized: Vec<String> = files
-    .iter()
-    .map(|f| strip_profile_prefix(&ctx.repo_path, f))
-    .collect();
+  let normalized = resolve_group_files(ctx, files)?;
   groups.groups.insert(name.to_string(), normalized);
   groups.save(ctx)?;
   println!(
@@ -138,33 +151,7 @@ fn add(ctx: &Context, name: &str, files: Option<&[String]>) -> Result<()> {
     return Ok(());
   }
 
-  let profiles = Profiles::load(ctx)?;
-  let mut resolved_files = Vec::new();
-  for file in &raw_files {
-    // Normalize to HOME-relative path
-    let home_relative = strip_profile_prefix(&ctx.repo_path, file);
-    let repo_file = profiles.resolve(&ctx.repo_path, &home_relative);
-
-    if repo_file.is_dir() {
-      for entry in walkdir::WalkDir::new(&repo_file)
-        .into_iter()
-        .filter_map(|e| e.ok())
-      {
-        if entry.file_type().is_file() {
-          let relative = entry
-            .path()
-            .strip_prefix(&ctx.repo_path)
-            .unwrap_or(entry.path())
-            .to_string_lossy()
-            .to_string();
-          let home_rel = strip_profile_prefix(&ctx.repo_path, &relative);
-          resolved_files.push(home_rel);
-        }
-      }
-    } else {
-      resolved_files.push(home_relative);
-    }
-  }
+  let resolved_files = resolve_group_files(ctx, &raw_files)?;
 
   let mut groups = Groups::load(ctx)?;
   let group = groups
@@ -190,6 +177,7 @@ fn add(ctx: &Context, name: &str, files: Option<&[String]>) -> Result<()> {
 }
 
 fn remove(ctx: &Context, name: &str, files: &[String]) -> Result<()> {
+  let normalized = normalize_group_patterns(ctx, files)?;
   let mut groups = Groups::load(ctx)?;
   let group = groups
     .groups
@@ -197,7 +185,7 @@ fn remove(ctx: &Context, name: &str, files: &[String]) -> Result<()> {
     .context(format!("Group '{}' not found.", name))?;
   let before = group.len();
   group.retain(|f| {
-    !files
+    !normalized
       .iter()
       .any(|pattern| f == pattern || f.starts_with(&format!("{pattern}/")))
   });
@@ -258,7 +246,6 @@ fn apply(ctx: &Context, name: &str) -> Result<()> {
     .get(name)
     .context(format!("Group '{}' not found.", name))?;
 
-  let home = dirs::home_dir().context("Could not determine home directory")?;
   let profiles = Profiles::load(ctx)?;
 
   let mut linked = 0;
@@ -267,7 +254,7 @@ fn apply(ctx: &Context, name: &str) -> Result<()> {
 
   for file in files {
     let src = profiles.resolve(&ctx.repo_path, file);
-    let dst = home.join(file);
+    let dst = ctx.home_path.join(file);
 
     if !src.exists() {
       println!(
@@ -328,10 +315,8 @@ fn unlink(ctx: &Context, name: &str) -> Result<()> {
     .get(name)
     .context(format!("Group '{}' not found.", name))?;
 
-  let home = dirs::home_dir().context("Could not determine home directory")?;
-
   for file in files {
-    let dst = home.join(file);
+    let dst = ctx.home_path.join(file);
     if dst.is_symlink() {
       std::fs::remove_file(&dst).context(format!("Failed to remove symlink '{}'", file))?;
       println!("{} {}", style("Unlinked:").red(), file);
@@ -340,4 +325,61 @@ fn unlink(ctx: &Context, name: &str) -> Result<()> {
     }
   }
   Ok(())
+}
+
+fn resolve_group_files(ctx: &Context, files: &[String]) -> Result<Vec<String>> {
+  let resolved = resolve_targets(ctx, files, None)?;
+  let mut logical_files = BTreeSet::new();
+
+  for target in resolved {
+    match target {
+      ResolvedTarget::Interactive => {}
+      ResolvedTarget::File(entry) => {
+        if entry.repo_path.is_dir() {
+          insert_dir_files(ctx, &entry.repo_path, &mut logical_files);
+        } else {
+          logical_files.insert(entry.relative.display().to_string());
+        }
+      }
+      ResolvedTarget::Dir { entries, .. } => {
+        for entry in entries {
+          logical_files.insert(entry.relative.display().to_string());
+        }
+      }
+    }
+  }
+
+  Ok(logical_files.into_iter().collect())
+}
+
+fn insert_dir_files(
+  ctx: &Context,
+  repo_dir: &std::path::Path,
+  logical_files: &mut BTreeSet<String>,
+) {
+  for entry in walkdir::WalkDir::new(repo_dir)
+    .into_iter()
+    .filter_map(|entry| entry.ok())
+  {
+    if entry.file_type().is_file() {
+      logical_files.insert(storage_to_home_relative(&ctx.repo_path, entry.path()));
+    }
+  }
+}
+
+fn normalize_group_patterns(ctx: &Context, files: &[String]) -> Result<Vec<String>> {
+  files
+    .iter()
+    .map(|file| storage_to_home_relative(&ctx.repo_path, std::path::Path::new(file)))
+    .map(|file| {
+      let home_path = resolve_home_path(&file, &ctx.home_path);
+      Ok(
+        home_path
+          .strip_prefix(&ctx.home_path)
+          .unwrap_or_else(|_| std::path::Path::new(&file))
+          .display()
+          .to_string(),
+      )
+    })
+    .collect()
 }
