@@ -18,6 +18,33 @@ pub enum PickMode {
   Home, // list files from home for add pick
 }
 
+fn logical_candidates(ctx: &Context, input: &str, home_path: &std::path::Path) -> Vec<PathBuf> {
+  let mut candidates = Vec::new();
+
+  if let Ok(relative) = home_path.strip_prefix(&ctx.home_path) {
+    candidates.push(relative.to_path_buf());
+  }
+
+  let input_path = std::path::Path::new(input);
+  if !input_path.is_absolute()
+    && input != "~"
+    && !input.starts_with("~/")
+    && input != "$HOME"
+    && !input.starts_with("$HOME/")
+    && let Ok(cwd) = std::env::current_dir()
+    && cwd.starts_with(&ctx.home_path)
+  {
+    let cwd_path = cwd.join(input_path);
+    if let Ok(relative) = cwd_path.strip_prefix(&ctx.home_path)
+      && !candidates.iter().any(|candidate| candidate == relative)
+    {
+      candidates.push(relative.to_path_buf());
+    }
+  }
+
+  candidates
+}
+
 // Note:
 // Fix: Ctrl+C (SIGINT) kills the process before Drop runs on Linux/macOS,
 // so RAII guards do not work here. A signal handler registered before the
@@ -259,31 +286,25 @@ pub fn target(
 
   let home_path = resolve_home_path(&input, &ctx.home_path);
 
-  let relative = home_path
-    .strip_prefix(&ctx.home_path)
-    .map_err(|_| anyhow::anyhow!("Path must be inside HOME directory"))?
-    .to_path_buf();
+  if matches!(mode, PickMode::Managed) {
+    let entries = scatildr_repo(&ctx.repo_path)?;
 
-  let repo_file = ctx.repo_path.join(&relative);
-
-  if repo_file.exists() {
-    return Ok(repo_file);
-  }
-
-  // Check profile variant directories.
-  let profiles_dir = ctx.repo_path.join("profiles");
-  if profiles_dir.is_dir() {
-    for entry in std::fs::read_dir(&profiles_dir)
-      .into_iter()
-      .flatten()
-      .filter_map(|e| e.ok())
-    {
-      let variant = entry.path().join(&relative);
-      if variant.is_file() {
-        return Ok(variant);
+    for relative in logical_candidates(ctx, &input, &home_path) {
+      if entries.iter().any(|entry| entry.relative == relative)
+        || entries
+          .iter()
+          .any(|entry| entry.relative.starts_with(&relative))
+      {
+        return Ok(relative);
       }
     }
+
+    bail!("File is not managed by tildr: {input}");
   }
 
-  bail!("File is not managed by tildr: {}", relative.display());
+  if matches!(mode, PickMode::Home) && !home_path.exists() {
+    bail!("File does not exist: {}", home_path.display());
+  }
+
+  Ok(home_path)
 }

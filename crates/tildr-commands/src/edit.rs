@@ -5,10 +5,11 @@ use tildr_core::{
   pick::{self, PickMode},
 };
 
-use crate::utils::target::resolve_repo_file;
+use crate::utils::target::{FileResolution, resolve_logical_file};
 
 pub struct EditArgs {
   pub target: Option<String>,
+  pub profile: Option<String>,
 }
 
 pub fn run(ctx: &Context, args: EditArgs) -> Result<()> {
@@ -23,7 +24,21 @@ pub fn run(ctx: &Context, args: EditArgs) -> Result<()> {
     Some("Select a file\n-------------\n"),
     PickMode::Managed,
   )?;
-  let path = resolve_repo_file(ctx, &target)?;
+  let path = if target.is_absolute() && target.exists() && !target.starts_with(&ctx.home_path) {
+    target
+  } else {
+    match resolve_logical_file(ctx, &target, args.profile.as_deref())? {
+      FileResolution::Found(entry) => entry.repo_path,
+      FileResolution::AmbiguousAcrossProfiles(profiles) => {
+        bail!(
+          "File '{}' exists in multiple profiles: {}. Use --profile <name>, or run `tildr profile set <name>` first.",
+          target.display(),
+          profiles.join(", ")
+        );
+      }
+      FileResolution::NotManaged => bail!("Target is not managed: {}", target.display()),
+    }
+  };
 
   {
     let status = Command::new(&editor).arg(&path).status()?;

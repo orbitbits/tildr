@@ -22,16 +22,21 @@ pub fn run(ctx: &Context, args: CatArgs) -> Result<()> {
     Some("Select a file\n-------------\n"),
     PickMode::Managed,
   )?;
-  let path = match resolve_logical_file(ctx, &target, args.profile.as_deref())? {
-    FileResolution::Found(entry) => entry.repo_path,
-    FileResolution::AmbiguousAcrossProfiles(profiles) => {
-      bail!(
-        "File '{}' exists in multiple profiles: {}. Use --profile <name>.",
-        target.display(),
-        profiles.join(", ")
-      );
+
+  let path = if target.is_absolute() && target.exists() && !target.starts_with(&ctx.home_path) {
+    target
+  } else {
+    match resolve_logical_file(ctx, &target, args.profile.as_deref())? {
+      FileResolution::Found(entry) => entry.repo_path,
+      FileResolution::AmbiguousAcrossProfiles(profiles) => {
+        bail!(
+          "File '{}' exists in multiple profiles: {}. Use --profile <name>.",
+          target.display(),
+          profiles.join(", ")
+        );
+      }
+      FileResolution::NotManaged => bail!("Target is not managed: {}", target.display()),
     }
-    FileResolution::NotManaged => bail!("Target is not managed: {}", target.display()),
   };
 
   let content = fs::read_to_string(&path)?;

@@ -198,10 +198,11 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
 
     Commands::Doctor => doctor::run(ctx),
 
-    Commands::Edit { target } => edit::run(
+    Commands::Edit { target, profile } => edit::run(
       ctx,
       edit::EditArgs {
         target: target.clone(),
+        profile: profile.clone(),
       },
     ),
     Commands::Del {

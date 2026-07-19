@@ -243,6 +243,29 @@ fn normalize_storage_target(target: &str) -> (String, Option<String>) {
   }
 }
 
+fn candidate_home_paths(ctx: &Context, target: &str) -> Vec<PathBuf> {
+  let input_path = Path::new(target);
+  let mut candidates = vec![resolve_home_path(target, &ctx.home_path)];
+
+  if !input_path.is_absolute()
+    && target != "~"
+    && !target.starts_with("~/")
+    && target != "$HOME"
+    && !target.starts_with("$HOME/")
+  {
+    if let Ok(cwd) = std::env::current_dir()
+      && cwd.starts_with(&ctx.home_path)
+    {
+      candidates.push(cwd.join(input_path));
+    }
+
+    candidates.push(ctx.home_path.join(input_path));
+  }
+
+  candidates.dedup();
+  candidates
+}
+
 pub fn resolve_target(
   ctx: &Context,
   target: Option<String>,
@@ -255,13 +278,40 @@ pub fn resolve_target(
   let (target, inferred_profile) = normalize_storage_target(&target);
   let effective_profile = profile_override.or(inferred_profile.as_deref());
 
-  let home_path = resolve_home_path(&target, &ctx.home_path);
-  let relative = to_relative(ctx, &home_path)?;
+  let mut relatives = Vec::new();
+  let mut ambiguous: Option<(PathBuf, Vec<String>)> = None;
 
-  // Single-file resolution uses the profile hierarchy
-  match resolve_logical_file(ctx, &relative, effective_profile)? {
-    FileResolution::Found(entry) => return Ok(ResolvedTarget::File(entry)),
-    FileResolution::AmbiguousAcrossProfiles(profiles) => {
+  for home_path in candidate_home_paths(ctx, &target) {
+    let relative = to_relative(ctx, &home_path)?;
+    if !relatives.contains(&relative) {
+      relatives.push(relative.clone());
+    }
+
+    // Single-file resolution uses the profile hierarchy
+    match resolve_logical_file(ctx, &relative, effective_profile)? {
+      FileResolution::Found(entry) => return Ok(ResolvedTarget::File(entry)),
+      FileResolution::AmbiguousAcrossProfiles(profiles) => {
+        ambiguous.get_or_insert((relative, profiles));
+      }
+      FileResolution::NotManaged => {}
+    }
+  }
+
+  // Fallback: directory resolution (scan all entries for prefix match)
+  let entries = scan_all_entries(ctx)?;
+
+  let dir_entries: Vec<ManagedEntry> = entries
+    .into_iter()
+    .filter(|entry| {
+      relatives
+        .iter()
+        .any(|relative| entry.relative.starts_with(relative))
+    })
+    .filter(|entry| effective_profile.map_or(true, |profile| entry.profile == profile))
+    .collect();
+
+  if dir_entries.is_empty() {
+    if let Some((relative, profiles)) = ambiguous {
       let profiles_str = profiles.join(", ");
       let hint = if let Some(active) = Profiles::load(ctx)?.active.as_deref() {
         format!(
@@ -279,20 +329,12 @@ pub fn resolve_target(
         hint
       );
     }
-    FileResolution::NotManaged => {}
-  }
 
-  // Fallback: directory resolution (scan all entries for prefix match)
-  let entries = scan_all_entries(ctx)?;
-
-  let dir_entries: Vec<ManagedEntry> = entries
-    .into_iter()
-    .filter(|entry| entry.relative.starts_with(&relative))
-    .filter(|entry| effective_profile.map_or(true, |profile| entry.profile == profile))
-    .collect();
-
-  if dir_entries.is_empty() {
-    bail!("Target is not managed: {}", relative.display());
+    let display = relatives
+      .first()
+      .map(|relative| relative.display().to_string())
+      .unwrap_or_else(|| target.clone());
+    bail!("Target is not managed: {display}");
   }
 
   Ok(ResolvedTarget::Dir {
@@ -313,18 +355,4 @@ pub fn resolve_targets(
   }
 
   Ok(resolved)
-}
-
-/// Resolve a logical file path to the actual repo path via the active profile.
-/// Falls back to common/, then legacy profiles/default/.
-pub fn resolve_repo_file(ctx: &Context, relative: &Path) -> Result<PathBuf> {
-  let profiles = Profiles::load(ctx)?;
-  let file_str = relative.to_string_lossy();
-  let resolved = profiles.resolve(&ctx.repo_path, &file_str);
-
-  if resolved.exists() {
-    return Ok(resolved);
-  }
-
-  bail!("File not found: {}", relative.display())
 }

@@ -94,6 +94,7 @@ pub enum Commands {
 
   Edit {
     target: Option<String>,
+    profile: Option<String>,
   },
   Info {
     mode: InfoMode,

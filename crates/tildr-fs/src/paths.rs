@@ -37,6 +37,18 @@ pub fn expand_home(path: &str) -> PathBuf {
 pub fn resolve_home_path(input: &str, home: &Path) -> PathBuf {
   let input_path = Path::new(input);
 
+  if input == "$HOME" {
+    return home.to_path_buf();
+  }
+
+  if let Some(path) = input.strip_prefix("$HOME/") {
+    return home.join(path);
+  }
+
+  if input == "~" {
+    return home.to_path_buf();
+  }
+
   // It resolves when you use ~/...
   if input.starts_with("~/") {
     return home.join(input.trim_start_matches("~/"));
@@ -47,6 +59,15 @@ pub fn resolve_home_path(input: &str, home: &Path) -> PathBuf {
     return input_path.to_path_buf();
   }
 
-  // Everything else → related to HOME
+  if let Ok(cwd) = std::env::current_dir()
+    && cwd.starts_with(home)
+  {
+    let cwd_path = cwd.join(input_path);
+    if input.starts_with("./") || input.starts_with("../") || cwd_path.exists() {
+      return cwd_path;
+    }
+  }
+
+  // Everything else → relative to HOME
   home.join(input_path)
 }

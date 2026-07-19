@@ -7,6 +7,8 @@ use clap::Args;
 EXAMPLES:
   tildr add .config/nvim/
   tildr add .config/nvim/init.vim
+  tildr add ~/.config/starship.toml
+  tildr add $HOME/.config/starship.toml
   tildr add .config/nvim/init.vim .config/nvim/lua/plugins.lua
   tildr add .config/nvim/init.vim --quiet
   tildr add .bashrc --profile linux\n"

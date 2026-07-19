@@ -1,8 +1,14 @@
 use crate::utils::target::{FileResolution, ResolvedTarget, resolve_logical_file, resolve_target};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 use tildr_core::config::Config;
 use tildr_core::context::Context;
+
+fn cwd_lock() -> &'static Mutex<()> {
+  static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+  LOCK.get_or_init(|| Mutex::new(()))
+}
 
 fn test_ctx(name: &str) -> (PathBuf, Context) {
   let nanos = std::time::SystemTime::now()
@@ -27,7 +33,11 @@ fn test_ctx(name: &str) -> (PathBuf, Context) {
 fn create_profile_file(ctx: &Context, profile: &str, file: &str, content: &str) {
   let dir = crate::profile::profile_dir(&ctx.repo_path, profile);
   fs::create_dir_all(&dir).unwrap();
-  fs::write(dir.join(file), content).unwrap();
+  let path = dir.join(file);
+  if let Some(parent) = path.parent() {
+    fs::create_dir_all(parent).unwrap();
+  }
+  fs::write(path, content).unwrap();
 }
 
 fn set_active(ctx: &Context, name: &str) {
@@ -227,5 +237,46 @@ fn profile_storage_target_resolves_to_home_relative_file() {
     _ => panic!("Expected profiles/linux/.bashrc to resolve as a managed file"),
   }
 
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn home_env_target_resolves_to_home_relative_file() {
+  let (root, ctx) = test_ctx("home-env-target");
+  create_profile_file(&ctx, "common", ".config/starship.toml", "starship");
+
+  let target = "$HOME/.config/starship.toml".to_string();
+  let result = resolve_target(&ctx, Some(target), None).unwrap();
+  match result {
+    ResolvedTarget::File(entry) => {
+      assert_eq!(entry.profile, "common");
+      assert_eq!(entry.relative, PathBuf::from(".config/starship.toml"));
+    }
+    _ => panic!("Expected $HOME/.config/starship.toml to resolve as a managed file"),
+  }
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn cwd_relative_target_under_home_resolves_to_home_relative_file() {
+  let _guard = cwd_lock().lock().unwrap();
+  let old_cwd = std::env::current_dir().unwrap();
+  let (root, ctx) = test_ctx("cwd-relative-target");
+  let documents = ctx.home_path.join("Documents");
+  fs::create_dir_all(&documents).unwrap();
+  create_profile_file(&ctx, "common", "Documents/document.ods", "document");
+
+  std::env::set_current_dir(&documents).unwrap();
+  let result = resolve_target(&ctx, Some("document.ods".to_string()), None).unwrap();
+  match result {
+    ResolvedTarget::File(entry) => {
+      assert_eq!(entry.profile, "common");
+      assert_eq!(entry.relative, PathBuf::from("Documents/document.ods"));
+    }
+    _ => panic!("Expected document.ods to resolve relative to cwd under HOME"),
+  }
+
+  std::env::set_current_dir(old_cwd).unwrap();
   fs::remove_dir_all(&root).ok();
 }

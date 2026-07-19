@@ -83,7 +83,10 @@ impl From<CliCommands> for Commands {
 
       CliCommands::Doctor(_) => Commands::Doctor,
 
-      CliCommands::Edit(cmd) => Commands::Edit { target: cmd.target },
+      CliCommands::Edit(cmd) => Commands::Edit {
+        target: cmd.target,
+        profile: cmd.profile,
+      },
 
       CliCommands::Secret(cmd) => Commands::Secret {
         mode: match cmd.mode {

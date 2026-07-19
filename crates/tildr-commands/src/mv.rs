@@ -17,7 +17,7 @@ use tildr_ui::{
 
 use crate::utils::{
   auto_commit::auto_commit_dry_run,
-  target::{ManagedEntryProfile, scan_all_entries_with_profile},
+  target::{ResolvedTarget, resolve_target},
 };
 
 pub struct MvArgs {
@@ -27,18 +27,14 @@ pub struct MvArgs {
   pub quiet: bool,
 }
 
-fn find_entry(ctx: &Context, target: &str) -> Result<ManagedEntryProfile> {
-  let entries = scan_all_entries_with_profile(ctx)?;
-  entries
-    .into_iter()
-    .find(|e| e.filepath.to_string_lossy() == target)
-    .ok_or_else(|| anyhow::anyhow!("File is not managed by tildr: {}", target))
-}
-
 pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
   // --- Resolve source ---
   let source_rel = match args.source {
-    Some(ref s) => PathBuf::from(s),
+    Some(ref s) => match resolve_target(ctx, Some(s.clone()), None)? {
+      ResolvedTarget::File(entry) => entry.relative,
+      ResolvedTarget::Dir { input, .. } => bail!("Cannot move directory target: {input}"),
+      ResolvedTarget::Interactive => unreachable!(),
+    },
     None => {
       let picked = pick::target(
         ctx,
@@ -48,15 +44,19 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
         PickMode::Managed,
       )?;
       picked
-        .strip_prefix(&ctx.repo_path)
+        .strip_prefix(&ctx.home_path)
         .unwrap_or(&picked)
         .to_path_buf()
     }
   };
 
-  let entry = find_entry(ctx, &source_rel.to_string_lossy())?;
-  let source_repo = entry.repo_path.clone();
-  let profile_name = entry.profile.clone();
+  let entry = match resolve_target(ctx, Some(source_rel.display().to_string()), None)? {
+    ResolvedTarget::File(entry) => entry,
+    ResolvedTarget::Dir { input, .. } => bail!("Cannot move directory target: {input}"),
+    ResolvedTarget::Interactive => unreachable!(),
+  };
+  let source_repo = entry.repo_path;
+  let profile_name = entry.profile;
 
   // --- Resolve dest ---
   let dest_input = match args.dest {
