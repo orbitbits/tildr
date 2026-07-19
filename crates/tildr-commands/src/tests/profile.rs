@@ -75,6 +75,52 @@ fn resolve_without_matching_file_uses_default() {
 }
 
 #[test]
+fn resolve_without_matching_default_uses_common() {
+  let (root, ctx) = test_ctx("common-fallback");
+  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
+  fs::write(ctx.repo_path.join("profiles/common/.gitconfig"), "common").unwrap();
+
+  let profiles = Profiles {
+    active: Some("work".to_string()),
+    ..Default::default()
+  };
+  let result = profiles.resolve(&ctx.repo_path, ".gitconfig");
+  assert_eq!(result, ctx.repo_path.join("profiles/common/.gitconfig"));
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn resolve_prefers_active_profile_over_common() {
+  let (root, ctx) = test_ctx("active-over-common");
+  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
+  fs::create_dir_all(ctx.repo_path.join("profiles/linux")).unwrap();
+  fs::write(ctx.repo_path.join("profiles/common/.bashrc"), "common").unwrap();
+  fs::write(ctx.repo_path.join("profiles/linux/.bashrc"), "linux").unwrap();
+
+  let profiles = Profiles {
+    active: Some("linux".to_string()),
+    ..Default::default()
+  };
+  let result = profiles.resolve(&ctx.repo_path, ".bashrc");
+  assert_eq!(result, ctx.repo_path.join("profiles/linux/.bashrc"));
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn resolve_prefers_common_over_default() {
+  let (root, ctx) = test_ctx("common-over-default");
+  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
+  fs::create_dir_all(ctx.repo_path.join("profiles/default")).unwrap();
+  fs::write(ctx.repo_path.join("profiles/common/.bashrc"), "common").unwrap();
+  fs::write(ctx.repo_path.join("profiles/default/.bashrc"), "default").unwrap();
+
+  let profiles = Profiles::default();
+  let result = profiles.resolve(&ctx.repo_path, ".bashrc");
+  assert_eq!(result, ctx.repo_path.join("profiles/common/.bashrc"));
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
 fn profiles_save_and_load_roundtrip() {
   let (root, ctx) = test_ctx("roundtrip");
 

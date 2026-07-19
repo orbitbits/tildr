@@ -5,7 +5,7 @@ use tildr_core::context::Context;
 use tildr_fs::paths::resolve_home_path;
 use tildr_repo::{ManagedEntry, scatildr_repo};
 
-use crate::profile::Profiles;
+use crate::profile::{COMMON_PROFILE, DEFAULT_PROFILE, Profiles};
 
 pub enum ResolvedTarget {
   Interactive,
@@ -67,6 +67,52 @@ pub fn scan_all_entries_with_profile(ctx: &Context) -> Result<Vec<ManagedEntryPr
       .then_with(|| a.repo_relative.cmp(&b.repo_relative))
   });
   Ok(result)
+}
+
+pub fn select_effective_entry(
+  repo_path: &Path,
+  profiles: &Profiles,
+  entries: &[ManagedEntryProfile],
+) -> Option<ManagedEntryProfile> {
+  let first = entries.first()?;
+  let file_str = first.filepath.to_string_lossy();
+  let expected = profiles.resolve(repo_path, &file_str);
+
+  entries
+    .iter()
+    .find(|entry| entry.repo_path == expected)
+    .or_else(|| {
+      profiles
+        .active
+        .as_deref()
+        .and_then(|active| entries.iter().find(|entry| entry.profile == active))
+    })
+    .or_else(|| entries.iter().find(|entry| entry.profile == COMMON_PROFILE))
+    .or_else(|| {
+      entries
+        .iter()
+        .find(|entry| entry.profile == DEFAULT_PROFILE)
+    })
+    .or_else(|| {
+      entries
+        .iter()
+        .min_by(|left, right| left.repo_relative.cmp(&right.repo_relative))
+    })
+    .cloned()
+}
+
+pub fn effective_entries(
+  repo_path: &Path,
+  profiles: &Profiles,
+  by_filepath: &std::collections::HashMap<PathBuf, Vec<ManagedEntryProfile>>,
+) -> Vec<ManagedEntryProfile> {
+  let mut entries: Vec<ManagedEntryProfile> = by_filepath
+    .values()
+    .filter_map(|entries| select_effective_entry(repo_path, profiles, entries))
+    .collect();
+
+  entries.sort_by(|left, right| left.filepath.cmp(&right.filepath));
+  entries
 }
 
 pub fn to_relative(ctx: &Context, path: &Path) -> Result<PathBuf> {

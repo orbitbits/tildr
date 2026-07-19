@@ -23,6 +23,12 @@ fn setup_context(home: &Path, repo: &Path) -> Context {
   }
 }
 
+fn set_active(ctx: &Context, name: &str) {
+  let mut profiles = crate::profile::Profiles::load(ctx).unwrap();
+  profiles.active = Some(name.to_string());
+  profiles.save(ctx).unwrap();
+}
+
 #[test]
 fn apply_no_repo_returns_ok() {
   let ctx = setup_context(Path::new("/tmp"), Path::new("/tmp/nonexistent-repo"));
@@ -91,6 +97,63 @@ fn apply_creates_symlink_for_new_file() {
     &link,
     &repo.join("profiles/default/file.txt")
   ));
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn apply_prefers_active_profile_over_common() {
+  let root = test_dir("active-over-common");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("profiles/common")).unwrap();
+  fs::create_dir_all(repo.join("profiles/linux")).unwrap();
+  fs::write(repo.join("profiles/common/.bashrc"), "common").unwrap();
+  fs::write(repo.join("profiles/linux/.bashrc"), "linux").unwrap();
+  let ctx = setup_context(&home, &repo);
+  set_active(&ctx, "linux");
+
+  run(
+    &ctx,
+    ApplyArgs {
+      dry_run: false,
+      force: false,
+      verbose: false,
+      quiet: true,
+    },
+  )
+  .unwrap();
+
+  let link = home.join(".bashrc");
+  assert!(link.exists());
+  assert!(is_symlink_to(&link, &repo.join("profiles/linux/.bashrc")));
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn apply_uses_common_when_no_profile_is_active() {
+  let root = test_dir("common-no-active");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("profiles/common")).unwrap();
+  fs::write(repo.join("profiles/common/.bashrc"), "common").unwrap();
+  let ctx = setup_context(&home, &repo);
+
+  run(
+    &ctx,
+    ApplyArgs {
+      dry_run: false,
+      force: false,
+      verbose: false,
+      quiet: true,
+    },
+  )
+  .unwrap();
+
+  let link = home.join(".bashrc");
+  assert!(link.exists());
+  assert!(is_symlink_to(&link, &repo.join("profiles/common/.bashrc")));
   fs::remove_dir_all(&root).ok();
 }
 

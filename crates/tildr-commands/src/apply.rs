@@ -1,6 +1,5 @@
-use std::collections::HashMap;
+use std::collections::BTreeSet;
 use std::fs;
-use std::path::PathBuf;
 
 use anyhow::Result;
 use tildr_core::context::Context;
@@ -13,6 +12,8 @@ use tildr_ui::{
   output::{ActionLog, SummaryKind, print_actions, print_summary},
   warn,
 };
+
+use crate::profile::Profiles;
 
 pub struct ApplyArgs {
   pub dry_run: bool,
@@ -28,30 +29,13 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
   }
 
   let entries = scatildr_repo(&ctx.repo_path)?;
-
-  // Build a map of logical path -> best repo path.
-  // Prefer profile-specific entries over root-level (legacy) entries.
-  let mut file_map: HashMap<String, PathBuf> = HashMap::new();
-  for entry in entries {
-    let logical = entry.relative.to_string_lossy().to_string();
-    // If we already have a path for this logical file, prefer the one that
-    // is under profiles/<name>/ (non-root) over root-level legacy files.
-    let is_legacy_root = entry.profile == "default"
-      && !entry
-        .repo_path
-        .starts_with(ctx.repo_path.join("profiles/default"));
-    let existing_is_legacy = file_map
-      .get(&logical)
-      .map(|p| p.starts_with(ctx.repo_path.join("profiles/default")))
-      .unwrap_or(true); // default to true so new non-legacy wins
-
-    if !is_legacy_root || existing_is_legacy {
-      file_map.insert(logical, entry.repo_path);
-    }
-  }
-
-  let mut files: Vec<String> = file_map.keys().cloned().collect();
-  files.sort();
+  let profiles = Profiles::load(ctx)?;
+  let files: Vec<String> = entries
+    .into_iter()
+    .map(|entry| entry.relative.to_string_lossy().to_string())
+    .collect::<BTreeSet<_>>()
+    .into_iter()
+    .collect();
 
   let mut actions = Vec::new();
   let mut created = 0;
@@ -60,7 +44,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
 
   for file_str in &files {
     let home = ctx.home_path.join(file_str);
-    let repo = file_map[file_str].clone();
+    let repo = profiles.resolve(&ctx.repo_path, file_str);
 
     if !repo.exists() {
       continue;

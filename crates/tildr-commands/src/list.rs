@@ -6,7 +6,10 @@ use tildr_fs::symlink::create_symlink;
 use tildr_ui::info;
 use tildr_utils::{fs::format_size, pager::page_string};
 
-use crate::utils::target::{ManagedEntryProfile, scan_all_entries_with_profile};
+use crate::{
+  profile::Profiles,
+  utils::target::{ManagedEntryProfile, effective_entries, scan_all_entries_with_profile},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ExportFile {
@@ -64,17 +67,18 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
       .push(entry);
   }
 
-  // If --profile is specified, filter to only that profile's files
+  let profiles = Profiles::load(ctx)?;
+
+  // If --profile is specified, filter to only that profile's files.
+  // Otherwise show the effective variant for each logical filepath:
+  // active profile -> common -> default -> legacy root.
   let entries_to_show: Vec<ManagedEntryProfile> = if let Some(ref profile_name) = args.profile {
     by_filepath
       .values()
       .flat_map(|v| v.iter().filter(|e| e.profile == *profile_name).cloned())
       .collect()
   } else {
-    by_filepath
-      .values()
-      .flat_map(|v| v.first().cloned())
-      .collect()
+    effective_entries(&ctx.repo_path, &profiles, &by_filepath)
   };
 
   if entries_to_show.is_empty() {

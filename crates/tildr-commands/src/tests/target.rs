@@ -69,6 +69,42 @@ fn file_only_in_default_no_active_resolves_to_default() {
 }
 
 #[test]
+fn file_in_active_and_common_resolves_to_active() {
+  let (root, ctx) = test_ctx("active-common");
+  create_profile_file(&ctx, "common", ".bashrc", "common");
+  create_profile_file(&ctx, "linux", ".bashrc", "linux");
+  set_active(&ctx, "linux");
+
+  let result = resolve_logical_file(&ctx, Path::new(".bashrc"), None).unwrap();
+  match result {
+    FileResolution::Found(entry) => {
+      assert_eq!(entry.profile, "linux");
+      assert_eq!(
+        entry.repo_path,
+        ctx.repo_path.join("profiles/linux/.bashrc")
+      );
+    }
+    _ => panic!("Expected Found in linux"),
+  }
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn file_only_in_common_no_active_resolves_to_common() {
+  let (root, ctx) = test_ctx("common-no-active");
+  create_profile_file(&ctx, "common", ".bashrc", "common");
+
+  let result = resolve_logical_file(&ctx, Path::new(".bashrc"), None).unwrap();
+  match result {
+    FileResolution::Found(entry) => {
+      assert_eq!(entry.profile, "common");
+    }
+    _ => panic!("Expected Found in common"),
+  }
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
 fn file_in_active_and_other_resolves_to_active_deterministically() {
   let (root, ctx) = test_ctx("deterministic");
   create_profile_file(&ctx, "archlinux", ".bashrc", "arch");

@@ -5,7 +5,7 @@ use tildr_ui::{color::Colorize, symbols::icons};
 use tildr_utils::pager::page_string;
 
 use crate::profile::Profiles;
-use crate::utils::target::{ManagedEntryProfile, scan_all_entries_with_profile};
+use crate::utils::target::{ManagedEntryProfile, effective_entries, scan_all_entries_with_profile};
 
 #[derive(Debug, serde::Serialize)]
 pub struct FileStatus {
@@ -45,17 +45,18 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
       .push(entry);
   }
 
-  // If --profile is specified, filter to only that profile's files
+  let profiles = Profiles::load(ctx)?;
+
+  // If --profile is specified, filter to only that profile's files.
+  // Otherwise show the effective variant for each logical filepath:
+  // active profile -> common -> default -> legacy root.
   let entries_to_show: Vec<ManagedEntryProfile> = if let Some(ref profile_name) = args.profile {
     by_filepath
       .values()
       .flat_map(|v| v.iter().filter(|e| e.profile == *profile_name).cloned())
       .collect()
   } else {
-    by_filepath
-      .values()
-      .flat_map(|v| v.first().cloned())
-      .collect()
+    effective_entries(&ctx.repo_path, &profiles, &by_filepath)
   };
 
   if entries_to_show.is_empty() {
@@ -63,7 +64,6 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
     return Ok(());
   }
 
-  let profiles = Profiles::load(ctx)?;
   let mut statuses: Vec<FileStatus> = Vec::new();
 
   for entry in &entries_to_show {
@@ -78,17 +78,9 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
       Err(_) => "missing_link",
     };
 
-    // In compact mode (no --profile, no --json, no --counter), show only filepath
-    // Otherwise show repo_relative with profile prefix
-    let filepath_display = if args.profile.is_none() && !args.json && !args.counter {
-      entry.filepath.display().to_string()
-    } else {
-      entry.repo_relative.display().to_string()
-    };
-
     statuses.push(FileStatus {
       profile: entry.profile.clone(),
-      filepath: filepath_display,
+      filepath: entry.repo_relative.display().to_string(),
       status: status.to_string(),
     });
   }
@@ -122,98 +114,54 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
   // --- TABLE ---
   let mut buf = String::new();
 
-  // In compact mode (no profile filter, no json, no counter), don't show PROFILE column
-  let show_profile = args.profile.is_some() || args.json || args.counter;
+  let profile_width = statuses
+    .iter()
+    .map(|s| s.profile.len())
+    .max()
+    .unwrap_or(7)
+    .max(7);
 
-  if show_profile {
-    let profile_width = statuses
-      .iter()
-      .map(|s| s.profile.len())
-      .max()
-      .unwrap_or(7)
-      .max(7);
+  let filepath_width = statuses
+    .iter()
+    .map(|s| s.filepath.len())
+    .max()
+    .unwrap_or(8)
+    .max(8);
 
-    let filepath_width = statuses
-      .iter()
-      .map(|s| s.filepath.len())
-      .max()
-      .unwrap_or(8)
-      .max(8);
+  writeln!(
+    buf,
+    "{:<width_p$}  {:<width_f$}  STATUS",
+    "PROFILE",
+    "FILEPATH",
+    width_p = profile_width,
+    width_f = filepath_width
+  )?;
+
+  for s in &statuses {
+    let (symbol, label) = match s.status.as_str() {
+      "linked" => (icons().none, format!("{}linked", icons().check).green()),
+      "missing_link" => (icons().none, format!("{}missing link", icons().cross).red()),
+      "broken_symlink" => (
+        icons().none,
+        format!("{}broken symlink", icons().cross).red(),
+      ),
+      "not_a_symlink" => (
+        icons().none,
+        format!("{}not a symlink", icons().warn).yellow(),
+      ),
+      _ => (icons().none, "unknown".to_string()),
+    };
 
     writeln!(
       buf,
-      "{:<width_p$}  {:<width_f$}  STATUS",
-      "PROFILE",
-      "FILEPATH",
+      "{:<width_p$}  {:<width_f$}  {}{}",
+      s.profile,
+      s.filepath,
+      symbol,
+      label,
       width_p = profile_width,
       width_f = filepath_width
     )?;
-
-    for s in &statuses {
-      let (symbol, label) = match s.status.as_str() {
-        "linked" => (icons().none, format!("{}linked", icons().check).green()),
-        "missing_link" => (icons().none, format!("{}missing link", icons().cross).red()),
-        "broken_symlink" => (
-          icons().none,
-          format!("{}broken symlink", icons().cross).red(),
-        ),
-        "not_a_symlink" => (
-          icons().none,
-          format!("{}not a symlink", icons().warn).yellow(),
-        ),
-        _ => (icons().none, "unknown".to_string()),
-      };
-
-      writeln!(
-        buf,
-        "{:<width_p$}  {:<width_f$}  {}{}",
-        s.profile,
-        s.filepath,
-        symbol,
-        label,
-        width_p = profile_width,
-        width_f = filepath_width
-      )?;
-    }
-  } else {
-    let filepath_width = statuses
-      .iter()
-      .map(|s| s.filepath.len())
-      .max()
-      .unwrap_or(8)
-      .max(8);
-
-    writeln!(
-      buf,
-      "{:<width_f$}  STATUS",
-      "FILEPATH",
-      width_f = filepath_width
-    )?;
-
-    for s in &statuses {
-      let (symbol, label) = match s.status.as_str() {
-        "linked" => (icons().none, format!("{}linked", icons().check).green()),
-        "missing_link" => (icons().none, format!("{}missing link", icons().cross).red()),
-        "broken_symlink" => (
-          icons().none,
-          format!("{}broken symlink", icons().cross).red(),
-        ),
-        "not_a_symlink" => (
-          icons().none,
-          format!("{}not a symlink", icons().warn).yellow(),
-        ),
-        _ => (icons().none, "unknown".to_string()),
-      };
-
-      writeln!(
-        buf,
-        "{:<width_f$}  {}{}",
-        s.filepath,
-        symbol,
-        label,
-        width_f = filepath_width
-      )?;
-    }
   }
 
   if result.1[1] > 0 || result.1[2] > 0 || result.1[3] > 0 {

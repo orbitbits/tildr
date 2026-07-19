@@ -12,6 +12,9 @@ use walkdir::WalkDir;
 
 use crate::utils::auto_commit::auto_commit;
 
+pub const COMMON_PROFILE: &str = "common";
+pub const DEFAULT_PROFILE: &str = "default";
+
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Profiles {
   pub active: Option<String>,
@@ -31,19 +34,12 @@ impl Profiles {
 
   pub fn load(ctx: &Context) -> Result<Self> {
     let path = Self::path(ctx);
-    let mut profiles: Profiles = if !path.exists() {
+    let profiles: Profiles = if !path.exists() {
       Self::default()
     } else {
       let data = fs::read_to_string(&path).context("Failed to read profiles file")?;
       serde_json::from_str(&data).context("Failed to parse profiles file")?
     };
-
-    // Always ensure default profile exists
-    if !profiles.profiles.contains_key("default") {
-      profiles
-        .profiles
-        .insert("default".to_string(), ProfileDef::default());
-    }
 
     Ok(profiles)
   }
@@ -59,13 +55,21 @@ impl Profiles {
   }
 
   pub fn resolve(&self, repo_path: &Path, file: &str) -> PathBuf {
-    if let Some(active) = self.active.as_deref().filter(|a| *a != "default") {
+    if let Some(active) = self
+      .active
+      .as_deref()
+      .filter(|a| *a != DEFAULT_PROFILE && *a != COMMON_PROFILE)
+    {
       let candidate = repo_path.join("profiles").join(active).join(file);
       if candidate.exists() {
         return candidate;
       }
     }
-    let default_candidate = repo_path.join("profiles/default").join(file);
+    let common_candidate = repo_path.join("profiles").join(COMMON_PROFILE).join(file);
+    if common_candidate.exists() {
+      return common_candidate;
+    }
+    let default_candidate = repo_path.join("profiles").join(DEFAULT_PROFILE).join(file);
     if default_candidate.exists() {
       return default_candidate;
     }
@@ -104,8 +108,8 @@ pub fn run(ctx: &Context, mode: &tildr_domain::ProfileMode) -> Result<()> {
 }
 
 fn create(ctx: &Context, name: &str, description: &Option<String>) -> Result<()> {
-  if name == "default" {
-    anyhow::bail!("'default' is a reserved name and cannot be used for a profile.");
+  if name == DEFAULT_PROFILE || name == COMMON_PROFILE {
+    anyhow::bail!("'{name}' is a reserved name and cannot be used for a profile.");
   }
   let mut profiles = Profiles::load(ctx)?;
   if profiles.profiles.contains_key(name) {
@@ -132,8 +136,8 @@ fn repo_entries(ctx: &Context) -> Result<Vec<tildr_repo::ManagedEntry>> {
 fn resolve_files(ctx: &Context, from: &str, files: &[String]) -> Result<Vec<String>> {
   if files.is_empty() {
     let entries = repo_entries(ctx)?;
-    if from == "default" {
-      // In the filesystem model, all repo entries are tracked.
+    if from == DEFAULT_PROFILE {
+      // Legacy default means all repo entries are tracked.
       // Return all files so the user can choose or transfer everything.
       let mut names: Vec<String> = entries
         .into_iter()
@@ -216,11 +220,11 @@ fn transfer(
 
   let profiles = Profiles::load(ctx)?;
 
-  if from != "default" && !profiles.profiles.contains_key(from) {
+  if from != DEFAULT_PROFILE && from != COMMON_PROFILE && !profiles.profiles.contains_key(from) {
     anyhow::bail!("Profile '{}' not found.", from);
   }
 
-  if to != "default" && !profiles.profiles.contains_key(to) {
+  if to != DEFAULT_PROFILE && to != COMMON_PROFILE && !profiles.profiles.contains_key(to) {
     anyhow::bail!("Profile '{}' not found.", to);
   }
 
@@ -239,8 +243,8 @@ fn transfer(
     }
   };
 
-  let from_profile = from != "default";
-  let to_profile = to != "default";
+  let from_profile = from != DEFAULT_PROFILE;
+  let to_profile = to != DEFAULT_PROFILE;
   let mut count = 0;
 
   for file in &file_list {
@@ -282,7 +286,7 @@ fn transfer(
     println!("  {} {}", action_fn(action), direction);
   }
 
-  if remove_source && from_profile {
+  if remove_source && from_profile && from != COMMON_PROFILE {
     // Clean up empty profile directory
     let dir = ctx.repo_path.join("profiles").join(from);
     if dir.exists() && dir.read_dir()?.next().is_none() {
@@ -543,7 +547,7 @@ fn current(ctx: &Context) -> Result<()> {
 }
 
 fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
-  // Find files at repo root that should be in profiles/default/
+  // Find files at repo root that should be in profiles/common/
   let root_entries: Vec<_> = fs::read_dir(&ctx.repo_path)?
     .filter_map(|e| e.ok())
     .filter(|e| {
@@ -557,19 +561,19 @@ fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
     return Ok(());
   }
 
-  let default_dir = ctx.repo_path.join("profiles").join("default");
-  fs::create_dir_all(&default_dir)?;
+  let common_dir = ctx.repo_path.join("profiles").join(COMMON_PROFILE);
+  fs::create_dir_all(&common_dir)?;
 
   let mut count = 0;
 
   for entry in &root_entries {
     let name = entry.file_name().to_string_lossy().to_string();
 
-    // Skip if already exists in profiles/default/
-    let target = default_dir.join(&name);
+    // Skip if already exists in profiles/common/
+    let target = common_dir.join(&name);
     if target.exists() {
       println!(
-        "  {} {} (already in profiles/default/)",
+        "  {} {} (already in profiles/common/)",
         style("Skipped:").dim(),
         name
       );
@@ -578,7 +582,7 @@ fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
 
     if dry_run {
       println!(
-        "  {} {} -> profiles/default/{name}",
+        "  {} {} -> profiles/common/{name}",
         style("Would migrate:").cyan(),
         name
       );
@@ -586,7 +590,7 @@ fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
       let source = entry.path();
       fs::rename(&source, &target)?;
       println!(
-        "  {} {} -> profiles/default/{name}",
+        "  {} {} -> profiles/common/{name}",
         style("Migrated:").green(),
         name
       );
@@ -600,14 +604,11 @@ fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
   }
 
   if !dry_run {
-    auto_commit(
-      ctx,
-      &format!("migrate {count} file(s) to profiles/default/"),
-    );
+    auto_commit(ctx, &format!("migrate {count} file(s) to profiles/common/"));
   }
 
   println!(
-    "\n{} {count} file(s) migrated to profiles/default/{}",
+    "\n{} {count} file(s) migrated to profiles/common/{}",
     if dry_run {
       style("Would migrate:").cyan()
     } else {
