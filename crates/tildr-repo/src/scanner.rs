@@ -149,7 +149,7 @@ fn scan_entry(
     return WalkState::Continue;
   }
 
-  // Only process files under profiles/<name>/
+  // Process files under profiles/<name>/ (profile-specific variants)
   if let Ok(relative) = path.strip_prefix(repo_path) {
     let relative_str = relative.to_string_lossy();
     if let Some(rest) = relative_str.strip_prefix("profiles/")
@@ -160,6 +160,23 @@ fn scan_entry(
       entries.push(ManagedEntry {
         profile: profile_name.to_string(),
         relative: PathBuf::from(logical_path),
+        repo_path: path.to_path_buf(),
+      });
+      return WalkState::Continue;
+    }
+  }
+
+  // Process files at the repo root (legacy default profile)
+  // Skip internal directories: .git, .tildr, profiles/
+  if let Ok(relative) = path.strip_prefix(repo_path) {
+    let relative_str = relative.to_string_lossy();
+    if !relative_str.starts_with("profiles/")
+      && !relative_str.starts_with(".git")
+      && !relative_str.starts_with(".tildr")
+    {
+      entries.push(ManagedEntry {
+        profile: "default".to_string(),
+        relative: relative.to_path_buf(),
         repo_path: path.to_path_buf(),
       });
     }

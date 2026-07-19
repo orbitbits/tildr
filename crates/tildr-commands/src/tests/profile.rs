@@ -62,6 +62,7 @@ fn resolve_without_matching_file_uses_default() {
   fs::create_dir_all(ctx.repo_path.join("profiles/default")).unwrap();
   fs::create_dir_all(ctx.repo_path.join("profiles/work")).unwrap();
   fs::write(ctx.repo_path.join("profiles/default/.bashrc"), "default").unwrap();
+  fs::write(ctx.repo_path.join("profiles/default/.zshrc"), "default").unwrap();
   // .zshrc only exists in default, not in work
 
   let profiles = Profiles {

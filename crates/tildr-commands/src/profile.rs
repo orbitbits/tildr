@@ -65,7 +65,12 @@ impl Profiles {
         return candidate;
       }
     }
-    repo_path.join("profiles/default").join(file)
+    let default_candidate = repo_path.join("profiles/default").join(file);
+    if default_candidate.exists() {
+      return default_candidate;
+    }
+    // Fallback to repo root for legacy files not yet migrated to profiles/default/
+    repo_path.join(file)
   }
 }
 
