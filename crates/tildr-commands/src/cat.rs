@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, bail};
 use std::fs;
 use tildr_core::{
   context::Context,
@@ -6,11 +6,12 @@ use tildr_core::{
 };
 use tildr_utils::pager::page_string;
 
-use crate::utils::target::resolve_repo_file;
+use crate::utils::target::{FileResolution, resolve_logical_file};
 
 pub struct CatArgs {
   pub target: Option<String>,
   pub less: bool,
+  pub profile: Option<String>,
 }
 
 pub fn run(ctx: &Context, args: CatArgs) -> Result<()> {
@@ -21,7 +22,18 @@ pub fn run(ctx: &Context, args: CatArgs) -> Result<()> {
     Some("Select a file\n-------------\n"),
     PickMode::Managed,
   )?;
-  let path = resolve_repo_file(ctx, &target)?;
+  let path = match resolve_logical_file(ctx, &target, args.profile.as_deref())? {
+    FileResolution::Found(entry) => entry.repo_path,
+    FileResolution::AmbiguousAcrossProfiles(profiles) => {
+      bail!(
+        "File '{}' exists in multiple profiles: {}. Use --profile <name>.",
+        target.display(),
+        profiles.join(", ")
+      );
+    }
+    FileResolution::NotManaged => bail!("Target is not managed: {}", target.display()),
+  };
+
   let content = fs::read_to_string(&path)?;
 
   if args.less {

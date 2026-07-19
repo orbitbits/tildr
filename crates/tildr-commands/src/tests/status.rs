@@ -4,6 +4,7 @@ fn file_status(profile: &str, filepath: &str, status: &str) -> FileStatus {
   FileStatus {
     profile: profile.to_string(),
     filepath: filepath.to_string(),
+    source: None,
     status: status.to_string(),
   }
 }
@@ -51,6 +52,7 @@ fn file_status_serialization() {
   let fs = FileStatus {
     profile: "default".to_string(),
     filepath: ".bashrc".to_string(),
+    source: None,
     status: "linked".to_string(),
   };
   let json = serde_json::to_string(&fs).unwrap();

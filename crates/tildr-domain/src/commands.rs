@@ -75,6 +75,7 @@ pub enum Commands {
   Cat {
     target: Option<String>,
     less: bool,
+    profile: Option<String>,
   },
 
   Status {

@@ -89,7 +89,7 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   let count = entries_to_show.len();
   let mut buf = String::new();
 
-  if args.long || args.profile.is_some() {
+  if args.long {
     write_long(&entries_to_show, &mut buf, &by_filepath)?;
   } else {
     write_compact(&entries_to_show, &mut buf)?;
@@ -107,6 +107,13 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
 }
 
 fn write_compact(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
+  let profile_width = entries
+    .iter()
+    .map(|e| e.profile.len())
+    .max()
+    .unwrap_or(7)
+    .max(7);
+
   let filepath_width = entries
     .iter()
     .map(|e| e.filepath.display().to_string().len())
@@ -114,13 +121,22 @@ fn write_compact(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()
     .unwrap_or(8)
     .max(8);
 
-  writeln!(buf, "{:<width_f$}", "FILEPATH", width_f = filepath_width)?;
+  writeln!(
+    buf,
+    "{:<width_p$}  {:<width_f$}",
+    "PROFILE",
+    "FILEPATH",
+    width_p = profile_width,
+    width_f = filepath_width
+  )?;
 
   for entry in entries {
     writeln!(
       buf,
-      "{:<width_f$}",
+      "{:<width_p$}  {:<width_f$}",
+      entry.profile,
       entry.filepath.display(),
+      width_p = profile_width,
       width_f = filepath_width
     )?;
   }
@@ -142,18 +158,27 @@ fn write_long(
 
   let filepath_width = entries
     .iter()
-    .map(|e| e.repo_relative.display().to_string().len())
+    .map(|e| e.filepath.display().to_string().len())
     .max()
     .unwrap_or(8)
     .max(8);
 
+  let source_width = entries
+    .iter()
+    .map(|e| e.repo_relative.display().to_string().len())
+    .max()
+    .unwrap_or(6)
+    .max(6);
+
   writeln!(
     buf,
-    "{:<width_p$}  {:<width_f$}  TYPE  SIZE",
+    "{:<width_p$}  {:<width_f$}  {:<width_s$}  TYPE  SIZE",
     "PROFILE",
     "FILEPATH",
+    "SOURCE",
     width_p = profile_width,
-    width_f = filepath_width
+    width_f = filepath_width,
+    width_s = source_width
   )?;
 
   for entry in entries {
@@ -168,13 +193,15 @@ fn write_long(
 
     writeln!(
       buf,
-      "{:<width_p$}  {:<width_f$}  {:<4}  {}",
+      "{:<width_p$}  {:<width_f$}  {:<width_s$}  {:<4}  {}",
       entry.profile,
+      entry.filepath.display(),
       entry.repo_relative.display(),
       file_type,
       size,
       width_p = profile_width,
-      width_f = filepath_width
+      width_f = filepath_width,
+      width_s = source_width
     )?;
 
     // Show variants if this file exists in multiple profiles

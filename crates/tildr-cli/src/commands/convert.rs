@@ -66,6 +66,7 @@ impl From<CliCommands> for Commands {
       CliCommands::Cat(cmd) => Commands::Cat {
         target: cmd.target,
         less: cmd.less,
+        profile: cmd.profile,
       },
 
       CliCommands::Completions(cmd) => Commands::Completions {

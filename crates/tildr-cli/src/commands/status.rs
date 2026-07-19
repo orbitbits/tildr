@@ -19,7 +19,7 @@ pub struct Command {
   #[arg(short, long)]
   pub counter: bool,
 
-  /// Show repository storage paths such as common/<file> and profiles/<name>/<file>
+  /// Show the repository source path in a separate SOURCE column
   #[arg(long)]
   pub long: bool,
 

@@ -166,11 +166,16 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
 
     Commands::Repo { mode } => repo::run(ctx, repo::RepoArgs { mode: mode.clone() }),
 
-    Commands::Cat { target, less } => cat::run(
+    Commands::Cat {
+      target,
+      less,
+      profile,
+    } => cat::run(
       ctx,
       cat::CatArgs {
         target: target.clone(),
         less: *less,
+        profile: profile.clone(),
       },
     ),
 

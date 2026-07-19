@@ -7,6 +7,7 @@ use clap::Args;
 EXAMPLES:
   tildr cat
   tildr cat .config/nvim/init.vim
+  tildr cat .bashrc --profile linux
   tildr cat .config/nvim/init.vim --less
   tildr cat config\n"
 )]
@@ -17,4 +18,8 @@ pub struct Command {
   /// View the contents of a managed file in an interactive pager
   #[arg(short, long)]
   pub less: bool,
+
+  /// Read the file from a specific profile instead of using the active one
+  #[arg(long, value_name = "NAME")]
+  pub profile: Option<String>,
 }

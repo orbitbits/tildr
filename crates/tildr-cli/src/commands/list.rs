@@ -17,7 +17,7 @@ pub struct Command {
   /// Show files in a tree view
   #[arg(short, long)]
   pub tree: bool,
-  /// Show detailed information (type, size)
+  /// Show detailed information, including the repository source path
   #[arg(short, long)]
   pub long: bool,
   /// Export managed file list to a JSON file
@@ -29,7 +29,7 @@ pub struct Command {
   /// View the output in an interactive pager
   #[arg(long)]
   pub less: bool,
-  /// Filter by profile name (shows full path with variants)
+  /// Filter by profile name
   #[arg(long, value_name = "NAME")]
   pub profile: Option<String>,
 }
