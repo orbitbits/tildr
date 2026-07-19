@@ -170,11 +170,15 @@ Applies repository state into `$HOME` by creating or repairing symlinks.
 
 ```sh
 tildr apply
+tildr apply --check
 tildr apply --dry-run
 tildr apply --force --verbose
 ```
 
 **Options:**
+
+**--check**
+:   Verify that all managed files are correctly linked without changing files. Exits with a non-zero status when a link is missing, broken, points to the wrong source, or conflicts with a regular file in `$HOME`.
 
 **-n**, **--dry-run**
 :   Preview actions.
@@ -193,6 +197,7 @@ tildr apply --force --verbose
 - Creates missing symlinks for all managed files
 - Repairs broken or incorrect symlinks automatically
 - Skips regular files already present in `$HOME` unless `--force` is used
+- With `--check`, only validates symlinks and reports missing, broken, or conflicting HOME files
 - Uses the repository as the source of truth
 - Does not modify repository content
 - Always idempotent — running multiple times produces the same result

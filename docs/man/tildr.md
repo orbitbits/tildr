@@ -230,6 +230,7 @@ Daily operations:
 
 ```sh
 tildr apply
+tildr apply --check
 tildr status
 tildr stats
 tildr git status
