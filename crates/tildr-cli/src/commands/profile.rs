@@ -33,7 +33,7 @@ pub enum CliProfileMode {
     #[arg(long)]
     description: Option<String>,
   },
-  /// Copy files between the default location and a profile
+  /// Copy files between a profile and the default (bidirectional)
   Add {
     /// Files to copy (omit to copy all)
     #[arg(short, long, num_args = 1..)]
@@ -44,7 +44,7 @@ pub enum CliProfileMode {
     #[arg(short, long)]
     to: String,
   },
-  /// Move files between the default location and a profile
+  /// Move files between a profile and the default (bidirectional)
   Mv {
     /// Files to move (omit to move all)
     #[arg(short, long, num_args = 1..)]
@@ -60,6 +60,13 @@ pub enum CliProfileMode {
   Delete {
     /// Profile name
     name: String,
+  },
+  /// Rename a profile
+  Rename {
+    /// Current profile name
+    from: String,
+    /// New profile name
+    to: String,
   },
   /// List all available profiles
   List {

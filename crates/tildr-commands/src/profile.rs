@@ -68,6 +68,7 @@ pub fn run(ctx: &Context, mode: &tildr_domain::ProfileMode) -> Result<()> {
     tildr_domain::ProfileMode::Add { files, from, to } => transfer(ctx, from, to, files, false),
     tildr_domain::ProfileMode::Mv { files, from, to } => transfer(ctx, from, to, files, true),
     tildr_domain::ProfileMode::Delete { name } => delete(ctx, name),
+    tildr_domain::ProfileMode::Rename { from, to } => rename(ctx, from, to),
     tildr_domain::ProfileMode::List { long, less, name } => {
       list(ctx, *long, *less, name.as_deref())
     }
@@ -348,6 +349,55 @@ fn delete(ctx: &Context, name: &str) -> Result<()> {
     style("Deleted:").red().bold()
   );
   auto_commit(ctx, &format!("profile delete {name}"));
+  Ok(())
+}
+
+fn rename(ctx: &Context, from: &str, to: &str) -> Result<()> {
+  if from == to {
+    println!("{}", style("Source and destination are the same.").dim());
+    return Ok(());
+  }
+
+  let mut profiles = Profiles::load(ctx)?;
+
+  if !profiles.profiles.contains_key(from) {
+    anyhow::bail!("Profile '{from}' not found.");
+  }
+
+  if profiles.profiles.contains_key(to) {
+    anyhow::bail!("Profile '{to}' already exists.");
+  }
+
+  if from == "default" || to == "default" {
+    anyhow::bail!("'default' is a reserved name and cannot be renamed.");
+  }
+
+  let old_dir = ctx.repo_path.join("profiles").join(from);
+  let new_dir = ctx.repo_path.join("profiles").join(to);
+
+  // Rename the profile directory
+  fs::rename(&old_dir, &new_dir)?;
+
+  // Get the profile definition and update its file paths
+  let mut def = profiles.profiles.remove(from).unwrap();
+  for file in def.files.values_mut() {
+    *file = file.replace(&format!("profiles/{from}/"), &format!("profiles/{to}/"));
+  }
+
+  profiles.profiles.insert(to.to_string(), def);
+
+  // If the renamed profile was active, update the active profile
+  if profiles.active.as_deref() == Some(from) {
+    profiles.active = Some(to.to_string());
+  }
+
+  profiles.save(ctx)?;
+
+  println!(
+    "{} Profile '{from}' renamed to '{to}'.",
+    style("Renamed:").green().bold()
+  );
+  auto_commit(ctx, &format!("profile rename {from} {to}"));
   Ok(())
 }
 

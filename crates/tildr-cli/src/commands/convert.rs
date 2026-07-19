@@ -151,6 +151,7 @@ impl From<CliCommands> for Commands {
           CliProfileMode::Add { files, from, to } => ProfileMode::Add { files, from, to },
           CliProfileMode::Mv { files, from, to } => ProfileMode::Mv { files, from, to },
           CliProfileMode::Delete { name } => ProfileMode::Delete { name },
+          CliProfileMode::Rename { from, to } => ProfileMode::Rename { from, to },
           CliProfileMode::List { long, less, name } => ProfileMode::List { long, less, name },
           CliProfileMode::Set { name } => ProfileMode::Set { name },
           CliProfileMode::Unset => ProfileMode::Unset,

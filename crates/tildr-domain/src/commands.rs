@@ -188,6 +188,10 @@ pub enum ProfileMode {
   Delete {
     name: String,
   },
+  Rename {
+    from: String,
+    to: String,
+  },
   List {
     long: bool,
     less: bool,
