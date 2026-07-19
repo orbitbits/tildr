@@ -1,5 +1,6 @@
 use anyhow::{Result, bail};
 use console::style;
+use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
 use tildr_core::context::Context;
 use tildr_fs::paths::resolve_home_path;
@@ -307,7 +308,7 @@ pub fn resolve_target(
         .iter()
         .any(|relative| entry.relative.starts_with(relative))
     })
-    .filter(|entry| effective_profile.map_or(true, |profile| entry.profile == profile))
+    .filter(|entry| effective_profile.is_none_or(|profile| entry.profile == profile))
     .collect();
 
   if dir_entries.is_empty() {
@@ -355,4 +356,40 @@ pub fn resolve_targets(
   }
 
   Ok(resolved)
+}
+
+pub fn collect_resolved_entries<F>(
+  resolved_targets: &[ResolvedTarget],
+  mut confirm_dir: F,
+) -> Result<Vec<ManagedEntry>>
+where
+  F: FnMut(&str) -> Result<()>,
+{
+  let mut entries = Vec::new();
+  let mut seen = HashSet::new();
+
+  for resolved in resolved_targets {
+    match resolved {
+      ResolvedTarget::Interactive => {}
+      ResolvedTarget::File(entry) => {
+        if seen.insert(entry.relative.clone()) {
+          entries.push(entry.clone());
+        }
+      }
+      ResolvedTarget::Dir {
+        input,
+        entries: dir_entries,
+      } => {
+        confirm_dir(input)?;
+
+        for entry in dir_entries {
+          if seen.insert(entry.relative.clone()) {
+            entries.push(entry.clone());
+          }
+        }
+      }
+    }
+  }
+
+  Ok(entries)
 }

@@ -1,6 +1,7 @@
 use anyhow::Result;
-use std::{collections::HashMap, fmt::Write, fs, path::PathBuf};
+use std::{collections::HashMap, fmt::Write, path::PathBuf};
 use tildr_core::{constants::APP_NAME, context::Context};
+use tildr_fs::symlink::{is_symlink, is_symlink_to};
 use tildr_ui::{color::Colorize, symbols::icons};
 use tildr_utils::pager::page_string;
 
@@ -71,11 +72,16 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
     let file_str = entry.filepath.display().to_string();
     let expected = profiles.resolve(&ctx.repo_path, &file_str);
 
-    let status = match fs::read_link(&home_path) {
-      Ok(target) if target == expected => "linked",
-      Ok(_) => "broken_symlink",
-      Err(_) if home_path.exists() => "not_a_symlink",
-      Err(_) => "missing_link",
+    let status = if is_symlink(&home_path) {
+      if is_symlink_to(&home_path, &expected) {
+        "linked"
+      } else {
+        "broken_symlink"
+      }
+    } else if home_path.exists() {
+      "not_a_symlink"
+    } else {
+      "missing_link"
     };
 
     statuses.push(FileStatus {
@@ -190,7 +196,7 @@ fn home_display(path: &std::path::Path) -> String {
   }
 }
 
-pub(crate) fn counter_all(statuses: &Vec<FileStatus>) -> Result<(usize, Vec<i32>)> {
+pub(crate) fn counter_all(statuses: &[FileStatus]) -> Result<(usize, Vec<i32>)> {
   let mut linked = 0;
   let mut missing = 0;
   let mut broken = 0;

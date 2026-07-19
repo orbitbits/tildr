@@ -66,3 +66,23 @@ fn is_symlink_to_false_when_target_differs() {
 
   fs::remove_dir_all(&dir).ok();
 }
+
+#[test]
+fn is_symlink_to_accepts_relative_target() {
+  let dir = temp_dir();
+  fs::create_dir_all(dir.join("repo")).unwrap();
+  fs::create_dir_all(dir.join("home")).unwrap();
+  let target = dir.join("repo/file.txt");
+  let link = dir.join("home/file.txt");
+  fs::write(&target, "real").unwrap();
+
+  #[cfg(unix)]
+  std::os::unix::fs::symlink("../repo/file.txt", &link).unwrap();
+
+  #[cfg(windows)]
+  std::os::windows::fs::symlink_file("..\\repo\\file.txt", &link).unwrap();
+
+  assert!(is_symlink_to(&link, &target));
+
+  fs::remove_dir_all(&dir).ok();
+}

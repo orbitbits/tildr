@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 
-use anyhow::{Context as _, Result};
+use anyhow::Result;
 use console::style;
 use tildr_core::context::Context;
 use tildr_utils::fs::format_size;
 
 pub fn run(ctx: &Context) -> Result<()> {
   let entries = tildr_repo::scatildr_repo(&ctx.repo_path)?;
-  let home = dirs::home_dir().context("Could not determine home directory")?;
 
   let mut total_size: u64 = 0;
   let mut largest_size: u64 = 0;
@@ -15,8 +14,7 @@ pub fn run(ctx: &Context) -> Result<()> {
   let mut extensions: HashMap<String, usize> = HashMap::new();
 
   for entry in &entries {
-    let full_path = home.join(&entry.relative);
-    if let Ok(meta) = std::fs::metadata(&full_path) {
+    if let Ok(meta) = std::fs::metadata(&entry.repo_path) {
       let size = meta.len();
       total_size += size;
       if size > largest_size {

@@ -7,7 +7,7 @@ use std::{
   path::{Path, PathBuf},
 };
 use tildr_core::context::Context;
-use tildr_fs::symlink::create_symlink;
+use tildr_fs::symlink::{create_symlink, is_symlink, is_symlink_to};
 use tildr_ui::info;
 use tildr_utils::{fs::format_size, pager::page_string};
 
@@ -327,13 +327,7 @@ fn import_from_file(ctx: &Context, path: &str) -> Result<()> {
     }
 
     // Check if symlink already exists and is correct
-    if home_file
-      .symlink_metadata()
-      .map(|m: fs::Metadata| m.is_symlink())
-      .unwrap_or(false)
-      && let Ok(target) = fs::read_link(&home_file)
-      && target == repo_file
-    {
+    if is_symlink(&home_file) && is_symlink_to(&home_file, &repo_file) {
       skipped += 1;
       continue;
     }
@@ -365,7 +359,7 @@ struct TreeNode {
 }
 
 fn write_tree(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
-  fn insert(root: &mut TreeNode, path: &PathBuf) {
+  fn insert(root: &mut TreeNode, path: &Path) {
     let mut node = root;
     for component in path.components() {
       let name = component.as_os_str().to_string_lossy().to_string();

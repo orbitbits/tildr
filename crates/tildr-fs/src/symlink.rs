@@ -29,5 +29,29 @@ pub fn symlink_target(path: &Path) -> Option<PathBuf> {
 }
 
 pub fn is_symlink_to(path: &Path, target: &Path) -> bool {
-  symlink_target(path).map(|t| t == target).unwrap_or(false)
+  let Some(link_target) = symlink_target(path) else {
+    return false;
+  };
+
+  let absolute_link_target = if link_target.is_absolute() {
+    link_target
+  } else {
+    path
+      .parent()
+      .map(|parent| parent.join(&link_target))
+      .unwrap_or(link_target)
+  };
+
+  paths_match(&absolute_link_target, target)
+}
+
+fn paths_match(left: &Path, right: &Path) -> bool {
+  if left == right {
+    return true;
+  }
+
+  match (left.canonicalize(), right.canonicalize()) {
+    (Ok(left), Ok(right)) => left == right,
+    _ => false,
+  }
 }

@@ -9,9 +9,10 @@ pub fn run(ctx: &Context, output: &Option<String>) -> Result<()> {
   let backup_path = match output {
     Some(p) => std::path::PathBuf::from(p),
     None => {
-      let home = dirs::home_dir().context("Could not determine home directory")?;
       let today = chrono::Local::now().format("%Y-%m-%d");
-      home.join(format!(".dotfiles-backup-{}.tar.gz", today))
+      ctx
+        .home_path
+        .join(format!(".dotfiles-backup-{}.tar.gz", today))
     }
   };
 

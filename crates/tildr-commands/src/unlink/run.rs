@@ -1,5 +1,4 @@
 use anyhow::{Result, bail};
-use std::collections::HashSet;
 use tildr_core::{
   context::Context,
   pick::{self, PickMode},
@@ -14,7 +13,7 @@ use tildr_ui::{
 use super::UnlinkArgs;
 use crate::utils::{
   executor::execute_entries,
-  target::{ResolvedTarget, resolve_targets, scan_all_entries},
+  target::{ResolvedTarget, collect_resolved_entries, resolve_targets, scan_all_entries},
 };
 use tildr_utils::confirm::confirm;
 use tildr_utils::ops::{ManagedPathOp, cleanup_empty_ancestors};
@@ -103,34 +102,10 @@ fn collect_entries(
   resolved_targets: &[ResolvedTarget],
   args: &UnlinkArgs,
 ) -> Result<Vec<ManagedEntry>> {
-  let mut entries = Vec::new();
-  let mut seen = HashSet::new();
-
-  for resolved in resolved_targets {
-    match resolved {
-      ResolvedTarget::Interactive => {}
-      ResolvedTarget::File(entry) => {
-        if seen.insert(entry.relative.clone()) {
-          entries.push(entry.clone());
-        }
-      }
-      ResolvedTarget::Dir {
-        input,
-        entries: dir_entries,
-      } => {
-        confirm(
-          args.force,
-          &format!("Unlink (remove symlinks only) all managed files under {input}/? [y/N]:"),
-        )?;
-
-        for entry in dir_entries {
-          if seen.insert(entry.relative.clone()) {
-            entries.push(entry.clone());
-          }
-        }
-      }
-    }
-  }
-
-  Ok(entries)
+  collect_resolved_entries(resolved_targets, |input| {
+    confirm(
+      args.force,
+      &format!("Unlink (remove symlinks only) all managed files under {input}/? [y/N]:"),
+    )
+  })
 }

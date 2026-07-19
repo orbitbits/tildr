@@ -2,10 +2,9 @@ use super::RestoreArgs;
 use crate::utils::{
   auto_commit::auto_commit_dry_run,
   executor::execute_entries,
-  target::{ResolvedTarget, resolve_targets, scan_all_entries},
+  target::{ResolvedTarget, collect_resolved_entries, resolve_targets, scan_all_entries},
 };
 use anyhow::{Result, bail};
-use std::collections::HashSet;
 use tildr_core::{
   context::Context,
   pick::{self, PickMode},
@@ -109,36 +108,12 @@ fn collect_entries(
   resolved_targets: &[ResolvedTarget],
   args: &RestoreArgs,
 ) -> Result<Vec<ManagedEntry>> {
-  let mut entries = Vec::new();
-  let mut seen = HashSet::new();
-
-  for resolved in resolved_targets {
-    match resolved {
-      ResolvedTarget::Interactive => {}
-      ResolvedTarget::File(entry) => {
-        if seen.insert(entry.relative.clone()) {
-          entries.push(entry.clone());
-        }
-      }
-      ResolvedTarget::Dir {
-        input,
-        entries: dir_entries,
-      } => {
-        confirm(
-          args.force,
-          &format!("Restore (restore to HOME) all managed files under {input}/? [y/N]:"),
-        )?;
-
-        for entry in dir_entries {
-          if seen.insert(entry.relative.clone()) {
-            entries.push(entry.clone());
-          }
-        }
-      }
-    }
-  }
-
-  Ok(entries)
+  collect_resolved_entries(resolved_targets, |input| {
+    confirm(
+      args.force,
+      &format!("Restore (restore to HOME) all managed files under {input}/? [y/N]:"),
+    )
+  })
 }
 
 fn commit_label(resolved_targets: &[ResolvedTarget]) -> String {
