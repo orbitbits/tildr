@@ -270,13 +270,10 @@ Machine-specific profiles:
 tildr profile create work --description "Work laptop"
 tildr profile add common --files .bashrc .ssh/config --to work
 tildr profile set work
-tildr apply
 
 tildr profile set personal
-tildr apply
 
 tildr profile unset
-tildr apply
 ```
 
 Bootstrap on a new machine:

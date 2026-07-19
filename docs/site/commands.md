@@ -813,7 +813,15 @@ Behavior:
 
 ### `tildr profile`
 
-Manages profiles for machine-specific dotfile variants. Profiles allow you to have different versions of the same file for different environments (work, personal, laptop, etc.).
+Manages profile variants for machine-specific dotfiles. This is the main workflow
+for keeping one dotfiles repository while switching between machines,
+distributions, jobs, or personal setups.
+
+Files in `profiles/common/` are shared everywhere. A named profile such as
+`linux`, `work`, or `laptop` can override any common file. When you run
+`tildr profile set <name>`, Tildr stores that profile as active and immediately
+relinks `$HOME` so matching files point to `profiles/<name>/`, while everything
+else keeps pointing to `profiles/common/`.
 
 ```sh
 tildr profile create work --description "Work environment"
@@ -828,9 +836,9 @@ tildr profile list
 tildr profile list --long
 tildr profile list work --long
 tildr profile list --less
-tildr profile set work
+tildr profile set work                                          # activates and relinks $HOME
 tildr profile current
-tildr profile unset
+tildr profile unset                                             # returns links to common files
 tildr profile migrate
 tildr profile migrate --dry-run
 ```
@@ -839,16 +847,16 @@ Options:
 
 | Subcommand                                             | Description                                                             |
 |--------------------------------------------------------|-------------------------------------------------------------------------|
-| `create <NAME> [--description <DESC>]`                 | Create a new profile (`"default"` is reserved)                          |
+| `create <NAME> [--description <DESC>]`                 | Create a new profile (`"common"` and `"default"` are reserved)          |
 | `add <FROM> [-f <FILES>] --to <TO>`                    | Copy files between common files, profiles, or between profiles          |
 | `mv <FROM> [-f <FILES>] --to <TO>`                     | Move files between common files, profiles, or between profiles          |
 | `del <NAME>`                                           | Delete a profile and restore orphans to `profiles/common/`              |
 | `rename <FROM> <TO>`                                   | Rename a profile (accepts quoted names)                                 |
 | `list [<NAME>] [--long] [--less]`                      | List all available profiles                                             |
-| `set <NAME>`                                           | Set the active profile (see Active Profile below)                       |
-| `unset`                                                | Unset the active profile (revert to common files)                       |
+| `set <NAME>`                                           | Set the active profile and relink `$HOME` immediately                   |
+| `unset`                                                | Unset the active profile and relink `$HOME` to common files             |
 | `current`                                              | Show the currently active profile                                       |
-| `migrate [--dry-run]`                                  | Migrate an existing repo to the profiles model (moves root files into `profiles/common/`) |
+| `migrate [--dry-run]`                                  | Move repo-root dotfiles into `profiles/common/`                         |
 
 List options:
 
@@ -858,7 +866,7 @@ List options:
 | `--less`                    | Page the output through less                       |
 | `<NAME>`                    | Show only the specified profile                    |
 
-Active Profile:
+#### Active Profile
 
 The active profile is a per-file override mechanism. When `tildr apply`, `tildr status`, or `tildr doctor` processes a managed file, the resolution works as follows:
 
@@ -875,6 +883,73 @@ Example: if the active profile is `work` and it tracks `.bashrc` and `.ssh/confi
 - `~/.ssh/config` → `profiles/work/.ssh/config` (profile variant)
 - `~/.gitconfig` → `profiles/common/.gitconfig` (common version, not in profile)
 
+Switching profiles applies the new links right away:
+
+```sh
+tildr profile set work
+# ~/.bashrc now points to profiles/work/.bashrc when that variant exists
+
+tildr profile set personal
+# ~/.bashrc now points to profiles/personal/.bashrc when that variant exists
+
+tildr profile unset
+# ~/.bashrc falls back to profiles/common/.bashrc
+```
+
+#### Migration
+
+Use `tildr profile migrate` when you have an older repository with dotfiles at
+the repository root and want to adopt the profile layout. It moves root-level
+dotfiles and directories into `profiles/common/`, preserving their relative
+paths. It does not move Tildr internals such as `.tildr/`, `.git/`, or
+`profiles/`.
+
+Preview the migration first:
+
+```sh
+tildr profile migrate --dry-run
+```
+
+Example dry-run output:
+
+```text
+  Would migrate: .bashrc -> profiles/common/.bashrc
+  Would migrate: .gitconfig -> profiles/common/.gitconfig
+  Would migrate: .config -> profiles/common/.config
+
+Would migrate: 3 file(s) would be moved to profiles/common/ (dry run)
+```
+
+Then perform the migration:
+
+```sh
+tildr profile migrate
+tildr profile list --long
+tildr status
+```
+
+Before:
+
+```text
+~/.dotfiles/
+  .bashrc
+  .gitconfig
+  .config/nvim/init.lua
+  .tildr/
+```
+
+After:
+
+```text
+~/.dotfiles/
+  .tildr/
+  profiles/
+    common/
+      .bashrc
+      .gitconfig
+      .config/nvim/init.lua
+```
+
 Behavior:
 
 * Profiles are stored in `.tildr/profiles.json` in the repository root
@@ -884,7 +959,9 @@ Behavior:
 * Without `-f`, `add`/`mv` operate on all eligible files (orphans for `common`, all tracked files for a profile)
 * `del` removes the profile directory and restores orphaned files to `profiles/common/`
 * `rename` renames the profile directory and updates all tracked file paths; if the profile is active, updates active profile name; re-creates symlinks for linked files
-* `apply` uses the active profile to resolve which file variant to symlink
+* `set` and `unset` immediately relink `$HOME` to the new effective profile
+* `del` relinks `$HOME` after deletion, so removed active profiles fall back to common files
+* `apply` can be run manually to repair or reapply links using the active profile
 * `status` uses the active profile to verify symlink targets match the expected variant
 * `doctor` uses the active profile to check symlink integrity
 * Files not in the active profile fall back to the common version

@@ -301,20 +301,14 @@ tildr profile add common --files .bashrc .ssh/config --to work
 tildr profile create personal --description "Personal desktop"
 tildr profile add common --files .bashrc .gitconfig --to personal
 
-# Activate a profile
+# Activate a profile and relink matching dotfiles immediately
 tildr profile set work
 
-# Apply uses the active profile to resolve which variant of each file to symlink.
-# Files in the active profile use their profile variant; others fall back to common.
-tildr apply
-
-# Switch profiles
+# Switch profiles and relink again
 tildr profile set personal
-tildr apply
 
-# Deactivate (revert to common files)
+# Deactivate and relink to common files
 tildr profile unset
-tildr apply
 ```
 
 ---
