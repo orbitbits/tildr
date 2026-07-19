@@ -3,6 +3,8 @@ use std::fs;
 use std::path::PathBuf;
 use tildr_core::config::Config;
 use tildr_core::context::Context;
+use tildr_domain::ProfileMode;
+use tildr_fs::symlink::is_symlink_to;
 
 fn test_ctx(name: &str) -> (PathBuf, Context) {
   let nanos = std::time::SystemTime::now()
@@ -148,6 +150,134 @@ fn profile_create_adds_new_profile() {
 
   let loaded = Profiles::load(&ctx).unwrap();
   assert!(loaded.active.is_none());
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_set_relinks_home_to_active_variant() {
+  let (root, mut ctx) = test_ctx("set-relinks");
+  ctx.config.git.auto_commit = false;
+
+  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
+  fs::create_dir_all(ctx.repo_path.join("profiles/linux")).unwrap();
+  fs::write(ctx.repo_path.join("profiles/common/.bashrc"), "common").unwrap();
+  fs::write(ctx.repo_path.join("profiles/linux/.bashrc"), "linux").unwrap();
+
+  let mut profiles = Profiles::load(&ctx).unwrap();
+  profiles
+    .profiles
+    .insert("linux".to_string(), ProfileDef::default());
+  profiles.save(&ctx).unwrap();
+
+  run(
+    &ctx,
+    &ProfileMode::Set {
+      name: "linux".to_string(),
+    },
+  )
+  .unwrap();
+
+  assert!(is_symlink_to(
+    &ctx.home_path.join(".bashrc"),
+    &ctx.repo_path.join("profiles/linux/.bashrc")
+  ));
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_unset_relinks_home_to_common_variant() {
+  let (root, mut ctx) = test_ctx("unset-relinks");
+  ctx.config.git.auto_commit = false;
+
+  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
+  fs::create_dir_all(ctx.repo_path.join("profiles/linux")).unwrap();
+  fs::write(ctx.repo_path.join("profiles/common/.bashrc"), "common").unwrap();
+  fs::write(ctx.repo_path.join("profiles/linux/.bashrc"), "linux").unwrap();
+
+  let mut profiles = Profiles::load(&ctx).unwrap();
+  profiles.active = Some("linux".to_string());
+  profiles
+    .profiles
+    .insert("linux".to_string(), ProfileDef::default());
+  profiles.save(&ctx).unwrap();
+
+  crate::apply::run(
+    &ctx,
+    crate::apply::ApplyArgs {
+      dry_run: false,
+      force: false,
+      verbose: false,
+      quiet: true,
+    },
+  )
+  .unwrap();
+  assert!(is_symlink_to(
+    &ctx.home_path.join(".bashrc"),
+    &ctx.repo_path.join("profiles/linux/.bashrc")
+  ));
+
+  run(&ctx, &ProfileMode::Unset).unwrap();
+
+  assert!(is_symlink_to(
+    &ctx.home_path.join(".bashrc"),
+    &ctx.repo_path.join("profiles/common/.bashrc")
+  ));
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_migrate_moves_root_dotfiles_to_common() {
+  let (root, mut ctx) = test_ctx("migrate-dotfiles");
+  ctx.config.git.auto_commit = false;
+
+  fs::write(ctx.repo_path.join(".bashrc"), "root bashrc").unwrap();
+  fs::create_dir_all(ctx.repo_path.join(".tildr")).unwrap();
+  fs::write(ctx.repo_path.join(".tildr/profiles.json"), "{}").unwrap();
+  fs::create_dir_all(ctx.repo_path.join("profiles")).unwrap();
+
+  run(&ctx, &ProfileMode::Migrate { dry_run: false }).unwrap();
+
+  assert!(!ctx.repo_path.join(".bashrc").exists());
+  assert_eq!(
+    fs::read_to_string(ctx.repo_path.join("profiles/common/.bashrc")).unwrap(),
+    "root bashrc"
+  );
+  assert!(ctx.repo_path.join(".tildr/profiles.json").exists());
+  assert!(ctx.repo_path.join("profiles").is_dir());
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_delete_restores_orphans_to_common() {
+  let (root, mut ctx) = test_ctx("delete-restores-common");
+  ctx.config.git.auto_commit = false;
+
+  fs::create_dir_all(ctx.repo_path.join("profiles/work")).unwrap();
+  fs::write(ctx.repo_path.join("profiles/work/.bashrc"), "work").unwrap();
+
+  let mut profiles = Profiles::load(&ctx).unwrap();
+  profiles
+    .profiles
+    .insert("work".to_string(), ProfileDef::default());
+  profiles.save(&ctx).unwrap();
+
+  run(
+    &ctx,
+    &ProfileMode::Delete {
+      name: "work".to_string(),
+    },
+  )
+  .unwrap();
+
+  assert!(!ctx.repo_path.join("profiles/work").exists());
+  assert_eq!(
+    fs::read_to_string(ctx.repo_path.join("profiles/common/.bashrc")).unwrap(),
+    "work"
+  );
 
   fs::remove_dir_all(&root).ok();
 }

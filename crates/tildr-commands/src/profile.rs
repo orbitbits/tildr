@@ -10,6 +10,7 @@ use tildr_repo::scatildr_repo;
 use tildr_utils::{fs::tildr_dir, pager::page_string};
 use walkdir::WalkDir;
 
+use crate::apply::{ApplyArgs, run as apply_profile};
 use crate::utils::auto_commit::auto_commit;
 
 pub const COMMON_PROFILE: &str = "common";
@@ -314,9 +315,9 @@ fn delete(ctx: &Context, name: &str) -> Result<()> {
     .context(format!("Profile '{name}' not found."))?;
 
   let profile_dir = ctx.repo_path.join("profiles").join(name);
-  let default_dir = ctx.repo_path.join("profiles").join("default");
+  let common_dir = ctx.repo_path.join("profiles").join(COMMON_PROFILE);
 
-  // Restore files to profiles/default/ if they don't exist there
+  // Restore files to profiles/common/ if they don't exist there.
   if profile_dir.exists() {
     for entry in WalkDir::new(&profile_dir)
       .into_iter()
@@ -327,7 +328,7 @@ fn delete(ctx: &Context, name: &str) -> Result<()> {
           .path()
           .strip_prefix(&profile_dir)
           .unwrap_or(entry.path());
-        let target = default_dir.join(relative);
+        let target = common_dir.join(relative);
         if !target.exists() {
           if let Some(parent) = target.parent() {
             fs::create_dir_all(parent)?;
@@ -352,6 +353,7 @@ fn delete(ctx: &Context, name: &str) -> Result<()> {
     "{} Profile '{name}' deleted.",
     style("Deleted:").red().bold()
   );
+  relink_effective_profile(ctx)?;
   auto_commit(ctx, &format!("profile delete {name}"));
   Ok(())
 }
@@ -516,6 +518,7 @@ fn set(ctx: &Context, name: &str) -> Result<()> {
     "{} Profile '{name}' activated.",
     style("Set:").green().bold()
   );
+  relink_effective_profile(ctx)?;
   auto_commit(ctx, &format!("profile set {name}"));
   Ok(())
 }
@@ -533,15 +536,28 @@ fn unset(ctx: &Context) -> Result<()> {
     style("Unset:").yellow().bold(),
     old.unwrap_or_default()
   );
+  relink_effective_profile(ctx)?;
   auto_commit(ctx, "profile unset");
   Ok(())
+}
+
+fn relink_effective_profile(ctx: &Context) -> Result<()> {
+  apply_profile(
+    ctx,
+    ApplyArgs {
+      dry_run: false,
+      force: false,
+      verbose: false,
+      quiet: false,
+    },
+  )
 }
 
 fn current(ctx: &Context) -> Result<()> {
   let profiles = Profiles::load(ctx)?;
   match &profiles.active {
     Some(name) => println!("Active profile: {}", style(name).cyan()),
-    None => println!("No profile is currently active. Using default files."),
+    None => println!("No profile is currently active. Using common files."),
   }
   Ok(())
 }
@@ -552,7 +568,7 @@ fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
     .filter_map(|e| e.ok())
     .filter(|e| {
       let name = e.file_name().to_string_lossy().to_string();
-      !name.starts_with('.') && name != "profiles"
+      name != ".git" && name != ".tildr" && name != "profiles"
     })
     .collect();
 
@@ -607,15 +623,17 @@ fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
     auto_commit(ctx, &format!("migrate {count} file(s) to profiles/common/"));
   }
 
-  println!(
-    "\n{} {count} file(s) migrated to profiles/common/{}",
-    if dry_run {
+  if dry_run {
+    println!(
+      "\n{} {count} file(s) would be moved to profiles/common/ (dry run)",
       style("Would migrate:").cyan()
-    } else {
+    );
+  } else {
+    println!(
+      "\n{} {count} file(s) migrated to profiles/common/",
       style("Migrated:").green().bold()
-    },
-    if dry_run { " (dry run)" } else { "" }
-  );
+    );
+  }
 
   Ok(())
 }

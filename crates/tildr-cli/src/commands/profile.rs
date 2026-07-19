@@ -2,13 +2,33 @@ use clap::{Args, Subcommand};
 
 #[derive(Args, Debug, Clone)]
 #[command(
-  about = "Manage profiles for machine-specific dotfile variants",
+  about = "Manage profile variants and switch dotfiles between machines",
+  long_about = "\
+Manage profile variants for machine-specific dotfiles.
+
+Files in profiles/common are shared by every machine. A named profile such as
+linux, work, or laptop can override any common file. When you run
+`tildr profile set <name>`, Tildr saves the active profile and immediately
+relinks HOME so matching files point at profiles/<name>/ while the rest keep
+using profiles/common/.",
   after_help = "\
 EXAMPLES:
+  # First-time migration: move repo-root dotfiles into profiles/common/
+  tildr profile migrate --dry-run
+  tildr profile migrate
+
+  # Create a machine profile and move selected common files into it
   tildr profile create work --description 'Work environment'
-  tildr profile add default --files .bashrc --to work
-  tildr profile mv work --to default
-  tildr profile mv default -f .bashrc --to work
+  tildr profile mv common -f .bashrc .ssh/config --to work
+
+  # Switch profile and relink HOME immediately
+  tildr profile set work
+  tildr status
+
+  # Copy or move variants between profiles
+  tildr profile add work -f .bashrc --to laptop
+  tildr profile mv work --to common
+
   tildr profile del work
   tildr profile list
   tildr profile list --long
@@ -33,29 +53,29 @@ pub enum CliProfileMode {
     #[arg(long)]
     description: Option<String>,
   },
-  /// Copy files between a profile and the default (bidirectional)
+  /// Copy files between common files and profiles
   Add {
     /// Files to copy (omit to copy all)
     #[arg(short, long, num_args = 1..)]
     files: Vec<String>,
-    /// Source (profile name or "default")
+    /// Source ("common" or profile name)
     from: String,
-    /// Destination (profile name or "default")
+    /// Destination ("common" or profile name)
     #[arg(short, long)]
     to: String,
   },
-  /// Move files between a profile and the default (bidirectional)
+  /// Move files between common files and profiles
   Mv {
     /// Files to move (omit to move all)
     #[arg(short, long, num_args = 1..)]
     files: Vec<String>,
-    /// Source (profile name or "default")
+    /// Source ("common" or profile name)
     from: String,
-    /// Destination (profile name or "default")
+    /// Destination ("common" or profile name)
     #[arg(short, long)]
     to: String,
   },
-  /// Delete a profile entirely (restores files to default)
+  /// Delete a profile entirely (restores files to common)
   #[command(name = "del")]
   Delete {
     /// Profile name
@@ -79,16 +99,34 @@ pub enum CliProfileMode {
     /// Profile name to show
     name: Option<String>,
   },
-  /// Set the active profile
+  /// Set the active profile and relink HOME
   Set {
     /// Profile name
     name: String,
   },
-  /// Unset the active profile (revert to default)
+  /// Unset the active profile and relink HOME to common files
   Unset,
   /// Show the currently active profile
   Current,
-  /// Migrate an existing repo to the profiles model (moves root files into profiles/default/)
+  /// Move repo-root dotfiles into profiles/common/
+  #[command(
+    long_about = "\
+Move dotfiles stored directly at the repository root into profiles/common/.
+
+Use this when upgrading an older Tildr repository to the profile layout. The
+command preserves relative paths, so `.bashrc` becomes
+`profiles/common/.bashrc` and `.config/nvim/init.lua` becomes
+`profiles/common/.config/nvim/init.lua`.
+
+Tildr internals are left in place: `.tildr/`, `.git/`, and `profiles/` are not
+moved. Run with --dry-run first to preview every move.",
+    after_help = "\
+EXAMPLES:
+  tildr profile migrate --dry-run
+  tildr profile migrate
+  tildr profile list --long
+  tildr status\n"
+  )]
   Migrate {
     /// Show what would be done without making changes
     #[arg(short, long)]
