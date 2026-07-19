@@ -149,7 +149,21 @@ fn scan_entry(
     return WalkState::Continue;
   }
 
-  // Process files under profiles/<name>/ (profile-specific variants)
+  // Process files under common/ (shared files without a profile).
+  if let Ok(relative) = path.strip_prefix(repo_path) {
+    let relative_str = relative.to_string_lossy();
+    if let Some(logical_path) = relative_str.strip_prefix("common/") {
+      entries.push(ManagedEntry {
+        profile: "common".to_string(),
+        relative: PathBuf::from(logical_path),
+        repo_path: path.to_path_buf(),
+      });
+      return WalkState::Continue;
+    }
+  }
+
+  // Process files under profiles/<name>/ (profile-specific variants).
+  // profiles/common/ is supported as a legacy location and maps to common.
   if let Ok(relative) = path.strip_prefix(repo_path) {
     let relative_str = relative.to_string_lossy();
     if let Some(rest) = relative_str.strip_prefix("profiles/")
@@ -167,10 +181,11 @@ fn scan_entry(
   }
 
   // Process files at the repo root (legacy default profile)
-  // Skip internal directories: .git, .tildr, profiles/
+  // Skip internal directories: .git, .tildr, profiles/, common/
   if let Ok(relative) = path.strip_prefix(repo_path) {
     let relative_str = relative.to_string_lossy();
     if !relative_str.starts_with("profiles/")
+      && !relative_str.starts_with("common/")
       && !relative_str.starts_with(".git")
       && !relative_str.starts_with(".tildr")
     {

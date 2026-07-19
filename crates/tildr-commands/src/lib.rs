@@ -177,6 +177,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     Commands::Status {
       json,
       counter,
+      long,
       less,
       profile,
     } => status::run(
@@ -184,6 +185,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
       status::StatusArgs {
         json: *json,
         counter: *counter,
+        long: *long,
         less: *less,
         profile: profile.clone(),
       },

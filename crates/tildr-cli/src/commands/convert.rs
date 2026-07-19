@@ -75,6 +75,7 @@ impl From<CliCommands> for Commands {
       CliCommands::Status(cmd) => Commands::Status {
         json: cmd.json,
         counter: cmd.counter,
+        long: cmd.long,
         less: cmd.less,
         profile: cmd.profile,
       },

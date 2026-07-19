@@ -1,4 +1,4 @@
-use crate::utils::target::{FileResolution, resolve_logical_file};
+use crate::utils::target::{FileResolution, ResolvedTarget, resolve_logical_file, resolve_target};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tildr_core::config::Config;
@@ -25,7 +25,7 @@ fn test_ctx(name: &str) -> (PathBuf, Context) {
 }
 
 fn create_profile_file(ctx: &Context, profile: &str, file: &str, content: &str) {
-  let dir = ctx.repo_path.join("profiles").join(profile);
+  let dir = crate::profile::profile_dir(&ctx.repo_path, profile);
   fs::create_dir_all(&dir).unwrap();
   fs::write(dir.join(file), content).unwrap();
 }
@@ -188,5 +188,44 @@ fn not_managed_file_returns_not_managed() {
 
   let result = resolve_logical_file(&ctx, Path::new(".nonexistent"), None).unwrap();
   assert!(matches!(result, FileResolution::NotManaged));
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn common_storage_target_resolves_to_home_relative_file() {
+  let (root, ctx) = test_ctx("common-storage-target");
+  create_profile_file(&ctx, "common", ".wgetrc", "common");
+
+  let result = resolve_target(&ctx, Some("common/.wgetrc".to_string()), None).unwrap();
+  match result {
+    ResolvedTarget::File(entry) => {
+      assert_eq!(entry.profile, "common");
+      assert_eq!(entry.relative, PathBuf::from(".wgetrc"));
+      assert_eq!(entry.repo_path, ctx.repo_path.join("common/.wgetrc"));
+    }
+    _ => panic!("Expected common/.wgetrc to resolve as a managed file"),
+  }
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_storage_target_resolves_to_home_relative_file() {
+  let (root, ctx) = test_ctx("profile-storage-target");
+  create_profile_file(&ctx, "linux", ".bashrc", "linux");
+
+  let result = resolve_target(&ctx, Some("profiles/linux/.bashrc".to_string()), None).unwrap();
+  match result {
+    ResolvedTarget::File(entry) => {
+      assert_eq!(entry.profile, "linux");
+      assert_eq!(entry.relative, PathBuf::from(".bashrc"));
+      assert_eq!(
+        entry.repo_path,
+        ctx.repo_path.join("profiles/linux/.bashrc")
+      );
+    }
+    _ => panic!("Expected profiles/linux/.bashrc to resolve as a managed file"),
+  }
+
   fs::remove_dir_all(&root).ok();
 }

@@ -17,6 +17,7 @@ pub struct FileStatus {
 pub struct StatusArgs {
   pub json: bool,
   pub counter: bool,
+  pub long: bool,
   pub less: bool,
   pub profile: Option<String>,
 }
@@ -80,7 +81,11 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
 
     statuses.push(FileStatus {
       profile: entry.profile.clone(),
-      filepath: entry.repo_relative.display().to_string(),
+      filepath: if args.long || args.json {
+        entry.repo_relative.display().to_string()
+      } else {
+        entry.filepath.display().to_string()
+      },
       status: status.to_string(),
     });
   }

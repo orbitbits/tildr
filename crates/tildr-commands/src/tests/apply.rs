@@ -106,9 +106,9 @@ fn apply_prefers_active_profile_over_common() {
   let home = root.join("home");
   let repo = root.join("repo");
   fs::create_dir_all(&home).unwrap();
-  fs::create_dir_all(repo.join("profiles/common")).unwrap();
+  fs::create_dir_all(repo.join("common")).unwrap();
   fs::create_dir_all(repo.join("profiles/linux")).unwrap();
-  fs::write(repo.join("profiles/common/.bashrc"), "common").unwrap();
+  fs::write(repo.join("common/.bashrc"), "common").unwrap();
   fs::write(repo.join("profiles/linux/.bashrc"), "linux").unwrap();
   let ctx = setup_context(&home, &repo);
   set_active(&ctx, "linux");
@@ -136,8 +136,8 @@ fn apply_uses_common_when_no_profile_is_active() {
   let home = root.join("home");
   let repo = root.join("repo");
   fs::create_dir_all(&home).unwrap();
-  fs::create_dir_all(repo.join("profiles/common")).unwrap();
-  fs::write(repo.join("profiles/common/.bashrc"), "common").unwrap();
+  fs::create_dir_all(repo.join("common")).unwrap();
+  fs::write(repo.join("common/.bashrc"), "common").unwrap();
   let ctx = setup_context(&home, &repo);
 
   run(
@@ -153,7 +153,7 @@ fn apply_uses_common_when_no_profile_is_active() {
 
   let link = home.join(".bashrc");
   assert!(link.exists());
-  assert!(is_symlink_to(&link, &repo.join("profiles/common/.bashrc")));
+  assert!(is_symlink_to(&link, &repo.join("common/.bashrc")));
   fs::remove_dir_all(&root).ok();
 }
 

@@ -6,14 +6,14 @@ use clap::{Args, Subcommand};
   long_about = "\
 Manage profile variants for machine-specific dotfiles.
 
-Files in profiles/common are shared by every machine. A named profile such as
+Files in common/ are shared by every machine. A named profile such as
 linux, work, or laptop can override any common file. When you run
 `tildr profile set <name>`, Tildr saves the active profile and immediately
 relinks HOME so matching files point at profiles/<name>/ while the rest keep
-using profiles/common/.",
+using common/.",
   after_help = "\
 EXAMPLES:
-  # First-time migration: move repo-root dotfiles into profiles/common/
+  # First-time migration: move repo-root dotfiles and legacy profiles/common/ into common/
   tildr profile migrate --dry-run
   tildr profile migrate
 
@@ -108,15 +108,17 @@ pub enum CliProfileMode {
   Unset,
   /// Show the currently active profile
   Current,
-  /// Move repo-root dotfiles into profiles/common/
+  /// Move repo-root dotfiles into common/
   #[command(
     long_about = "\
-Move dotfiles stored directly at the repository root into profiles/common/.
+Move dotfiles stored directly at the repository root into common/.
 
 Use this when upgrading an older Tildr repository to the profile layout. The
-command preserves relative paths, so `.bashrc` becomes
-`profiles/common/.bashrc` and `.config/nvim/init.lua` becomes
-`profiles/common/.config/nvim/init.lua`.
+command preserves relative paths, so `.bashrc` becomes `common/.bashrc` and
+`.config/nvim/init.lua` becomes `common/.config/nvim/init.lua`.
+
+Legacy files under `profiles/common/` are also moved into `common/` when the
+target path does not already exist.
 
 Tildr internals are left in place: `.tildr/`, `.git/`, and `profiles/` are not
 moved. Run with --dry-run first to preview every move.",

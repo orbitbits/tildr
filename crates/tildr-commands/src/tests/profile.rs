@@ -79,13 +79,29 @@ fn resolve_without_matching_file_uses_default() {
 #[test]
 fn resolve_without_matching_default_uses_common() {
   let (root, ctx) = test_ctx("common-fallback");
-  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
-  fs::write(ctx.repo_path.join("profiles/common/.gitconfig"), "common").unwrap();
+  fs::create_dir_all(ctx.repo_path.join("common")).unwrap();
+  fs::write(ctx.repo_path.join("common/.gitconfig"), "common").unwrap();
 
   let profiles = Profiles {
     active: Some("work".to_string()),
     ..Default::default()
   };
+  let result = profiles.resolve(&ctx.repo_path, ".gitconfig");
+  assert_eq!(result, ctx.repo_path.join("common/.gitconfig"));
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn resolve_supports_legacy_profiles_common() {
+  let (root, ctx) = test_ctx("legacy-common-fallback");
+  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
+  fs::write(
+    ctx.repo_path.join("profiles/common/.gitconfig"),
+    "legacy common",
+  )
+  .unwrap();
+
+  let profiles = Profiles::default();
   let result = profiles.resolve(&ctx.repo_path, ".gitconfig");
   assert_eq!(result, ctx.repo_path.join("profiles/common/.gitconfig"));
   fs::remove_dir_all(&root).ok();
@@ -94,9 +110,9 @@ fn resolve_without_matching_default_uses_common() {
 #[test]
 fn resolve_prefers_active_profile_over_common() {
   let (root, ctx) = test_ctx("active-over-common");
-  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
+  fs::create_dir_all(ctx.repo_path.join("common")).unwrap();
   fs::create_dir_all(ctx.repo_path.join("profiles/linux")).unwrap();
-  fs::write(ctx.repo_path.join("profiles/common/.bashrc"), "common").unwrap();
+  fs::write(ctx.repo_path.join("common/.bashrc"), "common").unwrap();
   fs::write(ctx.repo_path.join("profiles/linux/.bashrc"), "linux").unwrap();
 
   let profiles = Profiles {
@@ -111,14 +127,14 @@ fn resolve_prefers_active_profile_over_common() {
 #[test]
 fn resolve_prefers_common_over_default() {
   let (root, ctx) = test_ctx("common-over-default");
-  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
+  fs::create_dir_all(ctx.repo_path.join("common")).unwrap();
   fs::create_dir_all(ctx.repo_path.join("profiles/default")).unwrap();
-  fs::write(ctx.repo_path.join("profiles/common/.bashrc"), "common").unwrap();
+  fs::write(ctx.repo_path.join("common/.bashrc"), "common").unwrap();
   fs::write(ctx.repo_path.join("profiles/default/.bashrc"), "default").unwrap();
 
   let profiles = Profiles::default();
   let result = profiles.resolve(&ctx.repo_path, ".bashrc");
-  assert_eq!(result, ctx.repo_path.join("profiles/common/.bashrc"));
+  assert_eq!(result, ctx.repo_path.join("common/.bashrc"));
   fs::remove_dir_all(&root).ok();
 }
 
@@ -159,9 +175,9 @@ fn profile_set_relinks_home_to_active_variant() {
   let (root, mut ctx) = test_ctx("set-relinks");
   ctx.config.git.auto_commit = false;
 
-  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
+  fs::create_dir_all(ctx.repo_path.join("common")).unwrap();
   fs::create_dir_all(ctx.repo_path.join("profiles/linux")).unwrap();
-  fs::write(ctx.repo_path.join("profiles/common/.bashrc"), "common").unwrap();
+  fs::write(ctx.repo_path.join("common/.bashrc"), "common").unwrap();
   fs::write(ctx.repo_path.join("profiles/linux/.bashrc"), "linux").unwrap();
 
   let mut profiles = Profiles::load(&ctx).unwrap();
@@ -191,9 +207,9 @@ fn profile_unset_relinks_home_to_common_variant() {
   let (root, mut ctx) = test_ctx("unset-relinks");
   ctx.config.git.auto_commit = false;
 
-  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
+  fs::create_dir_all(ctx.repo_path.join("common")).unwrap();
   fs::create_dir_all(ctx.repo_path.join("profiles/linux")).unwrap();
-  fs::write(ctx.repo_path.join("profiles/common/.bashrc"), "common").unwrap();
+  fs::write(ctx.repo_path.join("common/.bashrc"), "common").unwrap();
   fs::write(ctx.repo_path.join("profiles/linux/.bashrc"), "linux").unwrap();
 
   let mut profiles = Profiles::load(&ctx).unwrap();
@@ -222,7 +238,7 @@ fn profile_unset_relinks_home_to_common_variant() {
 
   assert!(is_symlink_to(
     &ctx.home_path.join(".bashrc"),
-    &ctx.repo_path.join("profiles/common/.bashrc")
+    &ctx.repo_path.join("common/.bashrc")
   ));
 
   fs::remove_dir_all(&root).ok();
@@ -242,11 +258,45 @@ fn profile_migrate_moves_root_dotfiles_to_common() {
 
   assert!(!ctx.repo_path.join(".bashrc").exists());
   assert_eq!(
-    fs::read_to_string(ctx.repo_path.join("profiles/common/.bashrc")).unwrap(),
+    fs::read_to_string(ctx.repo_path.join("common/.bashrc")).unwrap(),
     "root bashrc"
   );
   assert!(ctx.repo_path.join(".tildr/profiles.json").exists());
   assert!(ctx.repo_path.join("profiles").is_dir());
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_migrate_dry_run_does_not_create_common() {
+  let (root, mut ctx) = test_ctx("migrate-dry-run-no-side-effects");
+  ctx.config.git.auto_commit = false;
+
+  fs::write(ctx.repo_path.join(".bashrc"), "root bashrc").unwrap();
+
+  run(&ctx, &ProfileMode::Migrate { dry_run: true }).unwrap();
+
+  assert!(ctx.repo_path.join(".bashrc").exists());
+  assert!(!ctx.repo_path.join("common").exists());
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_migrate_moves_legacy_profiles_common_to_common() {
+  let (root, mut ctx) = test_ctx("migrate-legacy-common");
+  ctx.config.git.auto_commit = false;
+
+  fs::create_dir_all(ctx.repo_path.join("profiles/common")).unwrap();
+  fs::write(ctx.repo_path.join("profiles/common/.bashrc"), "legacy").unwrap();
+
+  run(&ctx, &ProfileMode::Migrate { dry_run: false }).unwrap();
+
+  assert!(!ctx.repo_path.join("profiles/common/.bashrc").exists());
+  assert_eq!(
+    fs::read_to_string(ctx.repo_path.join("common/.bashrc")).unwrap(),
+    "legacy"
+  );
 
   fs::remove_dir_all(&root).ok();
 }
@@ -275,7 +325,7 @@ fn profile_delete_restores_orphans_to_common() {
 
   assert!(!ctx.repo_path.join("profiles/work").exists());
   assert_eq!(
-    fs::read_to_string(ctx.repo_path.join("profiles/common/.bashrc")).unwrap(),
+    fs::read_to_string(ctx.repo_path.join("common/.bashrc")).unwrap(),
     "work"
   );
 

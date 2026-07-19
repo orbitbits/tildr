@@ -16,6 +16,26 @@ use crate::utils::auto_commit::auto_commit;
 pub const COMMON_PROFILE: &str = "common";
 pub const DEFAULT_PROFILE: &str = "default";
 
+pub fn profile_dir(repo_path: &Path, profile: &str) -> PathBuf {
+  match profile {
+    COMMON_PROFILE => repo_path.join(COMMON_PROFILE),
+    DEFAULT_PROFILE => repo_path.to_path_buf(),
+    _ => repo_path.join("profiles").join(profile),
+  }
+}
+
+fn legacy_common_dir(repo_path: &Path) -> PathBuf {
+  repo_path.join("profiles").join(COMMON_PROFILE)
+}
+
+fn profile_file_label(profile: &str, file: &str) -> String {
+  match profile {
+    COMMON_PROFILE => format!("{COMMON_PROFILE}/{file}"),
+    DEFAULT_PROFILE => file.to_string(),
+    _ => format!("profiles/{profile}/{file}"),
+  }
+}
+
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Profiles {
   pub active: Option<String>,
@@ -66,9 +86,13 @@ impl Profiles {
         return candidate;
       }
     }
-    let common_candidate = repo_path.join("profiles").join(COMMON_PROFILE).join(file);
+    let common_candidate = profile_dir(repo_path, COMMON_PROFILE).join(file);
     if common_candidate.exists() {
       return common_candidate;
+    }
+    let legacy_common_candidate = legacy_common_dir(repo_path).join(file);
+    if legacy_common_candidate.exists() {
+      return legacy_common_candidate;
     }
     let default_candidate = repo_path.join("profiles").join(DEFAULT_PROFILE).join(file);
     if default_candidate.exists() {
@@ -163,7 +187,7 @@ fn resolve_files(ctx: &Context, from: &str, files: &[String]) -> Result<Vec<Stri
 }
 
 fn expand_files(ctx: &Context, files: &[String], from_profile: &str) -> Result<Vec<String>> {
-  let base = ctx.repo_path.join("profiles").join(from_profile);
+  let base = profile_dir(&ctx.repo_path, from_profile);
   let mut result = Vec::new();
   for file in files {
     // First try relative to the profile directory
@@ -249,11 +273,7 @@ fn transfer(
   let mut count = 0;
 
   for file in &file_list {
-    let src = if from_profile {
-      ctx.repo_path.join("profiles").join(from).join(file)
-    } else {
-      ctx.repo_path.join(file)
-    };
+    let src = profile_dir(&ctx.repo_path, from).join(file);
 
     if !src.exists() {
       println!("  {} {} (file not found)", style("Skipped:").yellow(), file);
@@ -261,7 +281,7 @@ fn transfer(
     }
 
     let dst = if to_profile {
-      let dir = ctx.repo_path.join("profiles").join(to);
+      let dir = profile_dir(&ctx.repo_path, to);
       if let Some(parent) = dir.join(file).parent() {
         fs::create_dir_all(parent)?;
       }
@@ -277,13 +297,11 @@ fn transfer(
     }
 
     count += 1;
-    let direction = if from_profile && to_profile {
-      format!("profiles/{from}/{file} -> profiles/{to}/{file}")
-    } else if from_profile {
-      format!("profiles/{from}/{file} -> {file}")
-    } else {
-      format!("{file} -> profiles/{to}/{file}")
-    };
+    let direction = format!(
+      "{} -> {}",
+      profile_file_label(from, file),
+      profile_file_label(to, file)
+    );
     println!("  {} {}", action_fn(action), direction);
   }
 
@@ -314,19 +332,19 @@ fn delete(ctx: &Context, name: &str) -> Result<()> {
     .remove(name)
     .context(format!("Profile '{name}' not found."))?;
 
-  let profile_dir = ctx.repo_path.join("profiles").join(name);
-  let common_dir = ctx.repo_path.join("profiles").join(COMMON_PROFILE);
+  let profile_path = ctx.repo_path.join("profiles").join(name);
+  let common_dir = profile_dir(&ctx.repo_path, COMMON_PROFILE);
 
-  // Restore files to profiles/common/ if they don't exist there.
-  if profile_dir.exists() {
-    for entry in WalkDir::new(&profile_dir)
+  // Restore files to common/ if they don't exist there.
+  if profile_path.exists() {
+    for entry in WalkDir::new(&profile_path)
       .into_iter()
       .filter_map(|e| e.ok())
     {
       if entry.file_type().is_file() {
         let relative = entry
           .path()
-          .strip_prefix(&profile_dir)
+          .strip_prefix(&profile_path)
           .unwrap_or(entry.path());
         let target = common_dir.join(relative);
         if !target.exists() {
@@ -344,8 +362,8 @@ fn delete(ctx: &Context, name: &str) -> Result<()> {
     profiles.active = None;
   }
 
-  if profile_dir.exists() {
-    fs::remove_dir_all(&profile_dir)?;
+  if profile_path.exists() {
+    fs::remove_dir_all(&profile_path)?;
   }
 
   profiles.save(ctx)?;
@@ -563,33 +581,27 @@ fn current(ctx: &Context) -> Result<()> {
 }
 
 fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
-  // Find files at repo root that should be in profiles/common/
+  // Find files at repo root that should be in common/
   let root_entries: Vec<_> = fs::read_dir(&ctx.repo_path)?
     .filter_map(|e| e.ok())
     .filter(|e| {
       let name = e.file_name().to_string_lossy().to_string();
-      name != ".git" && name != ".tildr" && name != "profiles"
+      name != ".git" && name != ".tildr" && name != "profiles" && name != COMMON_PROFILE
     })
     .collect();
 
-  if root_entries.is_empty() {
-    println!("{}", style("Nothing to migrate.").dim());
-    return Ok(());
-  }
-
-  let common_dir = ctx.repo_path.join("profiles").join(COMMON_PROFILE);
-  fs::create_dir_all(&common_dir)?;
+  let common_dir = profile_dir(&ctx.repo_path, COMMON_PROFILE);
 
   let mut count = 0;
 
   for entry in &root_entries {
     let name = entry.file_name().to_string_lossy().to_string();
 
-    // Skip if already exists in profiles/common/
+    // Skip if already exists in common/
     let target = common_dir.join(&name);
     if target.exists() {
       println!(
-        "  {} {} (already in profiles/common/)",
+        "  {} {} (already in common/)",
         style("Skipped:").dim(),
         name
       );
@@ -598,20 +610,73 @@ fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
 
     if dry_run {
       println!(
-        "  {} {} -> profiles/common/{name}",
+        "  {} {} -> common/{name}",
         style("Would migrate:").cyan(),
         name
       );
     } else {
       let source = entry.path();
+      if let Some(parent) = target.parent() {
+        fs::create_dir_all(parent)?;
+      }
       fs::rename(&source, &target)?;
-      println!(
-        "  {} {} -> profiles/common/{name}",
-        style("Migrated:").green(),
-        name
-      );
+      println!("  {} {} -> common/{name}", style("Migrated:").green(), name);
     }
     count += 1;
+  }
+
+  let legacy_common_dir = legacy_common_dir(&ctx.repo_path);
+  if legacy_common_dir.exists() {
+    for entry in WalkDir::new(&legacy_common_dir)
+      .into_iter()
+      .filter_map(|e| e.ok())
+      .filter(|e| e.file_type().is_file())
+    {
+      let relative = entry
+        .path()
+        .strip_prefix(&legacy_common_dir)
+        .unwrap_or(entry.path());
+      let target = common_dir.join(relative);
+
+      if target.exists() {
+        println!(
+          "  {} profiles/common/{} (already in common/)",
+          style("Skipped:").dim(),
+          relative.display()
+        );
+        continue;
+      }
+
+      if dry_run {
+        println!(
+          "  {} profiles/common/{} -> common/{}",
+          style("Would migrate:").cyan(),
+          relative.display(),
+          relative.display()
+        );
+      } else {
+        if let Some(parent) = target.parent() {
+          fs::create_dir_all(parent)?;
+        }
+        fs::rename(entry.path(), &target)?;
+        println!(
+          "  {} profiles/common/{} -> common/{}",
+          style("Migrated:").green(),
+          relative.display(),
+          relative.display()
+        );
+      }
+
+      count += 1;
+    }
+
+    let has_remaining_files = WalkDir::new(&legacy_common_dir)
+      .into_iter()
+      .filter_map(|e| e.ok())
+      .any(|e| e.file_type().is_file());
+    if !dry_run && !has_remaining_files {
+      fs::remove_dir_all(&legacy_common_dir)?;
+    }
   }
 
   if count == 0 {
@@ -620,17 +685,17 @@ fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
   }
 
   if !dry_run {
-    auto_commit(ctx, &format!("migrate {count} file(s) to profiles/common/"));
+    auto_commit(ctx, &format!("migrate {count} file(s) to common/"));
   }
 
   if dry_run {
     println!(
-      "\n{} {count} file(s) would be moved to profiles/common/ (dry run)",
+      "\n{} {count} file(s) would be moved to common/ (dry run)",
       style("Would migrate:").cyan()
     );
   } else {
     println!(
-      "\n{} {count} file(s) migrated to profiles/common/",
+      "\n{} {count} file(s) migrated to common/",
       style("Migrated:").green().bold()
     );
   }

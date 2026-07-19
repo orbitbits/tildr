@@ -21,7 +21,7 @@ use tildr_ui::{
 use tildr_utils::fs::move_file;
 use walkdir::WalkDir;
 
-use crate::profile::{COMMON_PROFILE, DEFAULT_PROFILE, Profiles};
+use crate::profile::{COMMON_PROFILE, DEFAULT_PROFILE, Profiles, profile_dir};
 use crate::utils::{auto_commit::auto_commit_dry_run, tildrignore};
 
 pub struct AddArgs {
@@ -185,11 +185,7 @@ fn process_add_file(
   profile_name: &str,
 ) -> Result<(bool, Option<ActionLog>)> {
   let relative = to_relative(ctx, source)?;
-  let target = ctx
-    .repo_path
-    .join("profiles")
-    .join(profile_name)
-    .join(&relative);
+  let target = profile_dir(&ctx.repo_path, profile_name).join(&relative);
 
   // --- IGNORE ---
   if ignore.is_ignored(&relative) {

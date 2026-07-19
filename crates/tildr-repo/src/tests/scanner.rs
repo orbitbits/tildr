@@ -98,3 +98,33 @@ fn scan_handles_nested_directories() {
   assert_eq!(entries[1].relative, PathBuf::from("config/settings.json"));
   fs::remove_dir_all(&dir).ok();
 }
+
+#[test]
+fn scan_common_directory_as_common_profile() {
+  let dir = temp_repo();
+  let common = dir.join("common");
+  fs::create_dir_all(&common).unwrap();
+  fs::write(common.join(".bashrc"), "common").unwrap();
+
+  let entries = scatildr_repo(&dir).unwrap();
+  assert_eq!(entries.len(), 1);
+  assert_eq!(entries[0].profile, "common");
+  assert_eq!(entries[0].relative, PathBuf::from(".bashrc"));
+  assert_eq!(entries[0].repo_path, common.join(".bashrc"));
+  fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn scan_legacy_profiles_common_as_common_profile() {
+  let dir = temp_repo();
+  let common = dir.join("profiles/common");
+  fs::create_dir_all(&common).unwrap();
+  fs::write(common.join(".bashrc"), "common").unwrap();
+
+  let entries = scatildr_repo(&dir).unwrap();
+  assert_eq!(entries.len(), 1);
+  assert_eq!(entries[0].profile, "common");
+  assert_eq!(entries[0].relative, PathBuf::from(".bashrc"));
+  assert_eq!(entries[0].repo_path, common.join(".bashrc"));
+  fs::remove_dir_all(&dir).ok();
+}
