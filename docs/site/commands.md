@@ -163,6 +163,7 @@ Shows the synchronization state of all managed files.
 
 ```sh
 tildr status
+tildr status --long
 tildr status --json
 tildr status --counter
 tildr status --less
@@ -171,14 +172,25 @@ tildr status --less
 Output example:
 
 ```text
-PROFILE  FILEPATH                         STATUS
-common   profiles/common/.zshrc           ✔ linked
-common   profiles/common/Templates/main.sh ✔ linked
-linux    profiles/linux/.bashrc           ✔ linked
+PROFILE  FILEPATH           STATUS
+common   .zshrc             ✔ linked
+common   Templates/main.sh   ✔ linked
+linux    .bashrc            ✔ linked
+```
+
+Output example (`--long`):
+
+```text
+PROFILE  FILEPATH                STATUS
+common   common/.zshrc           ✔ linked
+common   common/Templates/main.sh ✔ linked
+linux    profiles/linux/.bashrc  ✔ linked
 ```
 
 The table output always includes the `PROFILE` column. Without `--profile`,
-Tildr shows the effective variant for each logical file.
+Tildr shows the effective variant for each logical file. By default `FILEPATH`
+is the home-relative path you can pass to commands such as `restore`, `unlink`,
+`cat`, and `del`; use `--long` to see the repository storage path.
 
 Options:
 
@@ -186,6 +198,7 @@ Options:
 |-------------|-------|--------------------------------------------------------|
 | `--json`    | `-j`  | Emit structured JSON output                            |
 | `--counter` | `-c`  | Print aggregated counters only                         |
+| `--long`    |       | Show storage paths like `common/<file>` and `profiles/<name>/<file>` |
 | `--less`    | `-l`  | View the output in an interactive pager (`less -RFX`)  |
 
 Status values:
@@ -234,10 +247,10 @@ linux    .bashrc
 Output example (`--long`):
 
 ```text
-PROFILE  FILEPATH              TYPE  SIZE
-common   .zshrc                file  2.1 KiB
-common   Templates/main.sh     file  892 B
-linux    .bashrc               file  3.4 KiB
+PROFILE  FILEPATH                 TYPE  SIZE
+common   common/.zshrc            file  2.1 KiB
+common   common/Templates/main.sh  file  892 B
+linux    profiles/linux/.bashrc    file  3.4 KiB
 ```
 
 **Options:**
@@ -246,7 +259,7 @@ linux    .bashrc               file  3.4 KiB
 :   Show the repository as a directory tree.
 
 **-l**, **--long**
-:   Show profile, type and file size for each entry.
+:   Show repository storage path, profile, type and file size for each entry.
 
 **--less**
 :   View the output in an interactive pager (uses `$PAGER` or `less -RFX`).
@@ -272,7 +285,10 @@ linux    .bashrc               file  3.4 KiB
 
 Notes:
 
-* Standard listing includes managed files from both the repository root and profile directories
+* Standard listing shows the logical home-relative path, for example `.bashrc`
+* `--long` shows the repository storage path, for example `common/.bashrc` or `profiles/linux/.bashrc`
+* Commands that manipulate files accept the logical path first: `tildr restore .bashrc`
+* Storage paths copied from long output are also accepted as aliases: `tildr restore common/.bashrc` restores to `~/.bashrc`, and `tildr restore profiles/linux/.bashrc` restores to `~/.bashrc` using the `linux` variant
 * Tree view prints the repository directory structure directly
 * `.tildrignore` patterns and internally excluded files are not shown
 
@@ -817,11 +833,11 @@ Manages profile variants for machine-specific dotfiles. This is the main workflo
 for keeping one dotfiles repository while switching between machines,
 distributions, jobs, or personal setups.
 
-Files in `profiles/common/` are shared everywhere. A named profile such as
+Files in `common/` are shared everywhere. A named profile such as
 `linux`, `work`, or `laptop` can override any common file. When you run
 `tildr profile set <name>`, Tildr stores that profile as active and immediately
 relinks `$HOME` so matching files point to `profiles/<name>/`, while everything
-else keeps pointing to `profiles/common/`.
+else keeps pointing to `common/`.
 
 ```sh
 tildr profile create work --description "Work environment"
@@ -850,13 +866,13 @@ Options:
 | `create <NAME> [--description <DESC>]`                 | Create a new profile (`"common"` and `"default"` are reserved)          |
 | `add <FROM> [-f <FILES>] --to <TO>`                    | Copy files between common files, profiles, or between profiles          |
 | `mv <FROM> [-f <FILES>] --to <TO>`                     | Move files between common files, profiles, or between profiles          |
-| `del <NAME>`                                           | Delete a profile and restore orphans to `profiles/common/`              |
+| `del <NAME>`                                           | Delete a profile and restore orphans to `common/`                       |
 | `rename <FROM> <TO>`                                   | Rename a profile (accepts quoted names)                                 |
 | `list [<NAME>] [--long] [--less]`                      | List all available profiles                                             |
 | `set <NAME>`                                           | Set the active profile and relink `$HOME` immediately                   |
 | `unset`                                                | Unset the active profile and relink `$HOME` to common files             |
 | `current`                                              | Show the currently active profile                                       |
-| `migrate [--dry-run]`                                  | Move repo-root dotfiles into `profiles/common/`                         |
+| `migrate [--dry-run]`                                  | Move repo-root dotfiles into `common/`                                  |
 
 List options:
 
@@ -872,8 +888,9 @@ The active profile is a per-file override mechanism. When `tildr apply`, `tildr 
 
 1. Check if the file has a variant in the active profile
 2. If yes, use the profile variant (`profiles/<name>/<file>`)
-3. If no, fall back to the common version (`profiles/common/<file>`)
-4. If no common version exists, fall back to legacy `profiles/default/<file>` or root files
+3. If no, fall back to the common version (`common/<file>`)
+4. If no common version exists, fall back to legacy `profiles/common/<file>`
+5. If no legacy common version exists, fall back to legacy `profiles/default/<file>` or root files
 
 This means **all managed files are always processed** — the active profile only determines *which variant* of each file to use, not whether to skip files.
 
@@ -881,7 +898,7 @@ Example: if the active profile is `work` and it tracks `.bashrc` and `.ssh/confi
 
 - `~/.bashrc` → `profiles/work/.bashrc` (profile variant)
 - `~/.ssh/config` → `profiles/work/.ssh/config` (profile variant)
-- `~/.gitconfig` → `profiles/common/.gitconfig` (common version, not in profile)
+- `~/.gitconfig` → `common/.gitconfig` (common version, not in profile)
 
 Switching profiles applies the new links right away:
 
@@ -893,16 +910,16 @@ tildr profile set personal
 # ~/.bashrc now points to profiles/personal/.bashrc when that variant exists
 
 tildr profile unset
-# ~/.bashrc falls back to profiles/common/.bashrc
+# ~/.bashrc falls back to common/.bashrc
 ```
 
 #### Migration
 
 Use `tildr profile migrate` when you have an older repository with dotfiles at
-the repository root and want to adopt the profile layout. It moves root-level
-dotfiles and directories into `profiles/common/`, preserving their relative
-paths. It does not move Tildr internals such as `.tildr/`, `.git/`, or
-`profiles/`.
+the repository root or in legacy `profiles/common/` and want to adopt the
+profile layout. It moves shared dotfiles and directories into `common/`,
+preserving their relative paths. It does not move Tildr internals such as
+`.tildr/`, `.git/`, or named profiles under `profiles/`.
 
 Preview the migration first:
 
@@ -913,11 +930,12 @@ tildr profile migrate --dry-run
 Example dry-run output:
 
 ```text
-  Would migrate: .bashrc -> profiles/common/.bashrc
-  Would migrate: .gitconfig -> profiles/common/.gitconfig
-  Would migrate: .config -> profiles/common/.config
+  Would migrate: .bashrc -> common/.bashrc
+  Would migrate: .gitconfig -> common/.gitconfig
+  Would migrate: .config -> common/.config
+  Would migrate: profiles/common/.zshrc -> common/.zshrc
 
-Would migrate: 3 file(s) would be moved to profiles/common/ (dry run)
+Would migrate: 4 file(s) would be moved to common/ (dry run)
 ```
 
 Then perform the migration:
@@ -943,21 +961,22 @@ After:
 ```text
 ~/.dotfiles/
   .tildr/
+  common/
+    .bashrc
+    .gitconfig
+    .config/nvim/init.lua
   profiles/
-    common/
-      .bashrc
-      .gitconfig
-      .config/nvim/init.lua
 ```
 
 Behavior:
 
 * Profiles are stored in `.tildr/profiles.json` in the repository root
-* `common` is the shared location for dotfiles without a profile (`profiles/common/`)
+* `common` is the shared location for dotfiles without a profile (`common/`)
+* Legacy repositories with `profiles/common/` are still supported as a fallback
 * `default` is only kept as a legacy compatibility fallback
 * `add` copies files preserving the source; `mv` moves files (copies then removes originals)
 * Without `-f`, `add`/`mv` operate on all eligible files (orphans for `common`, all tracked files for a profile)
-* `del` removes the profile directory and restores orphaned files to `profiles/common/`
+* `del` removes the profile directory and restores orphaned files to `common/`
 * `rename` renames the profile directory and updates all tracked file paths; if the profile is active, updates active profile name; re-creates symlinks for linked files
 * `set` and `unset` immediately relink `$HOME` to the new effective profile
 * `del` relinks `$HOME` after deletion, so removed active profiles fall back to common files
@@ -971,10 +990,10 @@ Behavior:
 Example structure:
 
 ```
+common/
+  .bashrc                            # common version
+  .ssh/config                        # common SSH config
 profiles/
-  common/
-    .bashrc                          # common version
-    .ssh/config                      # common SSH config
   work/
     .bashrc                          # work variant
     .ssh/config                      # work SSH config

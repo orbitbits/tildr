@@ -167,7 +167,7 @@ When `true`, Tildr automatically commits changes after these commands:
 | `tildr profile rename` | Commits after renaming a profile |
 | `tildr profile set` | Commits after activating a profile |
 | `tildr profile unset` | Commits after deactivating a profile |
-| `tildr profile migrate` | Commits after migrating files to profiles model |
+| `tildr profile migrate` | Commits after moving shared files into `common/` |
 
 Commands that do **not** trigger auto-commit: `tildr apply`, `tildr unlink`, `tildr status`, `tildr list`, `tildr git`, `tildr sync`, `tildr doctor`.
 
