@@ -40,7 +40,7 @@ pub fn run(ctx: &Context, targets: Vec<String>, all: bool, args: UnlinkArgs) -> 
     );
   }
 
-  let resolved_targets = resolve_targets(ctx, &targets)?;
+  let resolved_targets = resolve_targets(ctx, &targets, args.profile.as_deref())?;
   let entries = collect_entries(&resolved_targets, &args)?;
 
   run_entries(ctx, entries, &args)

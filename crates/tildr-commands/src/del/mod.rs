@@ -3,6 +3,7 @@ use anyhow::Result;
 use tildr_core::context::Context;
 
 pub struct DelArgs {
+  pub profile: Option<String>,
   pub all: bool,
   pub dry_run: bool,
   pub quiet: bool,

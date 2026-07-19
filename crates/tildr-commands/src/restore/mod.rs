@@ -4,6 +4,7 @@ use anyhow::Result;
 use tildr_core::context::Context;
 
 pub struct RestoreArgs {
+  pub profile: Option<String>,
   pub all: bool,
   pub dry_run: bool,
   pub quiet: bool,

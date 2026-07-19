@@ -36,6 +36,7 @@ pub enum Commands {
 
   Restore {
     targets: Vec<String>,
+    profile: Option<String>,
     all: bool,
     dry_run: bool,
     quiet: bool,
@@ -44,6 +45,7 @@ pub enum Commands {
 
   Unlink {
     targets: Vec<String>,
+    profile: Option<String>,
     all: bool,
     dry_run: bool,
     quiet: bool,
@@ -102,6 +104,7 @@ pub enum Commands {
   },
   Del {
     target: Option<String>,
+    profile: Option<String>,
     all: bool,
     dry_run: bool,
     quiet: bool,

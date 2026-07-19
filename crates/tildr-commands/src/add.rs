@@ -254,15 +254,6 @@ fn process_add_file(
   move_file(source, &target)?;
   create_symlink(&target, source)?;
 
-  // --- Register in profiles.json ---
-  let mut profiles = Profiles::load(ctx)?;
-  let rel_str = relative.to_string_lossy().to_string();
-  let repo_relative = format!("profiles/{profile_name}/{rel_str}");
-  if let Some(def) = profiles.profiles.get_mut(profile_name) {
-    def.files.insert(rel_str, repo_relative);
-  }
-  profiles.save(ctx)?;
-
   Ok((
     true,
     Some(ActionLog {

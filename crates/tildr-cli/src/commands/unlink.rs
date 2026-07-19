@@ -8,11 +8,16 @@ EXAMPLES:
   tildr unlink
   tildr unlink .config/nvim/
   tildr unlink .config/nvim/init.vim .config/nvim/lua/plugins.lua
-  tildr unlink .config/nvim/init.vim\n"
+  tildr unlink .config/nvim/init.vim
+  tildr unlink .bashrc --profile archlinux\n"
 )]
 pub struct Command {
   /// File(s) or directory(s) to unlink (auto-detected). If not provided, an interactive picker will be shown
   pub targets: Vec<String>,
+
+  /// Resolve targets in a specific profile instead of using the active one
+  #[arg(short, long)]
+  pub profile: Option<String>,
 
   /// Unlink all managed files from HOME
   #[arg(short, long, conflicts_with = "targets")]

@@ -1,4 +1,3 @@
-use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -16,13 +15,13 @@ use crate::utils::auto_commit::auto_commit;
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Profiles {
   pub active: Option<String>,
-  pub profiles: HashMap<String, ProfileDef>,
+  #[serde(default)]
+  pub profiles: std::collections::HashMap<String, ProfileDef>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct ProfileDef {
   pub description: Option<String>,
-  pub files: HashMap<String, String>,
 }
 
 impl Profiles {
@@ -60,16 +59,26 @@ impl Profiles {
   }
 
   pub fn resolve(&self, repo_path: &Path, file: &str) -> PathBuf {
-    if let Some(ref active) = self.active
-      && active != "default"
-      && let Some(profile) = self.profiles.get(active)
-      && let Some(variant) = profile.files.get(file)
-    {
-      return repo_path.join(variant);
+    if let Some(active) = self.active.as_deref().filter(|a| *a != "default") {
+      let candidate = repo_path.join("profiles").join(active).join(file);
+      if candidate.exists() {
+        return candidate;
+      }
     }
-    // Fallback to default profile
     repo_path.join("profiles/default").join(file)
   }
+}
+
+/// Returns the names of all profiles that have a physical copy of `file`,
+/// sorted alphabetically.
+pub fn variants_of(repo_path: &Path, file: &str, known_profiles: &[String]) -> Vec<String> {
+  let mut out: Vec<String> = known_profiles
+    .iter()
+    .filter(|name| repo_path.join("profiles").join(name).join(file).exists())
+    .cloned()
+    .collect();
+  out.sort();
+  out
 }
 
 pub fn run(ctx: &Context, mode: &tildr_domain::ProfileMode) -> Result<()> {
@@ -99,7 +108,6 @@ fn create(ctx: &Context, name: &str, description: &Option<String>) -> Result<()>
   }
   let def = ProfileDef {
     description: description.clone(),
-    files: HashMap::new(),
   };
   profiles.profiles.insert(name.to_string(), def);
   profiles.save(ctx)?;
@@ -112,45 +120,32 @@ fn create(ctx: &Context, name: &str, description: &Option<String>) -> Result<()>
   Ok(())
 }
 
-fn repo_entries_set(ctx: &Context) -> Result<HashSet<String>> {
-  let entries = scatildr_repo(&ctx.repo_path)?;
-  Ok(
-    entries
-      .into_iter()
-      .map(|e| e.relative.to_string_lossy().to_string())
-      .collect(),
-  )
+fn repo_entries(ctx: &Context) -> Result<Vec<tildr_repo::ManagedEntry>> {
+  scatildr_repo(&ctx.repo_path)
 }
 
-fn all_tracked_files(profiles: &Profiles) -> HashSet<String> {
-  profiles
-    .profiles
-    .values()
-    .flat_map(|def| def.files.keys().cloned())
-    .collect()
-}
-
-fn resolve_files(
-  ctx: &Context,
-  profiles: &Profiles,
-  from: &str,
-  files: &[String],
-) -> Result<Vec<String>> {
+fn resolve_files(ctx: &Context, from: &str, files: &[String]) -> Result<Vec<String>> {
   if files.is_empty() {
+    let entries = repo_entries(ctx)?;
     if from == "default" {
-      let all = repo_entries_set(ctx)?;
-      let tracked = all_tracked_files(profiles);
-      let mut orphans: Vec<String> = all.difference(&tracked).cloned().collect();
-      orphans.sort();
-      Ok(orphans)
+      // In the filesystem model, all repo entries are tracked.
+      // Return all files so the user can choose or transfer everything.
+      let mut names: Vec<String> = entries
+        .into_iter()
+        .map(|e| e.relative.to_string_lossy().to_string())
+        .collect();
+      names.sort();
+      names.dedup();
+      Ok(names)
     } else {
-      let def = profiles
-        .profiles
-        .get(from)
-        .context(format!("Profile '{}' not found.", from))?;
-      let mut keys: Vec<String> = def.files.keys().cloned().collect();
-      keys.sort();
-      Ok(keys)
+      let mut names: Vec<String> = entries
+        .into_iter()
+        .filter(|e| e.profile == from)
+        .map(|e| e.relative.to_string_lossy().to_string())
+        .collect();
+      names.sort();
+      names.dedup();
+      Ok(names)
     }
   } else {
     expand_files(ctx, files, from)
@@ -214,7 +209,7 @@ fn transfer(
     return Ok(());
   }
 
-  let mut profiles = Profiles::load(ctx)?;
+  let profiles = Profiles::load(ctx)?;
 
   if from != "default" && !profiles.profiles.contains_key(from) {
     anyhow::bail!("Profile '{}' not found.", from);
@@ -224,7 +219,7 @@ fn transfer(
     anyhow::bail!("Profile '{}' not found.", to);
   }
 
-  let file_list = resolve_files(ctx, &profiles, from, files)?;
+  let file_list = resolve_files(ctx, from, files)?;
   if file_list.is_empty() {
     println!("{}", style("Nothing to do.").dim());
     return Ok(());
@@ -250,30 +245,8 @@ fn transfer(
       ctx.repo_path.join(file)
     };
 
-    if from_profile
-      && !profiles
-        .profiles
-        .get(from)
-        .is_some_and(|d| d.files.contains_key(file))
-    {
-      println!(
-        "  {} {} (not tracked in profile '{from}')",
-        style("Skipped:").dim(),
-        file
-      );
-      continue;
-    }
-
     if !src.exists() {
       println!("  {} {} (file not found)", style("Skipped:").yellow(), file);
-      if remove_source && from_profile {
-        profiles
-          .profiles
-          .get_mut(from)
-          .context(format!("Profile '{from}' not found"))?
-          .files
-          .remove(file);
-      }
       continue;
     }
 
@@ -288,24 +261,6 @@ fn transfer(
     };
 
     fs::copy(&src, &dst)?;
-
-    if to_profile {
-      profiles
-        .profiles
-        .get_mut(to)
-        .context(format!("Profile '{to}' not found"))?
-        .files
-        .insert(file.clone(), format!("profiles/{to}/{file}"));
-    }
-
-    if from_profile {
-      profiles
-        .profiles
-        .get_mut(from)
-        .context(format!("Profile '{from}' not found"))?
-        .files
-        .remove(file);
-    }
 
     if remove_source {
       fs::remove_file(&src)?;
@@ -323,14 +278,13 @@ fn transfer(
   }
 
   if remove_source && from_profile {
+    // Clean up empty profile directory
     let dir = ctx.repo_path.join("profiles").join(from);
-    if dir.exists() {
-      fs::remove_dir_all(&dir).ok();
+    if dir.exists() && dir.read_dir()?.next().is_none() {
+      fs::remove_dir(&dir)?;
     }
-    fs::create_dir_all(&dir).ok();
   }
 
-  profiles.save(ctx)?;
   auto_commit(
     ctx,
     &format!(
@@ -345,7 +299,7 @@ fn transfer(
 
 fn delete(ctx: &Context, name: &str) -> Result<()> {
   let mut profiles = Profiles::load(ctx)?;
-  let def = profiles
+  let _def = profiles
     .profiles
     .remove(name)
     .context(format!("Profile '{name}' not found."))?;
@@ -354,16 +308,24 @@ fn delete(ctx: &Context, name: &str) -> Result<()> {
   let default_dir = ctx.repo_path.join("profiles").join("default");
 
   // Restore files to profiles/default/ if they don't exist there
-  for file in def.files.keys() {
-    let target = default_dir.join(file);
-    if !target.exists() {
-      let src = profile_dir.join(file);
-      if src.exists() {
-        if let Some(parent) = target.parent() {
-          fs::create_dir_all(parent)?;
+  if profile_dir.exists() {
+    for entry in WalkDir::new(&profile_dir)
+      .into_iter()
+      .filter_map(|e| e.ok())
+    {
+      if entry.file_type().is_file() {
+        let relative = entry
+          .path()
+          .strip_prefix(&profile_dir)
+          .unwrap_or(entry.path());
+        let target = default_dir.join(relative);
+        if !target.exists() {
+          if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent)?;
+          }
+          fs::copy(entry.path(), &target)?;
+          println!("  {} {}", style("Restored:").green(), relative.display());
         }
-        fs::copy(&src, &target)?;
-        println!("  {} {}", style("Restored:").green(), file);
       }
     }
   }
@@ -411,12 +373,11 @@ fn rename(ctx: &Context, from: &str, to: &str) -> Result<()> {
   // Rename the profile directory
   fs::rename(&old_dir, &new_dir)?;
 
-  // Get the profile definition and update its file paths
-  let mut def = profiles.profiles.remove(from).unwrap();
-  for file in def.files.values_mut() {
-    *file = file.replace(&format!("profiles/{from}/"), &format!("profiles/{to}/"));
-  }
-
+  // Move the profile definition
+  let def = profiles
+    .profiles
+    .remove(from)
+    .context("Profile not found")?;
   profiles.profiles.insert(to.to_string(), def);
 
   // If the renamed profile was active, update the active profile
@@ -436,25 +397,26 @@ fn rename(ctx: &Context, from: &str, to: &str) -> Result<()> {
 
 fn list(ctx: &Context, long: bool, less: bool, name: Option<&str>) -> Result<()> {
   let profiles = Profiles::load(ctx)?;
+  let known_profiles: Vec<String> = profiles.profiles.keys().cloned().collect();
 
-  let names: Vec<&String> = if let Some(name) = name {
+  let names: Vec<String> = if let Some(name) = name {
     if !profiles.profiles.contains_key(name) {
       anyhow::bail!("Profile '{name}' not found.");
     }
-    vec![profiles.profiles.get_key_value(name).unwrap().0]
+    vec![name.to_string()]
   } else {
     if profiles.profiles.is_empty() {
       println!("{}", style("No profiles defined.").dim());
       return Ok(());
     }
-    let mut names: Vec<&String> = profiles.profiles.keys().collect();
+    let mut names: Vec<String> = profiles.profiles.keys().cloned().collect();
     names.sort();
     names
   };
 
   let mut buf = String::new();
 
-  for name in names {
+  for name in &names {
     let def = &profiles.profiles[name.as_str()];
     let marker = if profiles.active.as_deref() == Some(name.as_str()) {
       style(" (active)").green().bold().to_string()
@@ -463,24 +425,65 @@ fn list(ctx: &Context, long: bool, less: bool, name: Option<&str>) -> Result<()>
     };
     let desc = def.description.as_deref().unwrap_or("no description");
 
+    // Scan profile directory on disk to get file count
+    let profile_dir = ctx.repo_path.join("profiles").join(name);
+    let file_count = if profile_dir.exists() {
+      WalkDir::new(&profile_dir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+        .count()
+    } else {
+      0
+    };
+
     if long {
       writeln!(buf, "  {marker}{} — {desc}", style(name).cyan())?;
-      if def.files.is_empty() {
+      if file_count == 0 {
         writeln!(buf, "    (no files)")?;
       } else {
-        let mut file_list: Vec<&String> = def.files.keys().collect();
-        file_list.sort();
-        for file in file_list {
-          writeln!(buf, "    {file}")?;
+        for entry in WalkDir::new(&profile_dir)
+          .into_iter()
+          .filter_map(|e| e.ok())
+          .filter(|e| e.file_type().is_file())
+        {
+          let relative = entry
+            .path()
+            .strip_prefix(&profile_dir)
+            .unwrap_or(entry.path());
+          writeln!(buf, "    {}", relative.display())?;
         }
       }
     } else {
-      let count = def.files.len();
       writeln!(
         buf,
-        "  {marker}{} — {desc} [{count} file(s)]",
+        "  {marker}{} — {desc} [{file_count} file(s)]",
         style(name).cyan()
       )?;
+    }
+
+    // Show variants in long mode
+    if long && file_count > 0 {
+      for entry in WalkDir::new(&profile_dir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+      {
+        let relative = entry
+          .path()
+          .strip_prefix(&profile_dir)
+          .unwrap_or(entry.path());
+        let file_str = relative.to_string_lossy();
+        let variants = variants_of(&ctx.repo_path, &file_str, &known_profiles);
+        if variants.len() > 1 {
+          writeln!(
+            buf,
+            "    {} variants: {}",
+            style(&*file_str).dim(),
+            variants.join(", ")
+          )?;
+        }
+      }
     }
   }
 

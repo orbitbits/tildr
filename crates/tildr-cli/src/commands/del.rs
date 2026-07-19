@@ -7,11 +7,16 @@ use clap::Args;
 EXAMPLES:
   tildr del
   tildr del .config/nvim/
-  tildr del .config/nvim/init.vim\n"
+  tildr del .config/nvim/init.vim
+  tildr del .bashrc --profile archlinux\n"
 )]
 pub struct Command {
   /// Files or directories to restore. Defaults to interactive picker
   pub target: Option<String>,
+
+  /// Resolve the target in a specific profile instead of using the active one
+  #[arg(long)]
+  pub profile: Option<String>,
 
   /// Delete all managed files in the repo
   #[arg(short, long, conflicts_with = "target")]

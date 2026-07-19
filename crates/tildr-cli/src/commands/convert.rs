@@ -28,6 +28,7 @@ impl From<CliCommands> for Commands {
 
       CliCommands::Restore(cmd) => Commands::Restore {
         targets: cmd.targets,
+        profile: cmd.profile,
         all: cmd.all,
         dry_run: cmd.dry_run,
         quiet: cmd.quiet,
@@ -36,6 +37,7 @@ impl From<CliCommands> for Commands {
 
       CliCommands::Unlink(cmd) => Commands::Unlink {
         targets: cmd.targets,
+        profile: cmd.profile,
         all: cmd.all,
         dry_run: cmd.dry_run,
         quiet: cmd.quiet,
@@ -104,6 +106,7 @@ impl From<CliCommands> for Commands {
       },
       CliCommands::Del(cmd) => Commands::Del {
         target: cmd.target,
+        profile: cmd.profile,
         all: cmd.all,
         dry_run: cmd.dry_run,
         quiet: cmd.quiet,

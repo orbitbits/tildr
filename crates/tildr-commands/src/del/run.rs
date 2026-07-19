@@ -33,7 +33,7 @@ pub fn run(ctx: &Context, target: Option<String>, args: DelArgs) -> Result<()> {
     bail!("Cannot use --all with a target");
   }
 
-  match resolve_target(ctx, target)? {
+  match resolve_target(ctx, target, args.profile.as_deref())? {
     ResolvedTarget::Interactive => {
       let picked = pick::target(
         ctx,

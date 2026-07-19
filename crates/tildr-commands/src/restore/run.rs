@@ -32,7 +32,7 @@ pub fn run(ctx: &Context, targets: Vec<String>, args: RestoreArgs) -> Result<()>
     return run(ctx, vec![picked.to_string_lossy().into_owned()], args);
   }
 
-  let resolved_targets = resolve_targets(ctx, &targets)?;
+  let resolved_targets = resolve_targets(ctx, &targets, args.profile.as_deref())?;
   let commit_target = commit_label(&resolved_targets);
   let entries = collect_entries(&resolved_targets, &args)?;
 

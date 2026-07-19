@@ -8,11 +8,16 @@ EXAMPLES:
   tildr restore
   tildr restore .config/nvim/
   tildr restore .config/nvim/init.vim .config/nvim/lua/plugins.lua
-  tildr restore .config/nvim/init.vim\n"
+  tildr restore .config/nvim/init.vim
+  tildr restore .bashrc --profile archlinux\n"
 )]
 pub struct Command {
   /// Files or directories to restore. Defaults to interactive picker
   pub targets: Vec<String>,
+
+  /// Resolve targets in a specific profile instead of using the active one
+  #[arg(short, long)]
+  pub profile: Option<String>,
 
   /// Restore all managed files to HOME
   #[arg(short, long, conflicts_with = "targets")]

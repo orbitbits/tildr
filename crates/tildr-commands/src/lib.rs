@@ -94,6 +94,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
 
     Commands::Restore {
       targets,
+      profile,
       all,
       dry_run,
       quiet,
@@ -102,6 +103,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
       ctx,
       targets.clone(),
       restore::RestoreArgs {
+        profile: profile.clone(),
         all: *all,
         dry_run: *dry_run,
         quiet: *quiet,
@@ -111,6 +113,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
 
     Commands::Unlink {
       targets,
+      profile,
       all,
       dry_run,
       quiet,
@@ -120,6 +123,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
       targets.clone(),
       *all,
       unlink::UnlinkArgs {
+        profile: profile.clone(),
         dry_run: *dry_run,
         quiet: *quiet,
         force: *force,
@@ -191,6 +195,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     ),
     Commands::Del {
       target,
+      profile,
       all,
       dry_run,
       quiet,
@@ -200,6 +205,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
       ctx,
       target.clone(),
       del::DelArgs {
+        profile: profile.clone(),
         all: *all,
         dry_run: *dry_run,
         quiet: *quiet,

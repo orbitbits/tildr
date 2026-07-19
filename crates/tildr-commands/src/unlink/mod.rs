@@ -4,6 +4,7 @@ use anyhow::Result;
 use tildr_core::context::Context;
 
 pub struct UnlinkArgs {
+  pub profile: Option<String>,
   pub dry_run: bool,
   pub quiet: bool,
   pub force: bool,
