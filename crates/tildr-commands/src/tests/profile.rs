@@ -222,6 +222,7 @@ fn profile_unset_relinks_home_to_common_variant() {
   crate::apply::run(
     &ctx,
     crate::apply::ApplyArgs {
+      check: false,
       dry_run: false,
       force: false,
       verbose: false,

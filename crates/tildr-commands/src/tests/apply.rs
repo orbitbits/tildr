@@ -35,6 +35,7 @@ fn apply_no_repo_returns_ok() {
   let result = run(
     &ctx,
     ApplyArgs {
+      check: false,
       dry_run: false,
       force: false,
       verbose: false,
@@ -57,6 +58,7 @@ fn apply_dry_run_creates_nothing() {
   run(
     &ctx,
     ApplyArgs {
+      check: false,
       dry_run: true,
       force: false,
       verbose: false,
@@ -83,6 +85,7 @@ fn apply_creates_symlink_for_new_file() {
   run(
     &ctx,
     ApplyArgs {
+      check: false,
       dry_run: false,
       force: false,
       verbose: false,
@@ -116,6 +119,7 @@ fn apply_prefers_active_profile_over_common() {
   run(
     &ctx,
     ApplyArgs {
+      check: false,
       dry_run: false,
       force: false,
       verbose: false,
@@ -143,6 +147,7 @@ fn apply_uses_common_when_no_profile_is_active() {
   run(
     &ctx,
     ApplyArgs {
+      check: false,
       dry_run: false,
       force: false,
       verbose: false,
@@ -174,6 +179,7 @@ fn apply_update_broken_symlink() {
   run(
     &ctx,
     ApplyArgs {
+      check: false,
       dry_run: false,
       force: false,
       verbose: false,
@@ -205,6 +211,7 @@ fn apply_skips_regular_file_without_force() {
   run(
     &ctx,
     ApplyArgs {
+      check: false,
       dry_run: false,
       force: false,
       verbose: false,
@@ -234,6 +241,7 @@ fn apply_force_replaces_regular_file() {
   run(
     &ctx,
     ApplyArgs {
+      check: false,
       dry_run: false,
       force: true,
       verbose: false,
@@ -248,5 +256,88 @@ fn apply_force_replaces_regular_file() {
     &link,
     &repo.join("profiles/default/file.txt")
   ));
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn apply_check_passes_when_links_are_correct() {
+  let root = test_dir("check-ok");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("common")).unwrap();
+  fs::write(repo.join("common/.bashrc"), "content").unwrap();
+  #[cfg(unix)]
+  std::os::unix::fs::symlink(repo.join("common/.bashrc"), home.join(".bashrc")).unwrap();
+  let ctx = setup_context(&home, &repo);
+
+  let result = run(
+    &ctx,
+    ApplyArgs {
+      check: true,
+      dry_run: false,
+      force: false,
+      verbose: false,
+      quiet: true,
+    },
+  );
+
+  assert!(result.is_ok());
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn apply_check_fails_when_link_is_missing() {
+  let root = test_dir("check-missing");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("common")).unwrap();
+  fs::write(repo.join("common/.bashrc"), "content").unwrap();
+  let ctx = setup_context(&home, &repo);
+
+  let result = run(
+    &ctx,
+    ApplyArgs {
+      check: true,
+      dry_run: false,
+      force: false,
+      verbose: false,
+      quiet: true,
+    },
+  );
+
+  assert!(result.is_err());
+  assert!(home.join(".bashrc").symlink_metadata().is_err());
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn apply_check_fails_on_regular_file_without_replacing_it() {
+  let root = test_dir("check-conflict");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("common")).unwrap();
+  fs::write(repo.join("common/.bashrc"), "repo content").unwrap();
+  fs::write(home.join(".bashrc"), "home content").unwrap();
+  let ctx = setup_context(&home, &repo);
+
+  let result = run(
+    &ctx,
+    ApplyArgs {
+      check: true,
+      dry_run: false,
+      force: true,
+      verbose: false,
+      quiet: true,
+    },
+  );
+
+  let home_file = home.join(".bashrc");
+  assert!(result.is_err());
+  assert!(home_file.is_file());
+  assert!(!home_file.is_symlink());
+  assert_eq!(fs::read_to_string(&home_file).unwrap(), "home content");
   fs::remove_dir_all(&root).ok();
 }

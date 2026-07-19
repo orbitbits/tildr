@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 use std::fs;
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use tildr_core::context::Context;
 use tildr_fs::{
   symlink::{create_symlink, is_symlink, is_symlink_to},
@@ -16,6 +16,7 @@ use tildr_ui::{
 use crate::profile::Profiles;
 
 pub struct ApplyArgs {
+  pub check: bool,
   pub dry_run: bool,
   pub force: bool,
   pub verbose: bool,
@@ -41,6 +42,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
   let mut created = 0;
   let mut updated = 0;
   let mut up_to_date = 0;
+  let mut check_issues = 0;
 
   for file_str in &files {
     let home = ctx.home_path.join(file_str);
@@ -63,6 +65,25 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
           file: file_str.clone(),
         });
       }
+
+      continue;
+    }
+
+    if args.check {
+      check_issues += 1;
+
+      let action = if is_link {
+        "Broken"
+      } else if !exists {
+        "Missing"
+      } else {
+        "Conflict"
+      };
+
+      actions.push(ActionLog {
+        action: action.to_string(),
+        file: file_str.clone(),
+      });
 
       continue;
     }
@@ -137,14 +158,29 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
   print_actions(&actions, args.quiet);
 
   print_summary(
-    SummaryKind::Apply {
-      created,
-      updated,
-      up_to_date,
+    if args.check {
+      SummaryKind::Check {
+        checked: up_to_date + check_issues,
+        issues: check_issues,
+      }
+    } else {
+      SummaryKind::Apply {
+        created,
+        updated,
+        up_to_date,
+      }
     },
     args.dry_run,
     args.quiet,
   );
+
+  if args.check && check_issues > 0 {
+    bail!(
+      "apply check failed: {} managed file{} not correctly linked",
+      check_issues,
+      if check_issues == 1 { " is" } else { "s are" }
+    );
+  }
 
   Ok(())
 }

@@ -63,6 +63,7 @@ pub enum Commands {
   },
 
   Apply {
+    check: bool,
     dry_run: bool,
     force: bool,
     verbose: bool,

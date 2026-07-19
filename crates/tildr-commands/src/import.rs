@@ -123,6 +123,7 @@ pub fn run(args: ImportArgs) -> Result<()> {
   crate::apply::run(
     &ctx,
     crate::apply::ApplyArgs {
+      check: false,
       dry_run: false,
       force: false,
       verbose: false,

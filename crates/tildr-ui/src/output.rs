@@ -77,6 +77,9 @@ pub(crate) fn options_actions(action: &str) -> String {
     "Removed" => format!("{}{}", icons().cross, action).red(),
     "Updated" => format!("{}{}", icons().check, action).green(),
     "Restored" => format!("{}{}", icons().check, action).green(),
+    "Missing" => format!("{}{}", icons().cross, action).red(),
+    "Broken" => format!("{}{}", icons().cross, action).red(),
+    "Conflict" => format!("{}{}", icons().warn, action).yellow(),
     _ => action.normal(),
   }
 }
@@ -119,6 +122,10 @@ pub enum SummaryKind {
     created: usize,
     updated: usize,
     up_to_date: usize,
+  },
+  Check {
+    checked: usize,
+    issues: usize,
   },
   Remove {
     removed: usize,
@@ -180,6 +187,24 @@ pub fn print_summary(kind: SummaryKind, dry_run: bool, quiet: bool) {
           created,
           if created == 1 { "" } else { "s" },
           updated
+        );
+      }
+    }
+
+    SummaryKind::Check { checked, issues } => {
+      if issues == 0 {
+        println!(
+          "{}All managed files are correctly linked ({} checked)",
+          icons().check.green(),
+          checked
+        );
+      } else {
+        println!(
+          "{}{} issue{} found ({} checked)",
+          icons().warn.yellow(),
+          issues,
+          if issues == 1 { "" } else { "s" },
+          checked
         );
       }
     }

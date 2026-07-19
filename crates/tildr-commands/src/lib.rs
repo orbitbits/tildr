@@ -153,6 +153,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     ),
 
     Commands::Apply {
+      check,
       dry_run,
       force,
       verbose,
@@ -160,6 +161,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     } => apply::run(
       ctx,
       apply::ApplyArgs {
+        check: *check,
         dry_run: *dry_run,
         force: *force,
         verbose: *verbose,

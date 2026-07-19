@@ -563,6 +563,7 @@ fn relink_effective_profile(ctx: &Context) -> Result<()> {
   apply_profile(
     ctx,
     ApplyArgs {
+      check: false,
       dry_run: false,
       force: false,
       verbose: false,

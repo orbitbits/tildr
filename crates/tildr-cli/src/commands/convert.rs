@@ -55,6 +55,7 @@ impl From<CliCommands> for Commands {
       },
 
       CliCommands::Apply(cmd) => Commands::Apply {
+        check: cmd.check,
         dry_run: cmd.dry_run,
         force: cmd.force,
         verbose: cmd.verbose,
