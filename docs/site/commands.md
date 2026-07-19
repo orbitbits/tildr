@@ -181,16 +181,17 @@ linux    .bashrc            ✔ linked
 Output example (`--long`):
 
 ```text
-PROFILE  FILEPATH                STATUS
-common   common/.zshrc           ✔ linked
-common   common/Templates/main.sh ✔ linked
-linux    profiles/linux/.bashrc  ✔ linked
+PROFILE  FILEPATH           SOURCE                    STATUS
+common   .zshrc             common/.zshrc             ✔ linked
+common   Templates/main.sh   common/Templates/main.sh  ✔ linked
+linux    .bashrc            profiles/linux/.bashrc    ✔ linked
 ```
 
 The table output always includes the `PROFILE` column. Without `--profile`,
 Tildr shows the effective variant for each logical file. By default `FILEPATH`
 is the home-relative path you can pass to commands such as `restore`, `unlink`,
-`cat`, and `del`; use `--long` to see the repository storage path.
+`cat`, and `del`; use `--long` to see the repository source path in a separate
+`SOURCE` column.
 
 Options:
 
@@ -198,7 +199,7 @@ Options:
 |-------------|-------|--------------------------------------------------------|
 | `--json`    | `-j`  | Emit structured JSON output                            |
 | `--counter` | `-c`  | Print aggregated counters only                         |
-| `--long`    |       | Show storage paths like `common/<file>` and `profiles/<name>/<file>` |
+| `--long`    |       | Show the repository source path in a separate `SOURCE` column |
 | `--less`    | `-l`  | View the output in an interactive pager (`less -RFX`)  |
 
 Status values:
@@ -247,10 +248,10 @@ linux    .bashrc
 Output example (`--long`):
 
 ```text
-PROFILE  FILEPATH                 TYPE  SIZE
-common   common/.zshrc            file  2.1 KiB
-common   common/Templates/main.sh  file  892 B
-linux    profiles/linux/.bashrc    file  3.4 KiB
+PROFILE  FILEPATH           SOURCE                    TYPE  SIZE
+common   .zshrc             common/.zshrc             file  2.1 KiB
+common   Templates/main.sh   common/Templates/main.sh  file  892 B
+linux    .bashrc            profiles/linux/.bashrc    file  3.4 KiB
 ```
 
 **Options:**
@@ -259,7 +260,7 @@ linux    profiles/linux/.bashrc    file  3.4 KiB
 :   Show the repository as a directory tree.
 
 **-l**, **--long**
-:   Show repository storage path, profile, type and file size for each entry.
+:   Show profile, logical path, repository source path, type and file size for each entry.
 
 **--less**
 :   View the output in an interactive pager (uses `$PAGER` or `less -RFX`).
@@ -285,10 +286,11 @@ linux    profiles/linux/.bashrc    file  3.4 KiB
 
 Notes:
 
-* Standard listing shows the logical home-relative path, for example `.bashrc`
-* `--long` shows the repository storage path, for example `common/.bashrc` or `profiles/linux/.bashrc`
-* Commands that manipulate files accept the logical path first: `tildr restore .bashrc`
-* Storage paths copied from long output are also accepted as aliases: `tildr restore common/.bashrc` restores to `~/.bashrc`, and `tildr restore profiles/linux/.bashrc` restores to `~/.bashrc` using the `linux` variant
+* `FILEPATH` is always the logical home-relative path, for example `.bashrc`
+* `SOURCE` is only shown with `--long` and points to the repository file, for example `common/.bashrc` or `profiles/linux/.bashrc`
+* Commands that manipulate files should use the logical path: `tildr restore .bashrc`
+* Use `--profile` to target a variant explicitly: `tildr restore .bashrc --profile linux`, `tildr del .bashrc --profile common`, or `tildr cat .bashrc --profile linux`
+* Storage paths copied from `SOURCE` are accepted as compatibility aliases, but they are not the recommended command input
 * Tree view prints the repository directory structure directly
 * `.tildrignore` patterns and internally excluded files are not shown
 
@@ -334,6 +336,7 @@ Prints the content of a managed file from the repository.
 
 ```sh
 tildr cat .bashrc
+tildr cat .bashrc --profile linux
 tildr cat .config/nvim/init.lua --less
 tildr cat config
 tildr cat
@@ -341,14 +344,16 @@ tildr cat
 
 Options:
 
-| Flag     | Short| Description            |
-|----------|------|------------------------|
-| `--less` | `-l` | Open output in a pager |
+| Flag        | Short | Description                                  |
+|-------------|-------|----------------------------------------------|
+| `--less`    | `-l`  | Open output in a pager                       |
+| `--profile` |       | Read the file from a specific profile variant |
 
 Behavior:
 
 * If no target is passed, Tildr opens an interactive picker
 * The special target `config` resolves to the Tildr config file itself
+* Use `--profile <NAME>` to read a variant without switching the active profile
 * When `--less` is used, Tildr respects `$PAGER` and falls back to `less -RFX` on TTY output
 
 You can use your preferred file viewers by using the PAGER environment variable like this:
