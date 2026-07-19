@@ -880,6 +880,8 @@ Options:
 Behavior:
 
 * Groups are stored in `.tildr/groups.json` in the repository root
+* Groups store logical `$HOME` paths, such as `.bashrc` or `.config/nvim/init.lua`
+* `--files` accepts `$HOME` paths, `~`, `$HOME`, cwd-relative paths, `common/<path>`, and `profiles/<name>/<path>`
 * `--files` accepts both files and folders; folders are expanded recursively
 * `add` with a folder adds all files inside it (e.g. `--files .term` adds `.term/*.sh`, etc.)
 * `rm` with a folder removes all entries that start with that path (e.g. `--files .term` removes `.term/behavior.sh`, `.term/colors.sh`, etc.)
