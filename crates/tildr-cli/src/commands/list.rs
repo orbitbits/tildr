@@ -2,7 +2,7 @@ use clap::Args;
 
 #[derive(Args, Debug, Clone)]
 #[command(
-  about = "List managed files in the repository",
+  about = "List managed files as HOME paths",
   after_help = "\
 EXAMPLES:
   tildr list
@@ -17,9 +17,12 @@ pub struct Command {
   /// Show files in a tree view
   #[arg(short, long)]
   pub tree: bool,
-  /// Show detailed information, including the repository source path
+  /// Show detailed HOME path information (type, size)
   #[arg(short, long)]
   pub long: bool,
+  /// Show repository source paths instead of HOME paths
+  #[arg(long, conflicts_with_all = ["tree", "long"])]
+  pub source: bool,
   /// Export managed file list to a JSON file
   #[arg(long, value_name = "FILE")]
   pub export: Option<String>,

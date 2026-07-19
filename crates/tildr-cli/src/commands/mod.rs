@@ -23,6 +23,7 @@ mod repo;
 mod restore;
 mod secret;
 mod snapshot;
+mod source_path;
 mod stats;
 mod status;
 mod suggest;
@@ -56,6 +57,7 @@ pub enum CliCommands {
   Backup(backup::Command),
   Suggest(suggest::Command),
   Snapshot(snapshot::Command),
+  SourcePath(source_path::Command),
   Group(group::Command),
   Profile(profile::Command),
 }

@@ -55,6 +55,7 @@ pub enum Commands {
   List {
     tree: bool,
     long: bool,
+    source: bool,
     export: Option<String>,
     import: Option<String>,
     less: bool,
@@ -81,7 +82,6 @@ pub enum Commands {
   Status {
     json: bool,
     counter: bool,
-    long: bool,
     less: bool,
     profile: Option<String>,
   },
@@ -143,6 +143,10 @@ pub enum Commands {
   Suggest,
   Snapshot {
     output: Option<String>,
+  },
+  SourcePath {
+    target: String,
+    profile: Option<String>,
   },
   Group {
     mode: GroupMode,

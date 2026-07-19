@@ -47,6 +47,7 @@ impl From<CliCommands> for Commands {
       CliCommands::List(cmd) => Commands::List {
         tree: cmd.tree,
         long: cmd.long,
+        source: cmd.source,
         export: cmd.export,
         import: cmd.import,
         less: cmd.less,
@@ -76,7 +77,6 @@ impl From<CliCommands> for Commands {
       CliCommands::Status(cmd) => Commands::Status {
         json: cmd.json,
         counter: cmd.counter,
-        long: cmd.long,
         less: cmd.less,
         profile: cmd.profile,
       },
@@ -145,6 +145,10 @@ impl From<CliCommands> for Commands {
       CliCommands::Backup(cmd) => Commands::Backup { output: cmd.output },
       CliCommands::Suggest(_) => Commands::Suggest,
       CliCommands::Snapshot(cmd) => Commands::Snapshot { output: cmd.output },
+      CliCommands::SourcePath(cmd) => Commands::SourcePath {
+        target: cmd.target,
+        profile: cmd.profile,
+      },
       CliCommands::Group(cmd) => Commands::Group {
         mode: match cmd.mode {
           CliGroupMode::Create { name, files } => GroupMode::Create { name, files },

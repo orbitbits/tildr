@@ -1,6 +1,11 @@
 use anyhow::{Context as AnyhowContext, Result};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Write, fs, path::Path, path::PathBuf};
+use std::{
+  collections::{BTreeMap, HashMap},
+  fmt::Write,
+  fs,
+  path::{Path, PathBuf},
+};
 use tildr_core::context::Context;
 use tildr_fs::symlink::create_symlink;
 use tildr_ui::info;
@@ -20,6 +25,7 @@ struct ExportFile {
 pub struct ListArgs {
   pub tree: bool,
   pub long: bool,
+  pub source: bool,
   pub export: Option<String>,
   pub import: Option<String>,
   pub less: bool,
@@ -38,17 +44,6 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
 
   if let Some(ref path) = args.import {
     return import_from_file(ctx, path);
-  }
-
-  if args.tree {
-    let mut buf = String::new();
-    write_tree(&ctx.repo_path, &mut buf)?;
-    if args.less {
-      page_string(&buf)?;
-    } else {
-      print!("{}", buf);
-    }
-    return Ok(());
   }
 
   let entries = scan_all_entries_with_profile(ctx)?;
@@ -89,7 +84,11 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   let count = entries_to_show.len();
   let mut buf = String::new();
 
-  if args.long {
+  if args.source {
+    write_source(ctx, &entries_to_show, &mut buf)?;
+  } else if args.tree {
+    write_tree(&entries_to_show, &mut buf)?;
+  } else if args.long {
     write_long(&entries_to_show, &mut buf, &by_filepath)?;
   } else {
     write_compact(&entries_to_show, &mut buf)?;
@@ -106,6 +105,51 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   Ok(())
 }
 
+fn write_source(ctx: &Context, entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
+  let profile_width = entries
+    .iter()
+    .map(|e| e.profile.len())
+    .max()
+    .unwrap_or(7)
+    .max(7);
+
+  let path_width = entries
+    .iter()
+    .map(|e| repo_display(ctx, &e.repo_path).len())
+    .max()
+    .unwrap_or(4)
+    .max(4);
+
+  writeln!(
+    buf,
+    "{:<width_p$}  {:<width_f$}",
+    "PROFILE",
+    "PATH",
+    width_p = profile_width,
+    width_f = path_width
+  )?;
+
+  for entry in entries {
+    writeln!(
+      buf,
+      "{:<width_p$}  {:<width_f$}",
+      entry.profile,
+      repo_display(ctx, &entry.repo_path),
+      width_p = profile_width,
+      width_f = path_width
+    )?;
+  }
+
+  Ok(())
+}
+
+fn repo_display(ctx: &Context, path: &Path) -> String {
+  path
+    .strip_prefix(&ctx.home_path)
+    .map(|relative| format!("~/{}", relative.display()))
+    .unwrap_or_else(|_| path.display().to_string())
+}
+
 fn write_compact(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
   let profile_width = entries
     .iter()
@@ -116,7 +160,7 @@ fn write_compact(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()
 
   let filepath_width = entries
     .iter()
-    .map(|e| e.filepath.display().to_string().len())
+    .map(|e| home_display(&e.filepath).len())
     .max()
     .unwrap_or(8)
     .max(8);
@@ -135,7 +179,7 @@ fn write_compact(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()
       buf,
       "{:<width_p$}  {:<width_f$}",
       entry.profile,
-      entry.filepath.display(),
+      home_display(&entry.filepath),
       width_p = profile_width,
       width_f = filepath_width
     )?;
@@ -158,27 +202,18 @@ fn write_long(
 
   let filepath_width = entries
     .iter()
-    .map(|e| e.filepath.display().to_string().len())
+    .map(|e| home_display(&e.filepath).len())
     .max()
     .unwrap_or(8)
     .max(8);
 
-  let source_width = entries
-    .iter()
-    .map(|e| e.repo_relative.display().to_string().len())
-    .max()
-    .unwrap_or(6)
-    .max(6);
-
   writeln!(
     buf,
-    "{:<width_p$}  {:<width_f$}  {:<width_s$}  TYPE  SIZE",
+    "{:<width_p$}  {:<width_f$}  TYPE  SIZE",
     "PROFILE",
     "FILEPATH",
-    "SOURCE",
     width_p = profile_width,
-    width_f = filepath_width,
-    width_s = source_width
+    width_f = filepath_width
   )?;
 
   for entry in entries {
@@ -193,15 +228,13 @@ fn write_long(
 
     writeln!(
       buf,
-      "{:<width_p$}  {:<width_f$}  {:<width_s$}  {:<4}  {}",
+      "{:<width_p$}  {:<width_f$}  {:<4}  {}",
       entry.profile,
-      entry.filepath.display(),
-      entry.repo_relative.display(),
+      home_display(&entry.filepath),
       file_type,
       size,
       width_p = profile_width,
-      width_f = filepath_width,
-      width_s = source_width
+      width_f = filepath_width
     )?;
 
     // Show variants if this file exists in multiple profiles
@@ -217,7 +250,7 @@ fn write_long(
         writeln!(
           buf,
           "    {} variants: {}",
-          entry.filepath.display(),
+          home_display(&entry.filepath),
           variant_profiles.join(", ")
         )?;
       }
@@ -225,6 +258,14 @@ fn write_long(
   }
 
   Ok(())
+}
+
+fn home_display(path: &Path) -> String {
+  if path.as_os_str().is_empty() {
+    "~".to_string()
+  } else {
+    format!("~/{}", path.display())
+  }
 }
 
 fn export_to_file(ctx: &Context, path: &str) -> Result<()> {
@@ -318,44 +359,43 @@ fn import_from_file(ctx: &Context, path: &str) -> Result<()> {
   Ok(())
 }
 
-fn write_tree(root: &Path, buf: &mut String) -> Result<()> {
-  fn walk(path: &Path, prefix: String, buf: &mut String) -> Result<()> {
-    let mut entries: Vec<_> = fs::read_dir(path)?
-      .filter_map(|e| e.ok())
-      .filter(|e| e.file_name() != ".git")
-      .collect();
+#[derive(Default)]
+struct TreeNode {
+  children: BTreeMap<String, TreeNode>,
+}
 
-    entries.sort_by_key(|e| e.file_name());
+fn write_tree(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
+  fn insert(root: &mut TreeNode, path: &PathBuf) {
+    let mut node = root;
+    for component in path.components() {
+      let name = component.as_os_str().to_string_lossy().to_string();
+      node = node.children.entry(name).or_default();
+    }
+  }
 
-    let len = entries.len();
-
-    for (i, entry) in entries.into_iter().enumerate() {
-      let is_last = i == len - 1;
-      let name = entry.file_name().to_string_lossy().to_string();
-      let path = entry.path();
-
+  fn walk(node: &TreeNode, prefix: &str, buf: &mut String) -> Result<()> {
+    let len = node.children.len();
+    for (index, (name, child)) in node.children.iter().enumerate() {
+      let is_last = index == len - 1;
       let branch = if is_last { "└── " } else { "├── " };
-      writeln!(buf, "{}{}{}", prefix, branch, name)?;
+      writeln!(buf, "{prefix}{branch}{name}")?;
 
-      if path.is_dir() {
-        let new_prefix = if is_last {
-          format!("{}    ", prefix)
-        } else {
-          format!("{}│   ", prefix)
-        };
-        walk(&path, new_prefix, buf)?;
-      }
+      let new_prefix = if is_last {
+        format!("{prefix}    ")
+      } else {
+        format!("{prefix}│   ")
+      };
+      walk(child, &new_prefix, buf)?;
     }
 
     Ok(())
   }
 
-  writeln!(
-    buf,
-    "{}",
-    root.file_name().unwrap_or_default().to_string_lossy()
-  )?;
-  walk(root, String::new(), buf)?;
+  let mut root = TreeNode::default();
+  for entry in entries {
+    insert(&mut root, &entry.filepath);
+  }
 
-  Ok(())
+  writeln!(buf, "~")?;
+  walk(&root, "", buf)
 }

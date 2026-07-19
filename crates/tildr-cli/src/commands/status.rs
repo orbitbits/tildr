@@ -6,7 +6,6 @@ use clap::Args;
   after_help = "\
 EXAMPLES:
   tildr status
-  tildr status --long
   tildr status --less
   tildr status --profile work\n"
 )]
@@ -18,10 +17,6 @@ pub struct Command {
   /// Display a summary of managed files and their states
   #[arg(short, long)]
   pub counter: bool,
-
-  /// Show the repository source path in a separate SOURCE column
-  #[arg(long)]
-  pub long: bool,
 
   /// View the output in an interactive pager
   #[arg(short, long)]

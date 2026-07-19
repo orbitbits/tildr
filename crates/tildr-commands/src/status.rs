@@ -11,15 +11,12 @@ use crate::utils::target::{ManagedEntryProfile, effective_entries, scan_all_entr
 pub struct FileStatus {
   pub profile: String,
   pub filepath: String,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub source: Option<String>,
   pub status: String,
 }
 
 pub struct StatusArgs {
   pub json: bool,
   pub counter: bool,
-  pub long: bool,
   pub less: bool,
   pub profile: Option<String>,
 }
@@ -83,8 +80,7 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
 
     statuses.push(FileStatus {
       profile: entry.profile.clone(),
-      filepath: entry.filepath.display().to_string(),
-      source: args.long.then(|| entry.repo_relative.display().to_string()),
+      filepath: home_display(&entry.filepath),
       status: status.to_string(),
     });
   }
@@ -132,35 +128,14 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
     .unwrap_or(8)
     .max(8);
 
-  let source_width = statuses
-    .iter()
-    .filter_map(|s| s.source.as_ref())
-    .map(|source| source.len())
-    .max()
-    .unwrap_or(6)
-    .max(6);
-
-  if args.long {
-    writeln!(
-      buf,
-      "{:<width_p$}  {:<width_f$}  {:<width_s$}  STATUS",
-      "PROFILE",
-      "FILEPATH",
-      "SOURCE",
-      width_p = profile_width,
-      width_f = filepath_width,
-      width_s = source_width
-    )?;
-  } else {
-    writeln!(
-      buf,
-      "{:<width_p$}  {:<width_f$}  STATUS",
-      "PROFILE",
-      "FILEPATH",
-      width_p = profile_width,
-      width_f = filepath_width
-    )?;
-  }
+  writeln!(
+    buf,
+    "{:<width_p$}  {:<width_f$}  STATUS",
+    "PROFILE",
+    "FILEPATH",
+    width_p = profile_width,
+    width_f = filepath_width
+  )?;
 
   for s in &statuses {
     let (symbol, label) = match s.status.as_str() {
@@ -177,31 +152,16 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
       _ => (icons().none, "unknown".to_string()),
     };
 
-    if args.long {
-      writeln!(
-        buf,
-        "{:<width_p$}  {:<width_f$}  {:<width_s$}  {}{}",
-        s.profile,
-        s.filepath,
-        s.source.as_deref().unwrap_or(""),
-        symbol,
-        label,
-        width_p = profile_width,
-        width_f = filepath_width,
-        width_s = source_width
-      )?;
-    } else {
-      writeln!(
-        buf,
-        "{:<width_p$}  {:<width_f$}  {}{}",
-        s.profile,
-        s.filepath,
-        symbol,
-        label,
-        width_p = profile_width,
-        width_f = filepath_width
-      )?;
-    }
+    writeln!(
+      buf,
+      "{:<width_p$}  {:<width_f$}  {}{}",
+      s.profile,
+      s.filepath,
+      symbol,
+      label,
+      width_p = profile_width,
+      width_f = filepath_width
+    )?;
   }
 
   if result.1[1] > 0 || result.1[2] > 0 || result.1[3] > 0 {
@@ -220,6 +180,14 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
   }
 
   Ok(())
+}
+
+fn home_display(path: &std::path::Path) -> String {
+  if path.as_os_str().is_empty() {
+    "~".to_string()
+  } else {
+    format!("~/{}", path.display())
+  }
 }
 
 pub(crate) fn counter_all(statuses: &Vec<FileStatus>) -> Result<(usize, Vec<i32>)> {

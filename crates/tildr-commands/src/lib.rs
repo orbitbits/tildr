@@ -19,6 +19,7 @@ mod repo;
 mod restore;
 mod secret;
 mod snapshot;
+mod source_path;
 pub mod stats;
 mod status;
 mod suggest;
@@ -133,6 +134,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     Commands::List {
       tree,
       long,
+      source,
       export,
       import,
       less,
@@ -142,6 +144,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
       list::ListArgs {
         tree: *tree,
         long: *long,
+        source: *source,
         export: export.clone(),
         import: import.clone(),
         less: *less,
@@ -182,7 +185,6 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     Commands::Status {
       json,
       counter,
-      long,
       less,
       profile,
     } => status::run(
@@ -190,7 +192,6 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
       status::StatusArgs {
         json: *json,
         counter: *counter,
-        long: *long,
         less: *less,
         profile: profile.clone(),
       },
@@ -260,6 +261,13 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
     Commands::Backup { output } => backup::run(ctx, output),
     Commands::Suggest => suggest::run(ctx),
     Commands::Snapshot { output } => snapshot::run(ctx, output),
+    Commands::SourcePath { target, profile } => source_path::run(
+      ctx,
+      source_path::SourcePathArgs {
+        target: target.clone(),
+        profile: profile.clone(),
+      },
+    ),
     Commands::Group { mode } => group::run(ctx, mode),
     Commands::Profile { mode } => profile::run(ctx, mode),
   }
