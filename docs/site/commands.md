@@ -171,11 +171,14 @@ tildr status --less
 Output example:
 
 ```text
-PROFILE   FILEPATH              STATUS
-default   .zshrc                ✔ linked
-default   Templates/main.sh     ✔ linked
-archlinux .bashrc               ✔ linked
+PROFILE  FILEPATH                         STATUS
+common   profiles/common/.zshrc           ✔ linked
+common   profiles/common/Templates/main.sh ✔ linked
+linux    profiles/linux/.bashrc           ✔ linked
 ```
+
+The table output always includes the `PROFILE` column. Without `--profile`,
+Tildr shows the effective variant for each logical file.
 
 Options:
 
@@ -222,19 +225,19 @@ tildr list --import ~/tildr-files.json
 Output example (default):
 
 ```text
-PROFILE   FILEPATH
-default   .zshrc
-default   Templates/main.sh
-archlinux .bashrc
+PROFILE  FILEPATH
+common   .zshrc
+common   Templates/main.sh
+linux    .bashrc
 ```
 
 Output example (`--long`):
 
 ```text
-PROFILE   FILEPATH              TYPE  SIZE
-default   .zshrc                file  2.1 KiB
-default   Templates/main.sh     file  892 B
-archlinux .bashrc               file  3.4 KiB
+PROFILE  FILEPATH              TYPE  SIZE
+common   .zshrc                file  2.1 KiB
+common   Templates/main.sh     file  892 B
+linux    .bashrc               file  3.4 KiB
 ```
 
 **Options:**
@@ -814,10 +817,10 @@ Manages profiles for machine-specific dotfile variants. Profiles allow you to ha
 
 ```sh
 tildr profile create work --description "Work environment"
-tildr profile add default --files .bashrc .ssh/config --to work
-tildr profile mv default --to work                              # move all orphans to work
-tildr profile mv default -f .bashrc --to work                   # move .bashrc to work
-tildr profile mv work --to default                              # restore all from work to default
+tildr profile add common --files .bashrc .ssh/config --to work
+tildr profile mv common --to work                               # move all common files to work
+tildr profile mv common -f .bashrc --to work                    # move .bashrc to work
+tildr profile mv work --to common                               # restore all from work to common
 tildr profile add work -f .bashrc --to personal                 # copy .bashrc between profiles
 tildr profile rename linux archlinux                            # rename profile
 tildr profile del work
@@ -837,15 +840,15 @@ Options:
 | Subcommand                                             | Description                                                             |
 |--------------------------------------------------------|-------------------------------------------------------------------------|
 | `create <NAME> [--description <DESC>]`                 | Create a new profile (`"default"` is reserved)                          |
-| `add <FROM> [-f <FILES>] --to <TO>`                    | Copy files between default, profiles, or between profiles               |
-| `mv <FROM> [-f <FILES>] --to <TO>`                     | Move files between default, profiles, or between profiles               |
-| `del <NAME>`                                           | Delete a profile and restore orphans                                    |
+| `add <FROM> [-f <FILES>] --to <TO>`                    | Copy files between common files, profiles, or between profiles          |
+| `mv <FROM> [-f <FILES>] --to <TO>`                     | Move files between common files, profiles, or between profiles          |
+| `del <NAME>`                                           | Delete a profile and restore orphans to `profiles/common/`              |
 | `rename <FROM> <TO>`                                   | Rename a profile (accepts quoted names)                                 |
 | `list [<NAME>] [--long] [--less]`                      | List all available profiles                                             |
 | `set <NAME>`                                           | Set the active profile (see Active Profile below)                       |
-| `unset`                                                | Unset the active profile (revert to default)                            |
+| `unset`                                                | Unset the active profile (revert to common files)                       |
 | `current`                                              | Show the currently active profile                                       |
-| `migrate [--dry-run]`                                  | Migrate an existing repo to the profiles model (moves root files into `profiles/default/`) |
+| `migrate [--dry-run]`                                  | Migrate an existing repo to the profiles model (moves root files into `profiles/common/`) |
 
 List options:
 
@@ -861,7 +864,8 @@ The active profile is a per-file override mechanism. When `tildr apply`, `tildr 
 
 1. Check if the file has a variant in the active profile
 2. If yes, use the profile variant (`profiles/<name>/<file>`)
-3. If no, fall back to the root version (`<file>`)
+3. If no, fall back to the common version (`profiles/common/<file>`)
+4. If no common version exists, fall back to legacy `profiles/default/<file>` or root files
 
 This means **all managed files are always processed** — the active profile only determines *which variant* of each file to use, not whether to skip files.
 
@@ -869,29 +873,31 @@ Example: if the active profile is `work` and it tracks `.bashrc` and `.ssh/confi
 
 - `~/.bashrc` → `profiles/work/.bashrc` (profile variant)
 - `~/.ssh/config` → `profiles/work/.ssh/config` (profile variant)
-- `~/.gitconfig` → `.gitconfig` (root version, not in profile)
+- `~/.gitconfig` → `profiles/common/.gitconfig` (common version, not in profile)
 
 Behavior:
 
 * Profiles are stored in `.tildr/profiles.json` in the repository root
-* `default` is a special name representing files at the repo root (no `profiles/default/` directory)
+* `common` is the shared location for dotfiles without a profile (`profiles/common/`)
+* `default` is only kept as a legacy compatibility fallback
 * `add` copies files preserving the source; `mv` moves files (copies then removes originals)
-* Without `-f`, `add`/`mv` operate on all eligible files (orphans for `default`, all tracked files for a profile)
-* `del` removes the profile directory and restores orphaned files to the repo root
+* Without `-f`, `add`/`mv` operate on all eligible files (orphans for `common`, all tracked files for a profile)
+* `del` removes the profile directory and restores orphaned files to `profiles/common/`
 * `rename` renames the profile directory and updates all tracked file paths; if the profile is active, updates active profile name; re-creates symlinks for linked files
 * `apply` uses the active profile to resolve which file variant to symlink
 * `status` uses the active profile to verify symlink targets match the expected variant
 * `doctor` uses the active profile to check symlink integrity
-* Files not in the active profile fall back to the default (root) version
+* Files not in the active profile fall back to the common version
 * Only one profile can be active at a time
 * Auto-commits changes to the repository
 
 Example structure:
 
 ```
-.bashrc                              # default version
-.ssh/config                          # default version
 profiles/
+  common/
+    .bashrc                          # common version
+    .ssh/config                      # common SSH config
   work/
     .bashrc                          # work variant
     .ssh/config                      # work SSH config

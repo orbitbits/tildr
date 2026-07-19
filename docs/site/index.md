@@ -286,24 +286,24 @@ tildr group list
 tildr profile create work --description "Work laptop"
 
 # Add files to the profile (copies to profiles/work/)
-tildr profile add default --files .bashrc .ssh/config --to work
+tildr profile add common --files .bashrc .ssh/config --to work
 
 # Create another profile
 tildr profile create personal --description "Personal desktop"
-tildr profile add default --files .bashrc .gitconfig --to personal
+tildr profile add common --files .bashrc .gitconfig --to personal
 
 # Activate a profile
 tildr profile set work
 
 # Apply uses the active profile to resolve which variant of each file to symlink.
-# Files in the active profile use their profile variant; others fall back to root.
+# Files in the active profile use their profile variant; others fall back to common.
 tildr apply
 
 # Switch profiles
 tildr profile set personal
 tildr apply
 
-# Deactivate (revert to defaults)
+# Deactivate (revert to common files)
 tildr profile unset
 tildr apply
 ```
