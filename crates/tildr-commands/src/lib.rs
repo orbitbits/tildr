@@ -75,6 +75,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
 
     Commands::Add {
       paths,
+      profile,
       force,
       dry_run,
       quiet,
@@ -83,6 +84,7 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
       ctx,
       add::AddArgs {
         paths: paths.clone(),
+        profile: profile.clone(),
         force: *force,
         dry_run: *dry_run,
         quiet: *quiet,

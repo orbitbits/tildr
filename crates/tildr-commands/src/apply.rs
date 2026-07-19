@@ -30,24 +30,13 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
   let entries = scatildr_repo(&ctx.repo_path)?;
   let profiles = Profiles::load(ctx)?;
 
+  // Collect unique logical paths from all profiles
   let mut files: Vec<String> = entries
     .into_iter()
     .map(|e| e.relative.to_string_lossy().to_string())
     .collect();
-
-  // Also process files tracked by the active profile that may not exist
-  // at the repo root (e.g. after a `mv` into a profile).
-  if let Some(ref active) = profiles.active
-    && let Some(profile) = profiles.profiles.get(active)
-  {
-    for file in profile.files.keys() {
-      if !files.contains(file) {
-        files.push(file.clone());
-      }
-    }
-  }
-
   files.sort();
+  files.dedup();
 
   let mut actions = Vec::new();
   let mut created = 0;
@@ -56,6 +45,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
 
   for file_str in &files {
     let home = ctx.home_path.join(file_str);
+    // resolve() checks active profile first, falls back to profiles/default/
     let repo = profiles.resolve(&ctx.repo_path, file_str);
 
     // Skip if the resolved target doesn't exist on disk

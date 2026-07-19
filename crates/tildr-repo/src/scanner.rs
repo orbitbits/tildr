@@ -16,7 +16,11 @@ use tildr_utils::fs::should_ignore;
 
 #[derive(Debug, Clone)]
 pub struct ManagedEntry {
+  /// Profile this file belongs to (e.g. "default", "linux").
+  pub profile: String,
+  /// Logical home-relative path (e.g. `.bashrc`, `.config/nvim/init.lua`).
   pub relative: PathBuf,
+  /// Absolute path on disk.
   pub repo_path: PathBuf,
 }
 
@@ -112,8 +116,9 @@ fn scan_entry(
   let file_type = entry.file_type();
   let is_dir = file_type.is_some_and(|kind| kind.is_dir());
 
+  // Only skip .git, not profiles
   if let Some(name) = path.file_name()
-    && (name == OsStr::new(".git") || name == OsStr::new("profiles"))
+    && name == OsStr::new(".git")
   {
     return if is_dir {
       WalkState::Skip
@@ -144,11 +149,20 @@ fn scan_entry(
     return WalkState::Continue;
   }
 
+  // Only process files under profiles/<name>/
   if let Ok(relative) = path.strip_prefix(repo_path) {
-    entries.push(ManagedEntry {
-      relative: relative.to_path_buf(),
-      repo_path: path.to_path_buf(),
-    });
+    let relative_str = relative.to_string_lossy();
+    if let Some(rest) = relative_str.strip_prefix("profiles/")
+      && let Some(slash_pos) = rest.find('/')
+    {
+      let profile_name = &rest[..slash_pos];
+      let logical_path = &rest[slash_pos + 1..];
+      entries.push(ManagedEntry {
+        profile: profile_name.to_string(),
+        relative: PathBuf::from(logical_path),
+        repo_path: path.to_path_buf(),
+      });
+    }
   }
 
   WalkState::Continue

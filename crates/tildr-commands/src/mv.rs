@@ -15,7 +15,10 @@ use tildr_ui::{
   prompt::MinimalTheme,
 };
 
-use crate::utils::auto_commit::auto_commit_dry_run;
+use crate::utils::{
+  auto_commit::auto_commit_dry_run,
+  target::{ManagedEntryProfile, scan_all_entries_with_profile},
+};
 
 pub struct MvArgs {
   pub source: Option<String>,
@@ -24,12 +27,19 @@ pub struct MvArgs {
   pub quiet: bool,
 }
 
+fn find_entry(ctx: &Context, target: &str) -> Result<ManagedEntryProfile> {
+  let entries = scan_all_entries_with_profile(ctx)?;
+  entries
+    .into_iter()
+    .find(|e| e.filepath.to_string_lossy() == target)
+    .ok_or_else(|| anyhow::anyhow!("File is not managed by tildr: {}", target))
+}
+
 pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
   // --- Resolve source ---
   let source_rel = match args.source {
     Some(ref s) => PathBuf::from(s),
     None => {
-      // Interactive: open picker to select the file
       let picked = pick::target(
         ctx,
         None,
@@ -37,7 +47,6 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
         Some("Select a file\n-------------\n"),
         PickMode::Managed,
       )?;
-      // pick::target returns repo_path-based path; get relative
       picked
         .strip_prefix(&ctx.repo_path)
         .unwrap_or(&picked)
@@ -45,17 +54,14 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
     }
   };
 
-  let source_repo = ctx.repo_path.join(&source_rel);
-
-  if !source_repo.exists() {
-    bail!("File is not managed by tildr: {}", source_rel.display());
-  }
+  let entry = find_entry(ctx, &source_rel.to_string_lossy())?;
+  let source_repo = entry.repo_path.clone();
+  let profile_name = entry.profile.clone();
 
   // --- Resolve dest ---
   let dest_input = match args.dest {
     Some(ref d) => d.clone(),
     None => {
-      // Interactive: prompt for new path
       let title = format!(
         "{} {}\n--------------\n",
         "File selected:".cyan(),
@@ -76,7 +82,6 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
   let dest_rel = {
     let dest_path = PathBuf::from(&dest_input);
     if dest_path.components().count() == 1 {
-      // Only a filename — preserve original directory
       match source_rel.parent() {
         Some(parent) if parent != std::path::Path::new("") => parent.join(&dest_path),
         _ => dest_path,
@@ -86,7 +91,11 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
     }
   };
 
-  let dest_repo = ctx.repo_path.join(&dest_rel);
+  let dest_repo = ctx
+    .repo_path
+    .join("profiles")
+    .join(&profile_name)
+    .join(&dest_rel);
   let source_home = ctx.home_path.join(&source_rel);
   let dest_home = ctx.home_path.join(&dest_rel);
 
@@ -156,7 +165,6 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
     args.quiet,
   );
 
-  // --- Auto commit ---
   auto_commit_dry_run(
     ctx,
     &format!("mv {} {}", source_rel.display(), dest_rel.display()),

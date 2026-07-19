@@ -1,10 +1,8 @@
 use anyhow::{Result, bail};
-use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use tildr_core::context::Context;
 use tildr_fs::paths::resolve_home_path;
 use tildr_repo::{ManagedEntry, scatildr_repo};
-use walkdir::WalkDir;
 
 use crate::profile::Profiles;
 
@@ -17,7 +15,7 @@ pub enum ResolvedTarget {
   },
 }
 
-/// Entry with profile information.
+/// Entry with profile information for display (list/status).
 #[derive(Debug, Clone)]
 pub struct ManagedEntryProfile {
   pub profile: String,
@@ -28,101 +26,35 @@ pub struct ManagedEntryProfile {
   pub repo_path: PathBuf,
 }
 
-pub fn scan_all_entries(ctx: &Context) -> Result<Vec<ManagedEntry>> {
-  let mut entries = scatildr_repo(&ctx.repo_path)?;
-
-  // Include profile variant files that don't exist at the repo root.
-  let profiles = Profiles::load(ctx)?;
-  let root_rel: HashSet<PathBuf> = entries.iter().map(|e| e.relative.clone()).collect();
-
-  let profiles_dir = ctx.repo_path.join("profiles");
-  if profiles_dir.is_dir() {
-    for profile_name in profiles.profiles.keys() {
-      let dir = profiles_dir.join(profile_name);
-      if !dir.is_dir() {
-        continue;
-      }
-      for entry in WalkDir::new(&dir)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
-      {
-        let full = entry.path();
-        let relative_in_profile = full.strip_prefix(&dir).unwrap_or(full).to_path_buf();
-
-        // Only include if this logical path is NOT already at the repo root.
-        if !root_rel.contains(&relative_in_profile) {
-          entries.push(ManagedEntry {
-            relative: relative_in_profile,
-            repo_path: full.to_path_buf(),
-          });
-        }
-      }
-    }
-  }
-
-  entries.sort_by(|left, right| left.relative.cmp(&right.relative));
+/// Scan all managed entries. The scanner reads files under `profiles/*/`.
+pub fn scan_all_entries(_ctx: &Context) -> Result<Vec<ManagedEntry>> {
+  let entries = scatildr_repo(&_ctx.repo_path)?;
   Ok(entries)
 }
 
-/// Scan all managed entries with profile information.
-/// Returns entries where `filepath` is the logical path (without profile prefix)
-/// and `profile` indicates which profile it belongs to ("default" for root files).
+/// Scan all managed entries with profile information for display.
 pub fn scan_all_entries_with_profile(ctx: &Context) -> Result<Vec<ManagedEntryProfile>> {
-  let mut entries = Vec::new();
+  let entries = scatildr_repo(&ctx.repo_path)?;
 
-  // Root files (default profile)
-  let root_entries = scatildr_repo(&ctx.repo_path)?;
-  let root_rel: HashSet<PathBuf> = root_entries.iter().map(|e| e.relative.clone()).collect();
-
-  for entry in root_entries {
-    entries.push(ManagedEntryProfile {
-      profile: "default".to_string(),
-      filepath: entry.relative.clone(),
-      repo_relative: entry.relative.clone(),
-      repo_path: entry.repo_path,
-    });
-  }
-
-  // Profile variant files
-  let profiles = Profiles::load(ctx)?;
-  let profiles_dir = ctx.repo_path.join("profiles");
-  if profiles_dir.is_dir() {
-    for profile_name in profiles.profiles.keys() {
-      let dir = profiles_dir.join(profile_name);
-      if !dir.is_dir() {
-        continue;
+  let mut result: Vec<ManagedEntryProfile> = entries
+    .into_iter()
+    .map(|e| {
+      let repo_relative = PathBuf::from("profiles").join(&e.profile).join(&e.relative);
+      ManagedEntryProfile {
+        profile: e.profile,
+        filepath: e.relative,
+        repo_relative,
+        repo_path: e.repo_path,
       }
-      for entry in WalkDir::new(&dir)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
-      {
-        let full = entry.path();
-        let relative_in_profile = full.strip_prefix(&dir).unwrap_or(full).to_path_buf();
+    })
+    .collect();
 
-        // Only include if this logical path is NOT already at the repo root.
-        if !root_rel.contains(&relative_in_profile) {
-          let repo_relative = PathBuf::from("profiles")
-            .join(profile_name)
-            .join(&relative_in_profile);
-          entries.push(ManagedEntryProfile {
-            profile: profile_name.clone(),
-            filepath: relative_in_profile,
-            repo_relative,
-            repo_path: full.to_path_buf(),
-          });
-        }
-      }
-    }
-  }
-
-  entries.sort_by(|a, b| {
+  result.sort_by(|a, b| {
     a.profile
       .cmp(&b.profile)
       .then_with(|| a.repo_relative.cmp(&b.repo_relative))
   });
-  Ok(entries)
+  Ok(result)
 }
 
 pub fn to_relative(ctx: &Context, path: &Path) -> Result<PathBuf> {
@@ -167,25 +99,15 @@ pub fn resolve_targets(ctx: &Context, targets: &[String]) -> Result<Vec<Resolved
   Ok(resolved)
 }
 
-/// Resolve a logical file path to the actual repo path, checking profiles.
+/// Resolve a logical file path to the actual repo path via the active profile.
+/// Falls back to profiles/default/.
 pub fn resolve_repo_file(ctx: &Context, relative: &Path) -> Result<PathBuf> {
-  let repo_file = ctx.repo_path.join(relative);
-  if repo_file.exists() {
-    return Ok(repo_file);
-  }
+  let profiles = Profiles::load(ctx)?;
+  let file_str = relative.to_string_lossy();
+  let resolved = profiles.resolve(&ctx.repo_path, &file_str);
 
-  let profiles_dir = ctx.repo_path.join("profiles");
-  if profiles_dir.is_dir() {
-    for entry in std::fs::read_dir(&profiles_dir)
-      .into_iter()
-      .flatten()
-      .filter_map(|e| e.ok())
-    {
-      let variant = entry.path().join(relative);
-      if variant.is_file() {
-        return Ok(variant);
-      }
-    }
+  if resolved.exists() {
+    return Ok(resolved);
   }
 
   bail!("File not found: {}", relative.display())

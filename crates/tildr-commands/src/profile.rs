@@ -32,12 +32,20 @@ impl Profiles {
 
   pub fn load(ctx: &Context) -> Result<Self> {
     let path = Self::path(ctx);
-    if !path.exists() {
-      return Ok(Self::default());
+    let mut profiles: Profiles = if !path.exists() {
+      Self::default()
+    } else {
+      let data = fs::read_to_string(&path).context("Failed to read profiles file")?;
+      serde_json::from_str(&data).context("Failed to parse profiles file")?
+    };
+
+    // Always ensure default profile exists
+    if !profiles.profiles.contains_key("default") {
+      profiles
+        .profiles
+        .insert("default".to_string(), ProfileDef::default());
     }
-    let data = fs::read_to_string(&path).context("Failed to read profiles file")?;
-    let profiles: Profiles =
-      serde_json::from_str(&data).context("Failed to parse profiles file")?;
+
     Ok(profiles)
   }
 
@@ -53,12 +61,14 @@ impl Profiles {
 
   pub fn resolve(&self, repo_path: &Path, file: &str) -> PathBuf {
     if let Some(ref active) = self.active
+      && active != "default"
       && let Some(profile) = self.profiles.get(active)
       && let Some(variant) = profile.files.get(file)
     {
       return repo_path.join(variant);
     }
-    repo_path.join(file)
+    // Fallback to default profile
+    repo_path.join("profiles/default").join(file)
   }
 }
 
@@ -75,6 +85,7 @@ pub fn run(ctx: &Context, mode: &tildr_domain::ProfileMode) -> Result<()> {
     tildr_domain::ProfileMode::Set { name } => set(ctx, name),
     tildr_domain::ProfileMode::Unset => unset(ctx),
     tildr_domain::ProfileMode::Current => current(ctx),
+    tildr_domain::ProfileMode::Migrate { dry_run } => migrate(ctx, *dry_run),
   }
 }
 
@@ -142,26 +153,46 @@ fn resolve_files(
       Ok(keys)
     }
   } else {
-    expand_files(ctx, files)
+    expand_files(ctx, files, from)
   }
 }
 
-fn expand_files(ctx: &Context, files: &[String]) -> Result<Vec<String>> {
+fn expand_files(ctx: &Context, files: &[String], from_profile: &str) -> Result<Vec<String>> {
+  let base = ctx.repo_path.join("profiles").join(from_profile);
   let mut result = Vec::new();
   for file in files {
-    let path = ctx.repo_path.join(file);
+    // First try relative to the profile directory
+    let profile_path = base.join(file);
+    let path = if profile_path.exists() {
+      profile_path
+    } else {
+      // Fallback: try relative to repo root (user may have typed full path)
+      ctx.repo_path.join(file)
+    };
     if path.is_dir() {
+      let strip_base = if path.starts_with(&base) {
+        &base
+      } else {
+        &ctx.repo_path
+      };
       for entry in WalkDir::new(&path).into_iter().filter_map(|e| e.ok()) {
         if entry.file_type().is_file() {
           let relative = entry
             .path()
-            .strip_prefix(&ctx.repo_path)
+            .strip_prefix(strip_base)
             .unwrap_or(entry.path())
             .to_string_lossy()
             .to_string();
           result.push(relative);
         }
       }
+    } else if path.exists() {
+      let relative = path
+        .strip_prefix(&base)
+        .unwrap_or(&path)
+        .to_string_lossy()
+        .to_string();
+      result.push(relative);
     } else {
       result.push(file.clone());
     }
@@ -320,9 +351,11 @@ fn delete(ctx: &Context, name: &str) -> Result<()> {
     .context(format!("Profile '{name}' not found."))?;
 
   let profile_dir = ctx.repo_path.join("profiles").join(name);
+  let default_dir = ctx.repo_path.join("profiles").join("default");
 
+  // Restore files to profiles/default/ if they don't exist there
   for file in def.files.keys() {
-    let target = ctx.repo_path.join(file);
+    let target = default_dir.join(file);
     if !target.exists() {
       let src = profile_dir.join(file);
       if src.exists() {
@@ -498,5 +531,82 @@ fn current(ctx: &Context) -> Result<()> {
     Some(name) => println!("Active profile: {}", style(name).cyan()),
     None => println!("No profile is currently active. Using default files."),
   }
+  Ok(())
+}
+
+fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
+  // Find files at repo root that should be in profiles/default/
+  let root_entries: Vec<_> = fs::read_dir(&ctx.repo_path)?
+    .filter_map(|e| e.ok())
+    .filter(|e| {
+      let name = e.file_name().to_string_lossy().to_string();
+      !name.starts_with('.') && name != "profiles"
+    })
+    .collect();
+
+  if root_entries.is_empty() {
+    println!("{}", style("Nothing to migrate.").dim());
+    return Ok(());
+  }
+
+  let default_dir = ctx.repo_path.join("profiles").join("default");
+  fs::create_dir_all(&default_dir)?;
+
+  let mut count = 0;
+
+  for entry in &root_entries {
+    let name = entry.file_name().to_string_lossy().to_string();
+
+    // Skip if already exists in profiles/default/
+    let target = default_dir.join(&name);
+    if target.exists() {
+      println!(
+        "  {} {} (already in profiles/default/)",
+        style("Skipped:").dim(),
+        name
+      );
+      continue;
+    }
+
+    if dry_run {
+      println!(
+        "  {} {} -> profiles/default/{name}",
+        style("Would migrate:").cyan(),
+        name
+      );
+    } else {
+      let source = entry.path();
+      fs::rename(&source, &target)?;
+      println!(
+        "  {} {} -> profiles/default/{name}",
+        style("Migrated:").green(),
+        name
+      );
+    }
+    count += 1;
+  }
+
+  if count == 0 {
+    println!("{}", style("Nothing to migrate.").dim());
+    return Ok(());
+  }
+
+  if !dry_run {
+    auto_commit(
+      ctx,
+      &format!("migrate {count} file(s) to profiles/default/"),
+    );
+  }
+
+  println!(
+    "\n{} {count} file(s) migrated to profiles/default/{}",
+    if dry_run {
+      style("Would migrate:").cyan()
+    } else {
+      style("Migrated:").green().bold()
+    },
+    if dry_run { " (dry run)" } else { "" }
+  );
+
   Ok(())
 }

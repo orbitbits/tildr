@@ -120,7 +120,7 @@ Git settings control version control integration, automatic commits, and the abi
 |-------|------|---------|-------------|
 | `available` | `Boolean` | `true` | Whether Git was detected by `tildr init`. Written automatically by Tildr. |
 | `enable` | `Boolean` | *unset* | Optional override. When explicitly set to `false`, disables all Git operations even if Git is installed. |
-| `auto_commit` | `Boolean` | `true` | When `true`, auto-runs `git add -A && git commit` after `add`, `restore`, `del`, `mv`, and `secret` operations. |
+| `auto_commit` | `Boolean` | `true` | When `true`, auto-runs `git add -A && git commit` after `add`, `restore`, `del`, `mv`, `secret`, `exclude`, `group`, and `profile` operations. |
 
 #### `git.available`
 
@@ -132,7 +132,7 @@ This is an optional override that allows you to disable Git operations without u
 
 * `tildr sync` will not work
 * `tildr git status` will not work
-* Auto-commit after `add`, `restore`, `del`, `mv`, and `secret` will be skipped
+* Auto-commit after `add`, `restore`, `del`, `mv`, `secret`, `exclude`, `group`, and `profile` will be skipped
 
 ```toml
 [git]
@@ -157,6 +157,17 @@ When `true`, Tildr automatically commits changes after these commands:
 | `tildr secret encrypt` | Commits after re-encrypting the bundle |
 | `tildr exclude add` | Commits after adding an ignore pattern |
 | `tildr exclude rm` | Commits after removing an ignore pattern |
+| `tildr group create` | Commits after creating a group |
+| `tildr group add` | Commits after adding files to a group |
+| `tildr group rm` | Commits after removing files from a group |
+| `tildr profile create` | Commits after creating a profile |
+| `tildr profile add` | Commits after copying files between profiles |
+| `tildr profile mv` | Commits after moving files between profiles |
+| `tildr profile del` | Commits after deleting a profile |
+| `tildr profile rename` | Commits after renaming a profile |
+| `tildr profile set` | Commits after activating a profile |
+| `tildr profile unset` | Commits after deactivating a profile |
+| `tildr profile migrate` | Commits after migrating files to profiles model |
 
 Commands that do **not** trigger auto-commit: `tildr apply`, `tildr unlink`, `tildr status`, `tildr list`, `tildr git`, `tildr sync`, `tildr doctor`.
 

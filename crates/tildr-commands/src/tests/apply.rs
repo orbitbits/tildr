@@ -44,8 +44,8 @@ fn apply_dry_run_creates_nothing() {
   let home = root.join("home");
   let repo = root.join("repo");
   fs::create_dir_all(&home).unwrap();
-  fs::create_dir_all(&repo).unwrap();
-  fs::write(repo.join("file.txt"), "content").unwrap();
+  fs::create_dir_all(repo.join("profiles/default")).unwrap();
+  fs::write(repo.join("profiles/default/file.txt"), "content").unwrap();
   let ctx = setup_context(&home, &repo);
 
   run(
@@ -70,8 +70,8 @@ fn apply_creates_symlink_for_new_file() {
   let home = root.join("home");
   let repo = root.join("repo");
   fs::create_dir_all(&home).unwrap();
-  fs::create_dir_all(&repo).unwrap();
-  fs::write(repo.join("file.txt"), "content").unwrap();
+  fs::create_dir_all(repo.join("profiles/default")).unwrap();
+  fs::write(repo.join("profiles/default/file.txt"), "content").unwrap();
   let ctx = setup_context(&home, &repo);
 
   run(
@@ -87,7 +87,10 @@ fn apply_creates_symlink_for_new_file() {
 
   let link = home.join("file.txt");
   assert!(link.exists());
-  assert!(is_symlink_to(&link, &repo.join("file.txt")));
+  assert!(is_symlink_to(
+    &link,
+    &repo.join("profiles/default/file.txt")
+  ));
   fs::remove_dir_all(&root).ok();
 }
 
@@ -97,8 +100,8 @@ fn apply_update_broken_symlink() {
   let home = root.join("home");
   let repo = root.join("repo");
   fs::create_dir_all(&home).unwrap();
-  fs::create_dir_all(&repo).unwrap();
-  fs::write(repo.join("file.txt"), "content").unwrap();
+  fs::create_dir_all(repo.join("profiles/default")).unwrap();
+  fs::write(repo.join("profiles/default/file.txt"), "content").unwrap();
   let wrong = root.join("wrong.txt");
   fs::write(&wrong, "wrong").unwrap();
   #[cfg(unix)]
@@ -118,7 +121,10 @@ fn apply_update_broken_symlink() {
 
   let link = home.join("file.txt");
   assert!(link.exists());
-  assert!(is_symlink_to(&link, &repo.join("file.txt")));
+  assert!(is_symlink_to(
+    &link,
+    &repo.join("profiles/default/file.txt")
+  ));
   fs::remove_dir_all(&root).ok();
 }
 
@@ -128,8 +134,8 @@ fn apply_skips_regular_file_without_force() {
   let home = root.join("home");
   let repo = root.join("repo");
   fs::create_dir_all(&home).unwrap();
-  fs::create_dir_all(&repo).unwrap();
-  fs::write(repo.join("file.txt"), "new content").unwrap();
+  fs::create_dir_all(repo.join("profiles/default")).unwrap();
+  fs::write(repo.join("profiles/default/file.txt"), "new content").unwrap();
   fs::write(home.join("file.txt"), "existing content").unwrap();
   let ctx = setup_context(&home, &repo);
 
@@ -157,8 +163,8 @@ fn apply_force_replaces_regular_file() {
   let home = root.join("home");
   let repo = root.join("repo");
   fs::create_dir_all(&home).unwrap();
-  fs::create_dir_all(&repo).unwrap();
-  fs::write(repo.join("file.txt"), "new content").unwrap();
+  fs::create_dir_all(repo.join("profiles/default")).unwrap();
+  fs::write(repo.join("profiles/default/file.txt"), "new content").unwrap();
   fs::write(home.join("file.txt"), "existing").unwrap();
   let ctx = setup_context(&home, &repo);
 
@@ -175,6 +181,9 @@ fn apply_force_replaces_regular_file() {
 
   let link = home.join("file.txt");
   assert!(link.exists());
-  assert!(is_symlink_to(&link, &repo.join("file.txt")));
+  assert!(is_symlink_to(
+    &link,
+    &repo.join("profiles/default/file.txt")
+  ));
   fs::remove_dir_all(&root).ok();
 }

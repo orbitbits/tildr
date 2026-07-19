@@ -12,6 +12,12 @@ fn temp_repo() -> PathBuf {
   dir
 }
 
+fn profiles_default(dir: &Path) -> PathBuf {
+  let p = dir.join("profiles/default");
+  fs::create_dir_all(&p).unwrap();
+  p
+}
+
 #[test]
 fn scan_empty_directory() {
   let dir = temp_repo();
@@ -29,19 +35,22 @@ fn scan_nonexistent_directory() {
 #[test]
 fn scan_ignores_git_directory() {
   let dir = temp_repo();
+  let pd = profiles_default(&dir);
   fs::create_dir(dir.join(".git")).unwrap();
-  fs::write(dir.join("file.txt"), "content").unwrap();
+  fs::write(pd.join("file.txt"), "content").unwrap();
   let entries = scatildr_repo(&dir).unwrap();
   assert_eq!(entries.len(), 1);
   assert_eq!(entries[0].relative, PathBuf::from("file.txt"));
+  assert_eq!(entries[0].profile, "default");
   fs::remove_dir_all(&dir).ok();
 }
 
 #[test]
 fn scan_ignores_git_files() {
   let dir = temp_repo();
+  let pd = profiles_default(&dir);
   fs::write(dir.join(".git"), "gitfile").unwrap();
-  fs::write(dir.join("file.txt"), "content").unwrap();
+  fs::write(pd.join("file.txt"), "content").unwrap();
   let entries = scatildr_repo(&dir).unwrap();
   assert_eq!(entries.len(), 1);
   assert_eq!(entries[0].relative, PathBuf::from("file.txt"));
@@ -51,9 +60,10 @@ fn scan_ignores_git_files() {
 #[test]
 fn scan_skips_tildr_directory() {
   let dir = temp_repo();
+  let pd = profiles_default(&dir);
   fs::create_dir_all(dir.join(".tildr")).unwrap();
   fs::write(dir.join(".tildr").join("meta.toml"), "key=val").unwrap();
-  fs::write(dir.join("file.txt"), "content").unwrap();
+  fs::write(pd.join("file.txt"), "content").unwrap();
   let entries = scatildr_repo(&dir).unwrap();
   assert_eq!(entries.len(), 1);
   assert_eq!(entries[0].relative, PathBuf::from("file.txt"));
@@ -63,9 +73,10 @@ fn scan_skips_tildr_directory() {
 #[test]
 fn scan_returns_sorted_entries() {
   let dir = temp_repo();
-  fs::write(dir.join("z.txt"), "z").unwrap();
-  fs::write(dir.join("a.txt"), "a").unwrap();
-  fs::write(dir.join("m.txt"), "m").unwrap();
+  let pd = profiles_default(&dir);
+  fs::write(pd.join("z.txt"), "z").unwrap();
+  fs::write(pd.join("a.txt"), "a").unwrap();
+  fs::write(pd.join("m.txt"), "m").unwrap();
   let entries = scatildr_repo(&dir).unwrap();
   assert_eq!(entries.len(), 3);
   assert_eq!(entries[0].relative, PathBuf::from("a.txt"));
@@ -77,9 +88,10 @@ fn scan_returns_sorted_entries() {
 #[test]
 fn scan_handles_nested_directories() {
   let dir = temp_repo();
-  fs::create_dir_all(dir.join("config")).unwrap();
-  fs::write(dir.join("config").join("settings.json"), "{}").unwrap();
-  fs::write(dir.join(".bashrc"), "export").unwrap();
+  let pd = profiles_default(&dir);
+  fs::create_dir_all(pd.join("config")).unwrap();
+  fs::write(pd.join("config").join("settings.json"), "{}").unwrap();
+  fs::write(pd.join(".bashrc"), "export").unwrap();
   let entries = scatildr_repo(&dir).unwrap();
   assert_eq!(entries.len(), 2);
   assert_eq!(entries[0].relative, PathBuf::from(".bashrc"));

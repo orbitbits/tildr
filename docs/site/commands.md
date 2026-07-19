@@ -828,21 +828,24 @@ tildr profile list --less
 tildr profile set work
 tildr profile current
 tildr profile unset
+tildr profile migrate
+tildr profile migrate --dry-run
 ```
 
 Options:
 
-| Subcommand                                             | Description                                        |
-|--------------------------------------------------------|----------------------------------------------------|
-| `create <NAME> [--description <DESC>]`                 | Create a new profile (`"default"` is reserved)     |
-| `add <FROM> [-f <FILES>] --to <TO>`                     | Copy files between default, profiles, or between profiles            |
-| `mv <FROM> [-f <FILES>] --to <TO>`                     | Move files between default, profiles, or between profiles            |
-| `del <NAME>`                                            | Delete a profile and restore orphans                |
-| `rename <FROM> <TO>`                                     | Rename a profile (accepts quoted names)             |
-| `list [<NAME>] [--long] [--less]`                      | List all available profiles                        |
-| `set <NAME>`                                           | Set the active profile (see Active Profile below)  |
-| `unset`                                                | Unset the active profile (revert to default)       |
-| `current`                                              | Show the currently active profile                  |
+| Subcommand                                             | Description                                                             |
+|--------------------------------------------------------|-------------------------------------------------------------------------|
+| `create <NAME> [--description <DESC>]`                 | Create a new profile (`"default"` is reserved)                          |
+| `add <FROM> [-f <FILES>] --to <TO>`                    | Copy files between default, profiles, or between profiles               |
+| `mv <FROM> [-f <FILES>] --to <TO>`                     | Move files between default, profiles, or between profiles               |
+| `del <NAME>`                                           | Delete a profile and restore orphans                                    |
+| `rename <FROM> <TO>`                                   | Rename a profile (accepts quoted names)                                 |
+| `list [<NAME>] [--long] [--less]`                      | List all available profiles                                             |
+| `set <NAME>`                                           | Set the active profile (see Active Profile below)                       |
+| `unset`                                                | Unset the active profile (revert to default)                            |
+| `current`                                              | Show the currently active profile                                       |
+| `migrate [--dry-run]`                                  | Migrate an existing repo to the profiles model (moves root files into `profiles/default/`) |
 
 List options:
 

@@ -719,6 +719,8 @@ tildr profile list --less
 tildr profile set work
 tildr profile current
 tildr profile unset
+tildr profile migrate
+tildr profile migrate --dry-run
 ```
 
 **Subcommands:**
@@ -758,6 +760,9 @@ tildr profile unset
 
 **current**
 :   Show the currently active profile.
+
+**migrate** **\[--dry-run\]**
+:   Migrate an existing repository to the profiles model. Moves files from the repository root into `profiles/default/`. Without `--dry-run`, performs the migration and commits. With `--dry-run`, shows what would be moved without making changes.
 
 **Active Profile Behavior:**
 
@@ -1057,7 +1062,7 @@ tildr group unlink dev
 - `unlink` removes only symlinks, never repository content
 - `restore` physically moves the real file back out of the repository
 - `del` removes repository content; use `--purge` for permanent deletion
-- `git.auto_commit` affects `add`, `restore`, `del`, `mv`, and `secret` — not `apply`, `unlink`, `git`, or `sync`
+- `git.auto_commit` affects `add`, `restore`, `del`, `mv`, `secret`, `exclude`, `group`, and `profile` — not `apply`, `unlink`, `git`, or `sync`
 - `git.enable = false` disables Tildr-managed Git operations even if Git is installed
 - `tildr secret` requires `gpg` to be installed and available in `PATH`
 - Sensitive files registered with `tildr secret add` are never stored in plain text in the repository

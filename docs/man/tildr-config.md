@@ -86,7 +86,7 @@ The `[git]` section controls Git integration.
 
 **git.auto_commit**
 :   When `true`, Tildr automatically runs `git add -A` and `git commit` after **add**,
-    **restore**, **del**, **mv**, and **secret**. Does not affect **apply**, **unlink**, **git**, or **sync**.
+    **restore**, **del**, **mv**, **secret**, **exclude**, **group**, and **profile**. Does not affect **apply**, **unlink**, **git**, or **sync**.
     Default: `true`
 
     Example:

@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Conventional Commits.
 
+## [0.2.1] - 2026-07-18
+
+### Bug Fixes
+
+- fix: show repo-relative paths in list, status, export, and interactive picker ([70f41ed](https://github.com/orbitbits/tildr/commit/70f41ed))
+
+- fix: profile-aware file resolution in apply cat edit pick ([d6beb01](https://github.com/orbitbits/tildr/commit/d6beb01))
+
+### Documentation
+
+- docs(profile): improve active profile and bidirectional mv/add descriptions ([a73ee99](https://github.com/orbitbits/tildr/commit/a73ee99))
+
+- docs: improve active profile and bidirectional mv/add documentation ([11b30fd](https://github.com/orbitbits/tildr/commit/11b30fd))
+
+- docs: fix residual secret remove reference in secret-management.md ([122d4ec](https://github.com/orbitbits/tildr/commit/122d4ec))
+
 ## [0.2.0] - 2026-07-18
 
 ### Bug Fixes

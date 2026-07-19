@@ -88,4 +88,10 @@ pub enum CliProfileMode {
   Unset,
   /// Show the currently active profile
   Current,
+  /// Migrate an existing repo to the profiles model (moves root files into profiles/default/)
+  Migrate {
+    /// Show what would be done without making changes
+    #[arg(short, long)]
+    dry_run: bool,
+  },
 }

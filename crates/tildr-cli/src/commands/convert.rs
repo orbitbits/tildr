@@ -19,6 +19,7 @@ impl From<CliCommands> for Commands {
 
       CliCommands::Add(cmd) => Commands::Add {
         paths: cmd.paths,
+        profile: cmd.profile,
         force: cmd.force,
         dry_run: cmd.dry_run,
         quiet: cmd.quiet,
@@ -156,6 +157,7 @@ impl From<CliCommands> for Commands {
           CliProfileMode::Set { name } => ProfileMode::Set { name },
           CliProfileMode::Unset => ProfileMode::Unset,
           CliProfileMode::Current => ProfileMode::Current,
+          CliProfileMode::Migrate { dry_run } => ProfileMode::Migrate { dry_run },
         },
       },
     }

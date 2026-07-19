@@ -21,17 +21,42 @@ use tildr_ui::{
 use tildr_utils::fs::move_file;
 use walkdir::WalkDir;
 
+use crate::profile::Profiles;
 use crate::utils::{auto_commit::auto_commit_dry_run, tildrignore};
 
 pub struct AddArgs {
   pub paths: Option<Vec<String>>,
+  pub profile: Option<String>,
   pub dry_run: bool,
   pub quiet: bool,
   pub force: bool,
   pub nolink: bool,
 }
 
+fn resolve_profile(ctx: &Context, profile: &Option<String>) -> Result<String> {
+  if let Some(name) = profile {
+    if name == "default" {
+      return Ok("default".to_string());
+    }
+    let profiles = Profiles::load(ctx)?;
+    if !profiles.profiles.contains_key(name) {
+      bail!("Profile '{}' not found.", name);
+    }
+    return Ok(name.clone());
+  }
+  // Use active profile, or default
+  let profiles = Profiles::load(ctx)?;
+  Ok(
+    profiles
+      .active
+      .clone()
+      .unwrap_or_else(|| "default".to_string()),
+  )
+}
+
 pub fn run(ctx: &Context, args: AddArgs) -> Result<()> {
+  let profile_name = resolve_profile(ctx, &args.profile)?;
+
   let resolved_paths = match &args.paths {
     Some(paths) if !paths.is_empty() => paths.clone(),
     _ => {
@@ -61,9 +86,9 @@ pub fn run(ctx: &Context, args: AddArgs) -> Result<()> {
 
   for target in &targets {
     let outcome = if target.source.is_dir() {
-      run_dir(ctx, &target.source, &ignore, &args)?
+      run_dir(ctx, &target.source, &ignore, &args, &profile_name)?
     } else {
-      run_file(ctx, &target.source, &ignore, &args)?
+      run_file(ctx, &target.source, &ignore, &args, &profile_name)?
     };
 
     actions.extend(outcome.actions);
@@ -81,7 +106,7 @@ pub fn run(ctx: &Context, args: AddArgs) -> Result<()> {
 
   auto_commit_dry_run(
     ctx,
-    &format!("add {}", commit_label(&targets)),
+    &format!("add {} to profile '{profile_name}'", commit_label(&targets)),
     args.dry_run,
   );
 
@@ -93,8 +118,9 @@ fn run_file(
   source: &Path,
   ignore: &IgnoreMatcher,
   args: &AddArgs,
+  profile_name: &str,
 ) -> Result<AddOutcome> {
-  let (did_add, action) = process_add_file(ctx, source, ignore, args)?;
+  let (did_add, action) = process_add_file(ctx, source, ignore, args, profile_name)?;
   let mut actions = Vec::new();
 
   if let Some(action) = action {
@@ -113,6 +139,7 @@ fn run_dir(
   root: &Path,
   ignore: &IgnoreMatcher,
   args: &AddArgs,
+  profile_name: &str,
 ) -> Result<AddOutcome> {
   let mut outcome = AddOutcome::default();
   let mut added = 0;
@@ -131,7 +158,7 @@ fn run_dir(
       continue;
     }
 
-    let (did_add, action) = process_add_file(ctx, source, ignore, args)?;
+    let (did_add, action) = process_add_file(ctx, source, ignore, args, profile_name)?;
 
     if did_add {
       added += 1;
@@ -155,9 +182,14 @@ fn process_add_file(
   source: &Path,
   ignore: &IgnoreMatcher,
   args: &AddArgs,
+  profile_name: &str,
 ) -> Result<(bool, Option<ActionLog>)> {
   let relative = to_relative(ctx, source)?;
-  let target = ctx.repo_path.join(&relative);
+  let target = ctx
+    .repo_path
+    .join("profiles")
+    .join(profile_name)
+    .join(&relative);
 
   // --- IGNORE ---
   if ignore.is_ignored(&relative) {
@@ -185,7 +217,7 @@ fn process_add_file(
       true,
       Some(ActionLog {
         action: action.to_string(),
-        file: relative.display().to_string(),
+        file: format!("{}/{}", profile_name, relative.display()),
       }),
     ));
   }
@@ -213,7 +245,7 @@ fn process_add_file(
       true,
       Some(ActionLog {
         action: format!("{}Added (nolink)", icons().check).green(),
-        file: relative.display().to_string(),
+        file: format!("{}/{}", profile_name, relative.display()),
       }),
     ));
   }
@@ -222,11 +254,20 @@ fn process_add_file(
   move_file(source, &target)?;
   create_symlink(&target, source)?;
 
+  // --- Register in profiles.json ---
+  let mut profiles = Profiles::load(ctx)?;
+  let rel_str = relative.to_string_lossy().to_string();
+  let repo_relative = format!("profiles/{profile_name}/{rel_str}");
+  if let Some(def) = profiles.profiles.get_mut(profile_name) {
+    def.files.insert(rel_str, repo_relative);
+  }
+  profiles.save(ctx)?;
+
   Ok((
     true,
     Some(ActionLog {
       action: format!("{}Added", icons().check).green(),
-      file: relative.display().to_string(),
+      file: format!("{}/{}", profile_name, relative.display()),
     }),
   ))
 }

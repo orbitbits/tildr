@@ -311,7 +311,7 @@ See **tildr-commands(1)** for the full `tildr repo path` documentation.
 - `unlink` removes only symlinks, never repository content
 - `restore` physically moves the real file back out of the repository
 - `del` removes repository content; use `--purge` for permanent deletion, otherwise files go to trash
-- `git.auto_commit` affects `add`, `restore`, `del`, `mv`, and `secret` — not `apply`, `unlink`, `git`, or `sync`
+- `git.auto_commit` affects `add`, `restore`, `del`, `mv`, `secret`, `exclude`, `group`, and `profile` — not `apply`, `unlink`, `git`, or `sync`
 - `git.enable = false` disables Tildr-managed Git operations even if Git is installed
 - `tildr secret` requires `gpg` to be installed and available in `PATH`
 - Sensitive files registered with `tildr secret add` are never stored in plain text in the repository

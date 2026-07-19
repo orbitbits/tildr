@@ -29,7 +29,7 @@ fn test_ctx(name: &str) -> (PathBuf, Context) {
 fn resolve_without_active_profile_uses_default() {
   let profiles = Profiles::default();
   let result = profiles.resolve(Path::new("/repo"), ".bashrc");
-  assert_eq!(result, PathBuf::from("/repo/.bashrc"));
+  assert_eq!(result, PathBuf::from("/repo/profiles/default/.bashrc"));
 }
 
 #[test]
@@ -66,7 +66,7 @@ fn resolve_without_matching_file_uses_default() {
     },
   );
   let result = profiles.resolve(Path::new("/repo"), ".zshrc");
-  assert_eq!(result, PathBuf::from("/repo/.zshrc"));
+  assert_eq!(result, PathBuf::from("/repo/profiles/default/.zshrc"));
 }
 
 #[test]

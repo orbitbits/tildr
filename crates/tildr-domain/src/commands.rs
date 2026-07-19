@@ -27,6 +27,7 @@ pub enum Commands {
 
   Add {
     paths: Option<Vec<String>>,
+    profile: Option<String>,
     force: bool,
     dry_run: bool,
     quiet: bool,
@@ -202,4 +203,7 @@ pub enum ProfileMode {
   },
   Unset,
   Current,
+  Migrate {
+    dry_run: bool,
+  },
 }

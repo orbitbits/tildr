@@ -9,6 +9,7 @@ use tildr_core::context::Context;
 use tildr_fs::symlink::{create_symlink, is_symlink, is_symlink_to};
 use tildr_utils::{fs::tildr_dir, sys::has_display};
 
+use crate::profile::Profiles;
 use crate::utils::auto_commit::auto_commit;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -39,6 +40,19 @@ impl Groups {
   }
 }
 
+/// Strip `profiles/<name>/` prefix from a repo-relative path to get the HOME-relative path.
+fn strip_profile_prefix(_repo_path: &std::path::Path, full: &str) -> String {
+  if let Some(stripped) = full.strip_prefix("profiles/")
+    && let Some(rest) = stripped.find('/')
+  {
+    let after = &stripped[rest + 1..];
+    if !after.is_empty() {
+      return after.to_string();
+    }
+  }
+  full.to_string()
+}
+
 fn pick_files_for_group(ctx: &Context) -> Result<Vec<String>> {
   if has_display() {
     let picked = rfd::FileDialog::new()
@@ -54,7 +68,9 @@ fn pick_files_for_group(ctx: &Context) -> Result<Vec<String>> {
             .unwrap_or(&path)
             .to_string_lossy()
             .to_string();
-          files.push(relative);
+          // Convert repo-relative path to HOME-relative path
+          let home_relative = strip_profile_prefix(&ctx.repo_path, &relative);
+          files.push(home_relative);
         }
         Ok(files)
       }
@@ -63,7 +79,7 @@ fn pick_files_for_group(ctx: &Context) -> Result<Vec<String>> {
   } else {
     use tildr_ui::prompt::MinimalTheme;
     let input: String = dialoguer::Input::with_theme(&MinimalTheme)
-      .with_prompt("File path (relative to repo)")
+      .with_prompt("File path (relative to HOME)")
       .allow_empty(true)
       .interact_text()?;
     if input.is_empty() {
@@ -94,7 +110,12 @@ fn create(ctx: &Context, name: &str, files: &[String]) -> Result<()> {
       name
     );
   }
-  groups.groups.insert(name.to_string(), files.to_vec());
+  // Normalize all paths to HOME-relative
+  let normalized: Vec<String> = files
+    .iter()
+    .map(|f| strip_profile_prefix(&ctx.repo_path, f))
+    .collect();
+  groups.groups.insert(name.to_string(), normalized);
   groups.save(ctx)?;
   println!(
     "{} Group '{}' created with {} file(s).",
@@ -117,11 +138,15 @@ fn add(ctx: &Context, name: &str, files: Option<&[String]>) -> Result<()> {
     return Ok(());
   }
 
+  let profiles = Profiles::load(ctx)?;
   let mut resolved_files = Vec::new();
   for file in &raw_files {
-    let path = ctx.repo_path.join(file);
-    if path.is_dir() {
-      for entry in walkdir::WalkDir::new(&path)
+    // Normalize to HOME-relative path
+    let home_relative = strip_profile_prefix(&ctx.repo_path, file);
+    let repo_file = profiles.resolve(&ctx.repo_path, &home_relative);
+
+    if repo_file.is_dir() {
+      for entry in walkdir::WalkDir::new(&repo_file)
         .into_iter()
         .filter_map(|e| e.ok())
       {
@@ -132,11 +157,12 @@ fn add(ctx: &Context, name: &str, files: Option<&[String]>) -> Result<()> {
             .unwrap_or(entry.path())
             .to_string_lossy()
             .to_string();
-          resolved_files.push(relative);
+          let home_rel = strip_profile_prefix(&ctx.repo_path, &relative);
+          resolved_files.push(home_rel);
         }
       }
     } else {
-      resolved_files.push(file.clone());
+      resolved_files.push(home_relative);
     }
   }
 
@@ -233,13 +259,14 @@ fn apply(ctx: &Context, name: &str) -> Result<()> {
     .context(format!("Group '{}' not found.", name))?;
 
   let home = dirs::home_dir().context("Could not determine home directory")?;
+  let profiles = Profiles::load(ctx)?;
 
   let mut linked = 0;
   let mut up_to_date = 0;
   let mut skipped = 0;
 
   for file in files {
-    let src = ctx.repo_path.join(file);
+    let src = profiles.resolve(&ctx.repo_path, file);
     let dst = home.join(file);
 
     if !src.exists() {
