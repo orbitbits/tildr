@@ -21,7 +21,10 @@ pub enum ResolvedTarget {
 #[derive(Debug, Clone)]
 pub struct ManagedEntryProfile {
   pub profile: String,
+  /// Logical home-relative path (e.g. `.bashrc`).
   pub filepath: PathBuf,
+  /// Repo-relative path including profile prefix (e.g. `profiles/linux/.bashrc`).
+  pub repo_relative: PathBuf,
   pub repo_path: PathBuf,
 }
 
@@ -76,6 +79,7 @@ pub fn scan_all_entries_with_profile(ctx: &Context) -> Result<Vec<ManagedEntryPr
     entries.push(ManagedEntryProfile {
       profile: "default".to_string(),
       filepath: entry.relative.clone(),
+      repo_relative: entry.relative.clone(),
       repo_path: entry.repo_path,
     });
   }
@@ -99,9 +103,13 @@ pub fn scan_all_entries_with_profile(ctx: &Context) -> Result<Vec<ManagedEntryPr
 
         // Only include if this logical path is NOT already at the repo root.
         if !root_rel.contains(&relative_in_profile) {
+          let repo_relative = PathBuf::from("profiles")
+            .join(profile_name)
+            .join(&relative_in_profile);
           entries.push(ManagedEntryProfile {
             profile: profile_name.clone(),
             filepath: relative_in_profile,
+            repo_relative,
             repo_path: full.to_path_buf(),
           });
         }
@@ -112,7 +120,7 @@ pub fn scan_all_entries_with_profile(ctx: &Context) -> Result<Vec<ManagedEntryPr
   entries.sort_by(|a, b| {
     a.profile
       .cmp(&b.profile)
-      .then_with(|| a.filepath.cmp(&b.filepath))
+      .then_with(|| a.repo_relative.cmp(&b.repo_relative))
   });
   Ok(entries)
 }

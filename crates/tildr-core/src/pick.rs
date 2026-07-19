@@ -121,17 +121,24 @@ pub fn target(
       .map(|e| (e.relative.display().to_string(), e.repo_path.clone()))
       .collect();
 
+    // Maps display string (repo-relative) → logical path for resolution.
+    let mut display_to_logical: HashMap<String, String> = HashMap::new();
+
     let profiles_dir = ctx.repo_path.join("profiles");
     if profiles_dir.is_dir() {
-      for entry in std::fs::read_dir(&profiles_dir)
+      for profile_entry in std::fs::read_dir(&profiles_dir)
         .into_iter()
         .flatten()
         .filter_map(|e| e.ok())
       {
-        let dir = entry.path();
+        let dir = profile_entry.path();
         if !dir.is_dir() {
           continue;
         }
+        let profile_name = dir
+          .file_name()
+          .map(|n| n.to_string_lossy().to_string())
+          .unwrap_or_default();
         for variant in WalkDir::new(&dir)
           .into_iter()
           .filter_map(|e| e.ok())
@@ -141,7 +148,9 @@ pub fn target(
           let logical = full.strip_prefix(&dir).unwrap_or(full).to_path_buf();
           let key = logical.display().to_string();
           if !root_set.contains(&logical) && !path_map.contains_key(&key) {
-            path_map.insert(key, full.to_path_buf());
+            path_map.insert(key.clone(), full.to_path_buf());
+            let display = format!("profiles/{profile_name}/{key}");
+            display_to_logical.insert(display, key);
           }
         }
       }
@@ -151,13 +160,24 @@ pub fn target(
       bail!("No managed files found");
     }
 
-    let mut all_items: Vec<String> = path_map.keys().cloned().collect();
-    all_items.sort();
+    // Build display items: use repo-relative paths for profile variants,
+    // logical paths for default (root) files.
+    let mut display_items: Vec<String> = path_map
+      .keys()
+      .map(|k| {
+        display_to_logical
+          .iter()
+          .find(|(_, logical)| logical.as_str() == k.as_str())
+          .map(|(display, _)| display.clone())
+          .unwrap_or_else(|| k.clone())
+      })
+      .collect();
+    display_items.sort();
 
     // Saves the current position before printing anything
     let (cursor_x, cursor_y) = position().unwrap_or((0, 0));
 
-    let items = if all_items.len() > ctx.config.core.search_threshold {
+    let items = if display_items.len() > ctx.config.core.search_threshold {
       loop {
         let legend = format!(
           "\n{} {}\n",
@@ -178,11 +198,11 @@ pub fn target(
         );
 
         if search.is_empty() {
-          break all_items;
+          break display_items;
         }
 
         let matcher = SkimMatcherV2::default();
-        let mut scored: Vec<(i64, String)> = all_items
+        let mut scored: Vec<(i64, String)> = display_items
           .clone()
           .into_iter()
           .filter_map(|e| matcher.fuzzy_match(&e, &search).map(|s| (s, e)))
@@ -198,7 +218,7 @@ pub fn target(
         break scored.into_iter().map(|(_, e)| e).collect();
       }
     } else {
-      all_items
+      display_items
     };
 
     let legend = format!(
@@ -221,7 +241,15 @@ pub fn target(
     );
 
     return match result {
-      Ok(Some(selection)) => Ok(PathBuf::from(&items[selection])),
+      Ok(Some(selection)) => {
+        let display = &items[selection];
+        // Resolve display string back to logical path for proper resolution.
+        let logical = display_to_logical
+          .get(display)
+          .cloned()
+          .unwrap_or_else(|| display.clone());
+        Ok(PathBuf::from(logical))
+      }
       Ok(None) | Err(_) => std::process::exit(130),
     };
   }

@@ -52,7 +52,7 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
 
     statuses.push(FileStatus {
       profile: entry.profile.clone(),
-      filepath: file_str,
+      filepath: entry.repo_relative.display().to_string(),
       status: status.to_string(),
     });
   }

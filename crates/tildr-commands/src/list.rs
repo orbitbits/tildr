@@ -84,7 +84,7 @@ fn write_list(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
 
   let filepath_width = entries
     .iter()
-    .map(|e| e.filepath.display().to_string().len())
+    .map(|e| e.repo_relative.display().to_string().len())
     .max()
     .unwrap_or(8)
     .max(8);
@@ -103,7 +103,7 @@ fn write_list(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
       buf,
       "{:<width_p$}  {:<width_f$}",
       entry.profile,
-      entry.filepath.display(),
+      entry.repo_relative.display(),
       width_p = profile_width,
       width_f = filepath_width
     )?;
@@ -122,7 +122,7 @@ fn write_long(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
 
   let filepath_width = entries
     .iter()
-    .map(|e| e.filepath.display().to_string().len())
+    .map(|e| e.repo_relative.display().to_string().len())
     .max()
     .unwrap_or(8)
     .max(8);
@@ -150,7 +150,7 @@ fn write_long(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
       buf,
       "{:<width_p$}  {:<width_f$}  {:<4}  {}",
       entry.profile,
-      entry.filepath.display(),
+      entry.repo_relative.display(),
       file_type,
       size,
       width_p = profile_width,
@@ -171,7 +171,7 @@ fn export_to_file(ctx: &Context, path: &str) -> Result<()> {
 
   let files: Vec<String> = entries
     .iter()
-    .map(|e| e.filepath.display().to_string())
+    .map(|e| e.repo_relative.display().to_string())
     .collect();
 
   let export = ExportFile { version: 1, files };
