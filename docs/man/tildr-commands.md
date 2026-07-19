@@ -710,6 +710,7 @@ tildr profile mv default --to work                              # move all orpha
 tildr profile mv default -f .bashrc --to work                   # move .bashrc to work
 tildr profile mv work --to default                              # restore all from work to default
 tildr profile add work -f .bashrc --to personal                 # copy .bashrc between profiles
+tildr profile rename linux archlinux                            # rename profile
 tildr profile del work
 tildr profile list
 tildr profile list --long
@@ -726,13 +727,16 @@ tildr profile unset
 :   Create a new profile. `"default"` is reserved and cannot be used as a profile name.
 
 **add** *\<FROM\>* **\[-f** *\<FILES\>***\] --to** *\<TO\>*
-:   Copy files between the default location (`default`) and a profile. With no `-f`, copies all orphan files from source. Folders are expanded recursively.
+:   Copy files between the default location (`default`), profiles, or between profiles. With no `-f`, copies all eligible files from source (orphans for `default`, all tracked files for a profile). Folders are expanded recursively.
 
 **mv** *\<FROM\>* **\[-f** *\<FILES\>***\] --to** *\<TO\>*
-:   Move files between the default location and a profile. Same as `add` but removes the source files.
+:   Move files between the default location (`default`), profiles, or between profiles. Same as `add` but removes the source files. Without `-f`, moves all eligible files from source.
 
 **del** *\<NAME\>*
 :   Delete a profile entirely. Removes it from `profiles.json`, deletes the `profiles/<name>/` directory, and restores orphaned files to the repo root.
+
+**rename** *\<FROM\>* *\<TO\>*
+:   Rename a profile. Accepts quoted names for profiles with spaces. Updates all tracked file paths in `profiles.json` and the `profiles/<name>/` directory. If the profile is active, updates active profile name. Re-creates symlinks for linked files pointing to the renamed profile.
 
 **list**
 :   List all available profiles.
@@ -747,13 +751,29 @@ tildr profile unset
 :   Show only the specified profile.
 
 **set** *\<NAME\>*
-:   Set the active profile.
+:   Set the active profile. Stores the profile name in `.tildr/profiles.json`. Only one profile can be active at a time. Setting a new profile replaces the previous one. The active profile affects how `apply`, `status`, and `doctor` resolve file variants (see below).
 
 **unset**
-:   Unset the active profile (revert to default).
+:   Unset the active profile (revert to default). Clears the `active` field in `.tildr/profiles.json`. After unsetting, all files resolve to their root (default) version.
 
 **current**
 :   Show the currently active profile.
+
+**Active Profile Behavior:**
+
+The active profile is a per-file override mechanism. When `tildr apply`, `tildr status`, or `tildr doctor` processes a managed file, the resolution works as follows:
+
+1. Check if the file has a variant in the active profile
+2. If yes, use the profile variant (`profiles/<name>/<file>`)
+3. If no, fall back to the root version (`<file>`)
+
+This means **all managed files are always processed** — the active profile only determines *which variant* of each file to use, not whether to skip files.
+
+Example: if the active profile is `work` and it tracks `.bashrc` and `.ssh/config`:
+
+- `~/.bashrc` → `profiles/work/.bashrc` (profile variant)
+- `~/.ssh/config` → `profiles/work/.ssh/config` (profile variant)
+- `~/.gitconfig` → `.gitconfig` (root version, not in profile)
 
 **Behavior:**
 
@@ -762,7 +782,10 @@ tildr profile unset
 - `add` copies files preserving the source; `mv` moves files (copies then removes originals)
 - Without `-f`, `add`/`mv` operate on all eligible files (orphans for `default`, all tracked files for a profile)
 - `del` removes the profile directory and restores orphaned files to the repo root
+- `rename` renames the profile directory and updates all tracked file paths; if the profile is active, updates active profile name; re-creates symlinks for linked files
 - `apply` uses the active profile to resolve which file variant to symlink
+- `status` uses the active profile to verify symlink targets match the expected variant
+- `doctor` uses the active profile to check symlink integrity
 - Files not in the active profile fall back to the default (root) version
 - Only one profile can be active at a time
 - Auto-commits changes to the repository

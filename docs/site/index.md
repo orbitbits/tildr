@@ -295,7 +295,8 @@ tildr profile add default --files .bashrc .gitconfig --to personal
 # Activate a profile
 tildr profile set work
 
-# Apply uses the active profile
+# Apply uses the active profile to resolve which variant of each file to symlink.
+# Files in the active profile use their profile variant; others fall back to root.
 tildr apply
 
 # Switch profiles
