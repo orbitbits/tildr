@@ -12,7 +12,7 @@ use tildr_ui::info;
 use tildr_utils::{fs::format_size, pager::page_string};
 
 use crate::{
-  profile::Profiles,
+  profile::{Profiles, display_profile_name},
   utils::target::{ManagedEntryProfile, effective_entries, scan_all_entries_with_profile},
 };
 
@@ -108,7 +108,7 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
 fn write_source(ctx: &Context, entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
   let profile_width = entries
     .iter()
-    .map(|e| e.profile.len())
+    .map(|e| display_profile_name(&e.profile).len())
     .max()
     .unwrap_or(7)
     .max(7);
@@ -133,7 +133,7 @@ fn write_source(ctx: &Context, entries: &[ManagedEntryProfile], buf: &mut String
     writeln!(
       buf,
       "{:<width_p$}  {:<width_f$}",
-      entry.profile,
+      display_profile_name(&entry.profile),
       repo_display(ctx, &entry.repo_path),
       width_p = profile_width,
       width_f = path_width
@@ -153,7 +153,7 @@ fn repo_display(ctx: &Context, path: &Path) -> String {
 fn write_compact(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()> {
   let profile_width = entries
     .iter()
-    .map(|e| e.profile.len())
+    .map(|e| display_profile_name(&e.profile).len())
     .max()
     .unwrap_or(7)
     .max(7);
@@ -178,7 +178,7 @@ fn write_compact(entries: &[ManagedEntryProfile], buf: &mut String) -> Result<()
     writeln!(
       buf,
       "{:<width_p$}  {:<width_f$}",
-      entry.profile,
+      display_profile_name(&entry.profile),
       home_display(&entry.filepath),
       width_p = profile_width,
       width_f = filepath_width
@@ -195,7 +195,7 @@ fn write_long(
 ) -> Result<()> {
   let profile_width = entries
     .iter()
-    .map(|e| e.profile.len())
+    .map(|e| display_profile_name(&e.profile).len())
     .max()
     .unwrap_or(7)
     .max(7);
@@ -229,7 +229,7 @@ fn write_long(
     writeln!(
       buf,
       "{:<width_p$}  {:<width_f$}  {:<4}  {}",
-      entry.profile,
+      display_profile_name(&entry.profile),
       home_display(&entry.filepath),
       file_type,
       size,
@@ -244,7 +244,7 @@ fn write_long(
       let variant_profiles: Vec<String> = variants
         .iter()
         .filter(|v| v.profile != entry.profile)
-        .map(|v| v.profile.clone())
+        .map(|v| display_profile_name(&v.profile).to_string())
         .collect();
       if !variant_profiles.is_empty() {
         writeln!(

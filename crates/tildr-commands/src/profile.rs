@@ -14,7 +14,16 @@ use crate::apply::{ApplyArgs, run as apply_profile};
 use crate::utils::auto_commit::auto_commit;
 
 pub const COMMON_PROFILE: &str = "common";
+pub const COMMON_PROFILE_DISPLAY: &str = "no profile";
 pub const DEFAULT_PROFILE: &str = "default";
+
+pub fn display_profile_name(profile: &str) -> &str {
+  if profile == COMMON_PROFILE {
+    COMMON_PROFILE_DISPLAY
+  } else {
+    profile
+  }
+}
 
 pub fn profile_dir(repo_path: &Path, profile: &str) -> PathBuf {
   match profile {

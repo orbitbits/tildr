@@ -27,6 +27,12 @@ fn test_ctx(name: &str) -> (PathBuf, Context) {
 }
 
 #[test]
+fn display_profile_name_labels_common_as_no_profile() {
+  assert_eq!(display_profile_name(COMMON_PROFILE), "no profile");
+  assert_eq!(display_profile_name("linux"), "linux");
+}
+
+#[test]
 fn resolve_without_active_profile_uses_default() {
   let (root, ctx) = test_ctx("no-active");
   fs::create_dir_all(ctx.repo_path.join("profiles/default")).unwrap();

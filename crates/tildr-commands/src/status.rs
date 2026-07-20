@@ -5,7 +5,7 @@ use tildr_fs::symlink::{is_symlink, is_symlink_to};
 use tildr_ui::{color::Colorize, symbols::icons};
 use tildr_utils::pager::page_string;
 
-use crate::profile::Profiles;
+use crate::profile::{Profiles, display_profile_name};
 use crate::utils::target::{ManagedEntryProfile, effective_entries, scan_all_entries_with_profile};
 
 #[derive(Debug, serde::Serialize)]
@@ -122,7 +122,7 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
 
   let profile_width = statuses
     .iter()
-    .map(|s| s.profile.len())
+    .map(|s| display_profile_name(&s.profile).len())
     .max()
     .unwrap_or(7)
     .max(7);
@@ -161,7 +161,7 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
     writeln!(
       buf,
       "{:<width_p$}  {:<width_f$}  {}{}",
-      s.profile,
+      display_profile_name(&s.profile),
       s.filepath,
       symbol,
       label,
