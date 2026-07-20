@@ -241,10 +241,10 @@ tildr status \-\-less
 \f[B]Output example:\f[R]
 .IP
 .EX
-PROFILE  FILEPATH            STATUS
-common   \[ti]/.zshrc            ✔ linked
-common   \[ti]/Templates/main.sh  ✔ linked
-linux    \[ti]/.bashrc           ✔ linked
+PROFILE     FILEPATH            STATUS
+no profile  \[ti]/.zshrc            ✔ linked
+no profile  \[ti]/Templates/main.sh  ✔ linked
+linux       \[ti]/.bashrc           ✔ linked
 .EE
 .PP
 The table output always includes the \f[CR]PROFILE\f[R] column.
@@ -254,6 +254,8 @@ By default \f[CR]FILEPATH\f[R] is the home\-relative path you can pass
 to commands such as \f[CR]restore\f[R], \f[CR]unlink\f[R],
 \f[CR]cat\f[R], and \f[CR]del\f[R]; use \f[CR]list \-\-source\f[R] or
 \f[CR]source\-path\f[R] to inspect repository source files.
+Shared files stored in \f[CR]common/\f[R] are shown as
+\f[CR]no profile\f[R] in human\-readable tables.
 .PP
 \f[B]Options:\f[R]
 .TP
@@ -306,27 +308,27 @@ tildr list \-\-import \[ti]/tildr\-files.json
 \f[B]Output example (default):\f[R]
 .IP
 .EX
-PROFILE  FILEPATH
-common   \[ti]/.zshrc
-common   \[ti]/Templates/main.sh
-linux    \[ti]/.bashrc
+PROFILE     FILEPATH
+no profile  \[ti]/.zshrc
+no profile  \[ti]/Templates/main.sh
+linux       \[ti]/.bashrc
 .EE
 .PP
 \f[B]Output example (\f[CB]\-\-long\f[B]):\f[R]
 .IP
 .EX
-PROFILE  FILEPATH            TYPE  SIZE
-common   \[ti]/.zshrc            file  2.1 KiB
-common   \[ti]/Templates/main.sh  file  892 B
-linux    \[ti]/.bashrc           file  3.4 KiB
+PROFILE     FILEPATH            TYPE  SIZE
+no profile  \[ti]/.zshrc            file  2.1 KiB
+no profile  \[ti]/Templates/main.sh  file  892 B
+linux       \[ti]/.bashrc           file  3.4 KiB
 .EE
 .PP
 \f[B]Output example (\f[CB]\-\-source\f[B]):\f[R]
 .IP
 .EX
-PROFILE  PATH
-common   \[ti]/.dotfiles/common/.zshrc
-linux    \[ti]/.dotfiles/profiles/linux/.bashrc
+PROFILE     PATH
+no profile  \[ti]/.dotfiles/common/.zshrc
+linux       \[ti]/.dotfiles/profiles/linux/.bashrc
 .EE
 .PP
 \f[B]Options:\f[R]
@@ -372,6 +374,9 @@ Files not found in the repository are reported as warnings.
 .IP \[bu] 2
 \f[CR]FILEPATH\f[R] is always the HOME path, for example
 \f[CR]\[ti]/.bashrc\f[R]
+.IP \[bu] 2
+\f[CR]no profile\f[R] means the source file is stored in
+\f[CR]common/\f[R]
 .IP \[bu] 2
 Commands that manipulate files should use the logical path:
 \f[CR]tildr restore .bashrc\f[R]

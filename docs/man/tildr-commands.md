@@ -216,16 +216,17 @@ tildr status --less
 **Output example:**
 
 ```text
-PROFILE  FILEPATH            STATUS
-common   ~/.zshrc            ✔ linked
-common   ~/Templates/main.sh  ✔ linked
-linux    ~/.bashrc           ✔ linked
+PROFILE     FILEPATH            STATUS
+no profile  ~/.zshrc            ✔ linked
+no profile  ~/Templates/main.sh  ✔ linked
+linux       ~/.bashrc           ✔ linked
 ```
 
 The table output always includes the `PROFILE` column. Without `--profile`,
 Tildr shows the effective variant for each logical file. By default `FILEPATH`
 is the home-relative path you can pass to commands such as `restore`, `unlink`,
 `cat`, and `del`; use `list --source` or `source-path` to inspect repository source files.
+Shared files stored in `common/` are shown as `no profile` in human-readable tables.
 
 **Options:**
 
@@ -279,27 +280,27 @@ tildr list --import ~/tildr-files.json
 **Output example (default):**
 
 ```text
-PROFILE  FILEPATH
-common   ~/.zshrc
-common   ~/Templates/main.sh
-linux    ~/.bashrc
+PROFILE     FILEPATH
+no profile  ~/.zshrc
+no profile  ~/Templates/main.sh
+linux       ~/.bashrc
 ```
 
 **Output example (`--long`):**
 
 ```text
-PROFILE  FILEPATH            TYPE  SIZE
-common   ~/.zshrc            file  2.1 KiB
-common   ~/Templates/main.sh  file  892 B
-linux    ~/.bashrc           file  3.4 KiB
+PROFILE     FILEPATH            TYPE  SIZE
+no profile  ~/.zshrc            file  2.1 KiB
+no profile  ~/Templates/main.sh  file  892 B
+linux       ~/.bashrc           file  3.4 KiB
 ```
 
 **Output example (`--source`):**
 
 ```text
-PROFILE  PATH
-common   ~/.dotfiles/common/.zshrc
-linux    ~/.dotfiles/profiles/linux/.bashrc
+PROFILE     PATH
+no profile  ~/.dotfiles/common/.zshrc
+linux       ~/.dotfiles/profiles/linux/.bashrc
 ```
 
 **Options:**
@@ -338,6 +339,7 @@ linux    ~/.dotfiles/profiles/linux/.bashrc
 **Notes:**
 
 - `FILEPATH` is always the HOME path, for example `~/.bashrc`
+- `no profile` means the source file is stored in `common/`
 - Commands that manipulate files should use the logical path: `tildr restore .bashrc`
 - Use `--profile` to target a variant explicitly: `tildr restore .bashrc --profile linux`, `tildr del .bashrc --profile common`, or `tildr cat .bashrc --profile linux`
 - Use `tildr list --source` to inspect all repository source paths
