@@ -567,6 +567,8 @@ Renames or moves a managed file inside the repository and updates its symlink in
 
 ```sh
 tildr mv .bashrc .bashrc_backup
+tildr mv ~/.yarnrc ~/.yarnrc.bak
+tildr mv $HOME/.yarnrc $HOME/.yarnrc.bak
 tildr mv files/file.txt configs/file.txt
 tildr mv
 ```
@@ -584,6 +586,7 @@ tildr mv
 - Renames or moves the file inside the repository
 - Removes the old symlink from `$HOME`
 - Creates a new symlink at the new path in `$HOME`
+- Source and destination are logical `$HOME` paths; do not include `common/` or `profiles/<name>/`
 - If the destination is a filename only (no directory), the original directory is preserved
 - If no arguments are passed, Tildr opens an interactive picker to select the source, then prompts for the new path
 - Auto-commits the repository when `git.auto_commit = true`

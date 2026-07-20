@@ -642,6 +642,8 @@ move are the same operation.
 .IP
 .EX
 tildr mv .bashrc .bashrc_backup
+tildr mv \[ti]/.yarnrc \[ti]/.yarnrc.bak
+tildr mv $HOME/.yarnrc $HOME/.yarnrc.bak
 tildr mv files/file.txt configs/file.txt
 tildr mv
 .EE
@@ -661,6 +663,9 @@ Renames or moves the file inside the repository
 Removes the old symlink from \f[CR]$HOME\f[R]
 .IP \[bu] 2
 Creates a new symlink at the new path in \f[CR]$HOME\f[R]
+.IP \[bu] 2
+Source and destination are logical \f[CR]$HOME\f[R] paths; do not
+include \f[CR]common/\f[R] or \f[CR]profiles/<name>/\f[R]
 .IP \[bu] 2
 If the destination is a filename only (no directory), the original
 directory is preserved
