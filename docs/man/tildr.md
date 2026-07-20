@@ -269,7 +269,7 @@ Machine-specific profiles:
 
 ```sh
 tildr profile create work --description "Work laptop"
-tildr profile add common --files .bashrc .ssh/config --to work
+tildr profile add no-profile --files .bashrc .ssh/config --to work
 tildr profile set work
 
 tildr profile set personal
