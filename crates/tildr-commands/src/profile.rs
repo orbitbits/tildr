@@ -12,6 +12,7 @@ use tildr_utils::{fs::tildr_dir, pager::page_string};
 use walkdir::WalkDir;
 
 use crate::apply::{ApplyArgs, run as apply_profile};
+use crate::clean::clean_empty_profile_dirs;
 use crate::utils::auto_commit::auto_commit;
 
 pub const COMMON_PROFILE: &str = "common";
@@ -392,6 +393,10 @@ fn transfer(
       profile_file_label(to, file)
     );
     println!("  {} {}", action_fn(action), direction);
+  }
+
+  if remove_source {
+    clean_empty_profile_dirs(ctx, false)?;
   }
 
   if remove_source && from_profile && from != COMMON_PROFILE {

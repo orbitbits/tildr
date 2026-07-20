@@ -2,6 +2,7 @@ mod add;
 mod apply;
 mod backup;
 mod cat;
+mod clean;
 mod del;
 pub mod doctor;
 mod edit;
@@ -165,6 +166,14 @@ fn dispatch_with_ctx(cmd: &Commands, ctx: &Context) -> Result<()> {
         dry_run: *dry_run,
         force: *force,
         verbose: *verbose,
+        quiet: *quiet,
+      },
+    ),
+
+    Commands::Clean { dry_run, quiet } => clean::run(
+      ctx,
+      clean::CleanArgs {
+        dry_run: *dry_run,
         quiet: *quiet,
       },
     ),

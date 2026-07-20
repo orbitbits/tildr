@@ -70,6 +70,11 @@ pub enum Commands {
     quiet: bool,
   },
 
+  Clean {
+    dry_run: bool,
+    quiet: bool,
+  },
+
   Repo {
     mode: RepoMode,
   },

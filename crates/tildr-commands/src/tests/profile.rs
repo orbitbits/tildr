@@ -467,6 +467,74 @@ fn profile_mv_accepts_home_env_file_path() {
 }
 
 #[test]
+fn profile_mv_removes_empty_source_directories() {
+  let (root, mut ctx) = test_ctx("mv-cleans-empty-dirs");
+  ctx.config.git.auto_commit = false;
+
+  fs::create_dir_all(ctx.repo_path.join("common/.config/program")).unwrap();
+  fs::write(
+    ctx.repo_path.join("common/.config/program/config.conf"),
+    "config",
+  )
+  .unwrap();
+
+  let mut profiles = Profiles::load(&ctx).unwrap();
+  profiles
+    .profiles
+    .insert("linux".to_string(), ProfileDef::default());
+  profiles.save(&ctx).unwrap();
+
+  run(
+    &ctx,
+    &ProfileMode::Mv {
+      files: Vec::new(),
+      from: "no-profile".to_string(),
+      to: "linux".to_string(),
+    },
+  )
+  .unwrap();
+
+  assert!(!ctx.repo_path.join("common/.config/program").exists());
+  assert!(!ctx.repo_path.join("common/.config").exists());
+  assert!(ctx.repo_path.join("common").exists());
+  assert_eq!(
+    fs::read_to_string(
+      ctx
+        .repo_path
+        .join("profiles/linux/.config/program/config.conf")
+    )
+    .unwrap(),
+    "config"
+  );
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn clean_removes_empty_profile_storage_directories() {
+  let (root, ctx) = test_ctx("clean-empty-dirs");
+
+  fs::create_dir_all(ctx.repo_path.join("common/.config/empty")).unwrap();
+  fs::create_dir_all(ctx.repo_path.join("profiles/linux/.cache/empty")).unwrap();
+  fs::create_dir_all(ctx.repo_path.join("profiles/linux/.config")).unwrap();
+  fs::write(ctx.repo_path.join("profiles/linux/.config/keep"), "keep").unwrap();
+
+  let removed = crate::clean::clean_empty_profile_dirs(&ctx, false).unwrap();
+
+  assert!(removed.contains(&PathBuf::from("common/.config/empty")));
+  assert!(removed.contains(&PathBuf::from("common/.config")));
+  assert!(removed.contains(&PathBuf::from("profiles/linux/.cache/empty")));
+  assert!(removed.contains(&PathBuf::from("profiles/linux/.cache")));
+  assert!(!ctx.repo_path.join("common/.config/empty").exists());
+  assert!(!ctx.repo_path.join("profiles/linux/.cache").exists());
+  assert!(ctx.repo_path.join("profiles/linux/.config/keep").exists());
+  assert!(ctx.repo_path.join("common").exists());
+  assert!(ctx.repo_path.join("profiles/linux").exists());
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
 fn profiles_serialization() {
   let profiles = Profiles::default();
   let json = serde_json::to_string(&profiles).unwrap();

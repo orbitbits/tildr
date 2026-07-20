@@ -71,6 +71,11 @@ impl From<CliCommands> for Commands {
         profile: cmd.profile,
       },
 
+      CliCommands::Clean(cmd) => Commands::Clean {
+        dry_run: cmd.dry_run,
+        quiet: cmd.quiet,
+      },
+
       CliCommands::Completions(cmd) => Commands::Completions {
         shell: cmd.shell.to_string(),
       },

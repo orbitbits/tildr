@@ -4,6 +4,7 @@ mod add;
 mod apply;
 mod backup;
 mod cat;
+mod clean;
 mod completions;
 mod convert;
 mod del;
@@ -40,6 +41,7 @@ pub enum CliCommands {
   Apply(apply::Command),
   Repo(repo::Command),
   Cat(cat::Command),
+  Clean(clean::Command),
   Completions(completions::Command),
   Status(status::Command),
   Doctor(doctor::Command),
