@@ -17,7 +17,7 @@ permalink: /tildr/documentation/0.2.0/configuration/
 
 Tildr stores its user configuration in TOML format at `~/.config/tildr/config.toml`.
 
-The configuration file is created by `tildr init` and is never written automatically by any other command. If the file does not exist, all defaults are applied silently at runtime.
+The configuration file is created by `tildr init`. It can also be updated by `tildr import` and when Tildr saves an interactively selected GPG key. If the file does not exist, all defaults are applied silently at runtime.
 
 ---
 
@@ -58,7 +58,7 @@ Core settings control the repository path, interactive behavior, and output form
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `repo` | `String` | `"~/.dotfiles"` | Path to the Tildr repository. Accepts `~/...` or an absolute path inside `$HOME`. |
+| `repo` | `String` | `"~/.dotfiles"` | Path to the Tildr repository. Accepts `~/...`, `$HOME/...`, or an absolute path inside `$HOME`. |
 | `search_threshold` | `Integer` | `15` | Number of managed files above which interactive pickers show a fuzzy search step before the selection list. |
 | `color` | `Boolean` | `true` | When `false`, disables all colored output by setting `NO_COLOR=1` before dispatch. Also respected if `NO_COLOR` is already set in the environment. |
 
@@ -161,6 +161,7 @@ When `true`, Tildr automatically commits changes after these commands:
 | `tildr group add` | Commits after adding files to a group |
 | `tildr group rm` | Commits after removing files from a group |
 | `tildr group rename` | Commits after renaming a group |
+| `tildr group delete` | Commits after deleting a group |
 | `tildr profile create` | Commits after creating a profile |
 | `tildr profile add` | Commits after copying files between profiles |
 | `tildr profile mv` | Commits after moving files between profiles |
@@ -253,7 +254,7 @@ gpg_key = "william@email.com"
 1. Tildr loads `config.toml` on startup
 2. If the file does not exist, all defaults are applied silently
 3. Missing fields within an existing file fall back to their defaults
-4. The config is never written automatically except by `tildr init`
+4. Config writes are limited to initialization/import and saving an explicitly selected GPG key
 5. `tildr secret` may update `crypto.gpg_key` after interactive key selection
 
 ---

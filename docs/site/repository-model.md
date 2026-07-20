@@ -204,6 +204,11 @@ Tildr commits the following to the repository:
 | `.tildrignore` | Yes | User-defined ignore patterns |
 | `.gitignore` | Yes | Standard Git ignore rules |
 
+Root `.gitignore` and `.tildrignore` are repository control files. The same
+filenames under `common/` or `profiles/<name>/` are managed HOME dotfiles, so
+`~/.gitignore` can be tracked without colliding with the repository's own
+ignore configuration.
+
 What does **not** get committed:
 
 | File | Committed? | Description |

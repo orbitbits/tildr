@@ -157,7 +157,7 @@ Instead of keeping the original file in place, `Tildr` moves the managed file in
 * `group` manages named groups of managed files for batch operations
 * `profile` manages machine-specific dotfile variants for work, personal, laptop, etc.
 
-`Tildr` manages files, not directories as first-class objects. Directory operations are recursive and act on all managed files under the selected path.
+`Tildr` manages files, not directories as first-class objects. Directory operations are recursive and act on effective active-profile variants under the selected path; `--profile` targets another profile explicitly.
 
 ---
 
@@ -339,7 +339,7 @@ tildr profile unset
 * `git.auto_commit` affects `add`, `restore`, `del`, `mv`, and `secret` — not `apply`, `unlink`, `git`, or `sync`
 * `git.enable = false` disables Tildr-managed Git operations even if Git is installed
 * `tildr secret` requires `gpg` to be installed and available in `PATH`
-* Sensitive files registered with `tildr secret add` are never stored in plain text in the repository
+* Sensitive files registered with `tildr secret add` are removed from Git tracking; only the encrypted bundle is committed
 * `crypto.mode` controls whether symmetric (passphrase) or asymmetric (key pair) GPG encryption is used
 * In asymmetric mode, `crypto.gpg_key` is saved automatically after interactive key selection on first use
 * `core.color = false` disables all colored output; `NO_COLOR` environment variable is also respected

@@ -178,6 +178,12 @@ Paths matched by \f[CR].tildrignore\f[R] are skipped
 .IP \[bu] 2
 Already\-correct symlinks are skipped silently
 .IP \[bu] 2
+Existing sources in the target profile are preserved unless
+\f[CR]\-\-force\f[R] is used
+.IP \[bu] 2
+Adding to an inactive profile stores the variant but keeps
+\f[CR]$HOME\f[R] aligned with the active profile
+.IP \[bu] 2
 If \f[CR]git.auto_commit = true\f[R], the repository is auto\-committed
 after a successful run
 .SS tildr apply
@@ -194,10 +200,11 @@ tildr apply \-\-force \-\-verbose
 \f[B]Options:\f[R]
 .TP
 \f[B]\[en]check\f[R]
-Verify that all managed files are correctly linked without changing
-files.
+Verify that effective active\-profile files are correctly linked without
+changing files.
 Exits with a non\-zero status when a link is missing, broken, points to
-the wrong source, or conflicts with a regular file in \f[CR]$HOME\f[R].
+the wrong source, conflicts with a regular file, or is unexpectedly left
+from an inactive profile.
 .TP
 \f[B]\-n\f[R], \f[B]\[en]dry\-run\f[R]
 Preview actions.
@@ -213,15 +220,18 @@ Suppress output.
 .PP
 \f[B]Behavior:\f[R]
 .IP \[bu] 2
-Creates missing symlinks for all managed files
+Creates missing symlinks for all files effective for the active profile
 .IP \[bu] 2
 Repairs broken or incorrect symlinks automatically
+.IP \[bu] 2
+Removes Tildr\-owned symlinks for files that exist only in inactive
+profiles
 .IP \[bu] 2
 Skips regular files already present in \f[CR]$HOME\f[R] unless
 \f[CR]\-\-force\f[R] is used
 .IP \[bu] 2
 With \f[CR]\-\-check\f[R], only validates symlinks and reports missing,
-broken, or conflicting HOME files
+broken, conflicting, or unexpected HOME links
 .IP \[bu] 2
 Uses the repository as the source of truth
 .IP \[bu] 2
@@ -257,7 +267,8 @@ Does not remove files or symlinks
 .IP \[bu] 2
 Runs automatically after \f[CR]tildr profile mv\f[R]
 .SS tildr status
-Shows the synchronization state of all managed files.
+Shows the synchronization state of files effective for the active
+profile.
 .IP
 .EX
 tildr status
@@ -375,15 +386,16 @@ View the output in an interactive pager (uses \f[CR]$PAGER\f[R] or
 \f[CR]less \-RFX\f[R]).
 .TP
 \f[B]\[en]export\f[R] \f[I]<FILE>\f[R]
-Export the list of managed files to a JSON file.
-The JSON contains a version number, export timestamp, and an array of
-relative file paths.
+Export the effective managed files as logical HOME\-relative paths.
+With \f[CR]\-\-profile\f[R], exports that profile\[cq]s paths instead.
 .TP
 \f[B]\[en]import\f[R] \f[I]<FILE>\f[R]
-Import a previously exported JSON file and create symlinks for all
-listed files in \f[CR]$HOME\f[R].
-Files already correctly linked are skipped.
-Files not found in the repository are reported as warnings.
+Import a previously exported JSON file and create symlinks using the
+current active profile.
+Correct links and regular\-file conflicts are preserved; files without
+an effective source are reported as warnings.
+Older exports containing \f[CR]common/\f[R] or
+\f[CR]profiles/<name>/\f[R] paths remain supported.
 .PP
 \f[B]Export JSON format:\f[R]
 .IP
@@ -419,6 +431,9 @@ paths
 .IP \[bu] 2
 Use \f[CR]tildr source\-path <file>\f[R] to inspect the repository
 source path for one file
+.IP \[bu] 2
+Export files always contain logical paths and never expose the storage
+hierarchy
 .IP \[bu] 2
 Tree view prints the managed HOME path tree
 .IP \[bu] 2
@@ -558,7 +573,7 @@ tildr unlink \-\-all
 \f[B]Options:\f[R]
 .TP
 \f[B]\-a\f[R], \f[B]\[en]all\f[R]
-Unlink all managed files.
+Unlink all files effective for the active profile.
 .TP
 \f[B]\-n\f[R], \f[B]\[en]dry\-run\f[R]
 Preview changes.
@@ -575,7 +590,11 @@ Only symlinks in \f[CR]$HOME\f[R] are removed
 .IP \[bu] 2
 Repository files remain untouched
 .IP \[bu] 2
-Directory targets are expanded recursively over managed files
+Directory targets are expanded recursively using active\-profile
+variants with no\-profile fallbacks
+.IP \[bu] 2
+Use \f[CR]\-\-profile <NAME>\f[R] to operate recursively on a specific
+profile instead
 .IP \[bu] 2
 Confirms before acting on a directory target unless \f[CR]\-\-force\f[R]
 is passed
@@ -598,7 +617,7 @@ tildr restore \-\-all
 \f[B]Options:\f[R]
 .TP
 \f[B]\-a\f[R], \f[B]\[en]all\f[R]
-Restore all managed files.
+Restore all files effective for the active profile.
 .TP
 \f[B]\-n\f[R], \f[B]\[en]dry\-run\f[R]
 Preview changes.
@@ -616,6 +635,12 @@ Removes the home symlink if present
 Moves the real file back from the repository into \f[CR]$HOME\f[R]
 .IP \[bu] 2
 Removes empty directories from the repository after restoration
+.IP \[bu] 2
+Directory targets and \f[CR]\-\-all\f[R] select active\-profile variants
+with no\-profile fallbacks
+.IP \[bu] 2
+Use \f[CR]\-\-profile <NAME>\f[R] to restore recursively from a specific
+profile instead
 .IP \[bu] 2
 Confirms before acting on a directory target unless \f[CR]\-\-force\f[R]
 is passed
@@ -699,6 +724,11 @@ Creates a new symlink at the new path in \f[CR]$HOME\f[R]
 .IP \[bu] 2
 Source and destination are logical \f[CR]$HOME\f[R] paths; do not
 include \f[CR]common/\f[R] or \f[CR]profiles/<name>/\f[R]
+.IP \[bu] 2
+Removes empty source directories left in profile storage
+.IP \[bu] 2
+\f[CR].bak\f[R] is a valid managed suffix; use \f[CR].tildrignore\f[R]
+when backup files should be excluded
 .IP \[bu] 2
 If the destination is a filename only (no directory), the original
 directory is preserved
@@ -859,9 +889,12 @@ Auto\-detects the git remote URL for the clone step
 .IP \[bu] 2
 Checks prerequisites (git, tildr, optionally gpg)
 .IP \[bu] 2
+Preserves the configured repository location relative to
+\f[CR]$HOME\f[R]
+.IP \[bu] 2
 Clones the repository or creates it if it doesn\[cq]t exist
 .IP \[bu] 2
-Initializes Tildr config
+Initializes or updates Tildr config to point at that exact destination
 .IP \[bu] 2
 Runs \f[CR]tildr apply\f[R] to create symlinks
 .IP \[bu] 2
@@ -883,6 +916,12 @@ tildr group delete dev
 tildr group apply dev
 tildr group unlink dev
 .EE
+.PP
+Groups store logical HOME\-relative paths.
+Existing \f[CR]groups.json\f[R] entries using legacy \f[CR]common/\f[R],
+\f[CR]profiles/<name>/\f[R], \f[CR]\[ti]\f[R], or \f[CR]$HOME\f[R] paths
+are normalized when loaded and saved in logical form on the next group
+mutation.
 .PP
 \f[B]Subcommands:\f[R]
 .TP
@@ -989,7 +1028,7 @@ tildr profile migrate \-\-dry\-run
 \f[B]Subcommands:\f[R]
 .TP
 \f[B]create\f[R] \f[I]<NAME>\f[R] \f[B][\[en]description\f[R] \f[I]<DESC>\f[R]\f[B]]\f[R]
-Create a new profile.
+Create a new profile using one path\-safe name.
 \f[CR]\[dq]common\[dq]\f[R], \f[CR]\[dq]no\-profile\[dq]\f[R], and
 \f[CR]\[dq]default\[dq]\f[R] are reserved and cannot be used as profile
 names.
@@ -1103,9 +1142,10 @@ If no shared no\-profile version exists, fall back to legacy
 If no legacy shared version exists, fall back to legacy
 \f[CR]profiles/default/<file>\f[R] or root files
 .PP
-This means \f[B]all managed files are always processed\f[R] \[em] the
-active profile only determines \f[I]which variant\f[R] of each file to
-use, not whether to skip files.
+Files that exist only in an inactive named profile are not linked until
+that profile is activated.
+For every effective logical path, the active profile determines which
+physical variant is used.
 .PP
 Example: if the active profile is \f[CR]work\f[R] and it tracks
 \f[CR].bashrc\f[R] and \f[CR].ssh/config\f[R]:
@@ -1206,7 +1246,9 @@ as a fallback
 \f[CR]default\f[R] is only kept as a legacy compatibility fallback
 .IP \[bu] 2
 \f[CR]add\f[R] copies files preserving the source; \f[CR]mv\f[R] moves
-files (copies then removes originals)
+files atomically when possible
+.IP \[bu] 2
+Existing destination variants are skipped instead of overwritten
 .IP \[bu] 2
 \f[CR]mv\f[R] removes empty source directories left after moving files
 .IP \[bu] 2
@@ -1217,9 +1259,9 @@ for a profile)
 \f[CR]del\f[R] removes the profile directory and restores orphaned files
 to \f[CR]common/\f[R]
 .IP \[bu] 2
-\f[CR]rename\f[R] renames the profile directory and updates all tracked
-file paths; if the profile is active, updates active profile name;
-re\-creates symlinks for linked files
+\f[CR]rename\f[R] supports empty profiles, renames the profile
+directory, updates the active profile name, and immediately repairs
+affected links
 .IP \[bu] 2
 \f[CR]set\f[R] and \f[CR]unset\f[R] immediately relink \f[CR]$HOME\f[R]
 to the new effective profile
@@ -1269,13 +1311,15 @@ tildr secret decrypt
 \f[B]Subcommands:\f[R]
 .TP
 \f[B]add\f[R] \f[I]<FILE>\f[R]
-Registers a file as sensitive, adds it to \f[CR].gitignore\f[R], removes
-it from Git tracking if already tracked, and re\-encrypts the full
-bundle.
+Registers a file as sensitive, adds its actual profile source path to
+\f[CR].gitignore\f[R], removes that source from Git tracking if already
+tracked, and re\-encrypts the full bundle.
 .TP
 \f[B]rm\f[R] \f[I]<FILE>\f[R]
 Unregisters a file from the manifest and re\-encrypts the bundle without
 it.
+Accepts logical, \f[CR]\[ti]\f[R], \f[CR]$HOME\f[R], absolute HOME, and
+current\-directory paths.
 If no files remain, the bundle is deleted.
 The original file in \f[CR]$HOME\f[R] is not touched.
 .TP
@@ -1309,8 +1353,9 @@ required
 In asymmetric mode, if \f[CR]gpg_key\f[R] is not set, Tildr prompts
 interactively and saves the chosen key to config
 .IP \[bu] 2
-The original sensitive files are never stored in plain text in the
-repository
+Sensitive sources may physically live under \f[CR]common/\f[R] or
+\f[CR]profiles/<name>/\f[R], but they are ignored and removed from Git
+tracking; only the encrypted bundle is committed
 .IP \[bu] 2
 Only the encrypted bundle \f[CR].tildr/encrypted.gpg\f[R] and the
 plaintext manifest \f[CR].tildr/encrypted\-items\f[R] are committed
@@ -1337,7 +1382,7 @@ tildr sync \-\-force
 Preview pull, merge, and push actions without executing.
 .TP
 \f[B]\-f\f[R], \f[B]\[en]force\f[R]
-Pass \f[CR]\-\-force\f[R] to the final \f[CR]git push\f[R].
+Use \f[CR]\-\-force\-with\-lease\f[R] for the final \f[CR]git push\f[R].
 .TP
 \f[B]\-q\f[R], \f[B]\[en]quiet\f[R]
 Suppress output.
@@ -1355,6 +1400,9 @@ If only local commits exist, pushes them
 If only remote commits exist, performs a fast\-forward pull
 .IP \[bu] 2
 If both local and remote commits exist, simulates a merge first
+.IP \[bu] 2
+Reapplies the effective profile after pulls and merges so new, moved, or
+removed files are reconciled in \f[CR]$HOME\f[R]
 .IP \[bu] 2
 Aborts safely and reports conflicting files when a merge conflict would
 occur
@@ -1394,7 +1442,8 @@ Disk
 Repository total size on disk.
 .TP
 Symlinks
-All managed symlinks are correct; reports broken or missing links.
+Effective active\-profile symlinks are correct; reports broken or
+missing links.
 .SS tildr completions
 Generate shell completion scripts for various shells.
 .IP
@@ -1579,8 +1628,8 @@ even if Git is installed
 \f[CR]tildr secret\f[R] requires \f[CR]gpg\f[R] to be installed and
 available in \f[CR]PATH\f[R]
 .IP \[bu] 2
-Sensitive files registered with \f[CR]tildr secret add\f[R] are never
-stored in plain text in the repository
+Sensitive files registered with \f[CR]tildr secret add\f[R] are removed
+from Git tracking; only the encrypted bundle is committed
 .IP \[bu] 2
 \f[CR]core.color = false\f[R] in \f[CR]config.toml\f[R] disables all
 colored output; the \f[CR]NO_COLOR\f[R] environment variable is also

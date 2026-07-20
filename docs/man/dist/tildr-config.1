@@ -12,8 +12,9 @@ Tildr stores its user configuration in TOML format at
 If the XDG config directory is unavailable, Tildr falls back to
 \f[CR]$HOME/.config/tildr/config.toml\f[R].
 .PP
-The config file is created by \f[B]tildr init\f[R] and is never written
-automatically outside of that command.
+The config file is created by \f[B]tildr init\f[R].
+It can also be updated by \f[B]tildr import\f[R] and when Tildr saves a
+selected GPG key.
 If the file does not exist at startup, all default values are applied
 silently.
 .SH CONFIGURATION SECTIONS
@@ -22,8 +23,8 @@ The \f[CR][core]\f[R] section controls general Tildr behavior.
 .TP
 \f[B]core.repo\f[R]
 Repository path used by the CLI.
-Accepts \f[CR]\[ti]/...\f[R] notation or an absolute path inside
-\f[CR]$HOME\f[R].
+Accepts \f[CR]\[ti]/...\f[R], \f[CR]$HOME/...\f[R], or an absolute path
+inside \f[CR]$HOME\f[R].
 The repository must be inside \f[CR]$HOME\f[R] and cannot be
 \f[CR]$HOME\f[R] itself.
 Default: \f[CR]\[ti]/.dotfiles\f[R]
@@ -217,9 +218,9 @@ regardless of \f[CR].tildrignore\f[R]:
 .IP \[bu] 2
 \f[CR].git\f[R]
 .IP \[bu] 2
-\f[CR].gitignore\f[R]
+Root \f[CR].gitignore\f[R]
 .IP \[bu] 2
-\f[CR].tildrignore\f[R]
+Root \f[CR].tildrignore\f[R]
 .IP \[bu] 2
 \f[CR].tildr/\f[R] \[em] internal directory containing all Tildr
 configuration files
@@ -230,13 +231,18 @@ configuration files
 .IP \[bu] 2
 \f[CR].gitkeep\f[R]
 .IP \[bu] 2
-Files ending in \f[CR].bak\f[R]
-.IP \[bu] 2
 Files ending in \f[CR].tmp\f[R]
 .IP \[bu] 2
 Files ending in \f[CR].swp\f[R]
 .IP \[bu] 2
 Files ending in \f[CR]\[ti]\f[R]
+.PP
+The root control files are context\-sensitive.
+Files named \f[CR].gitignore\f[R] or \f[CR].tildrignore\f[R] under
+\f[CR]common/\f[R] or \f[CR]profiles/<name>/\f[R] are managed HOME
+dotfiles.
+Files ending in \f[CR].bak\f[R] can also be managed; add
+\f[CR]*.bak\f[R] to \f[CR].tildrignore\f[R] to exclude them explicitly.
 .SH ENVIRONMENT VARIABLES
 .TP
 \f[B]NO_COLOR\f[R]

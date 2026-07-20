@@ -20,7 +20,7 @@ Tildr stores its user configuration in TOML format at `~/.config/tildr/config.to
 
 If the XDG config directory is unavailable, Tildr falls back to `$HOME/.config/tildr/config.toml`.
 
-The config file is created by **tildr init** and is never written automatically outside of that command.
+The config file is created by **tildr init**. It can also be updated by **tildr import** and when Tildr saves a selected GPG key.
 If the file does not exist at startup, all default values are applied silently.
 
 # CONFIGURATION SECTIONS
@@ -30,7 +30,7 @@ If the file does not exist at startup, all default values are applied silently.
 The `[core]` section controls general Tildr behavior.
 
 **core.repo**
-:   Repository path used by the CLI. Accepts `~/...` notation or an absolute path inside `$HOME`.
+:   Repository path used by the CLI. Accepts `~/...`, `$HOME/...`, or an absolute path inside `$HOME`.
     The repository must be inside `$HOME` and cannot be `$HOME` itself.
     Default: `~/.dotfiles`
 
@@ -182,16 +182,20 @@ cache/
 During repository scans, Tildr always excludes the following entries regardless of `.tildrignore`:
 
 - `.git`
-- `.gitignore`
-- `.tildrignore`
+- Root `.gitignore`
+- Root `.tildrignore`
 - `.tildr/` — internal directory containing all Tildr configuration files
 - `.DS_Store`
 - `Thumbs.db`
 - `.gitkeep`
-- Files ending in `.bak`
 - Files ending in `.tmp`
 - Files ending in `.swp`
 - Files ending in `~`
+
+The root control files are context-sensitive. Files named `.gitignore` or
+`.tildrignore` under `common/` or `profiles/<name>/` are managed HOME dotfiles.
+Files ending in `.bak` can also be managed; add `*.bak` to `.tildrignore` to
+exclude them explicitly.
 
 # ENVIRONMENT VARIABLES
 

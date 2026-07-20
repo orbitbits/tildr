@@ -149,6 +149,8 @@ Behavior:
 * Directories are traversed recursively
 * Paths matched by `.tildrignore` are skipped
 * Already-correct symlinks are skipped silently
+* Existing sources in the target profile are preserved unless `--force` is used
+* Adding to an inactive profile stores the variant but keeps `$HOME` aligned with the active profile
 * If `git.auto_commit = true`, the repository is auto-committed after a successful run
 
 ---
@@ -176,10 +178,11 @@ Options:
 
 Behavior:
 
-* Creates missing symlinks for all managed files
+* Creates missing symlinks for all files effective for the active profile
 * Repairs broken or incorrect symlinks automatically
+* Removes Tildr-owned symlinks for files that exist only in inactive profiles
 * Skips regular files already present in `$HOME` unless `--force` is used
-* With `--check`, only validates symlinks and reports missing, broken, or conflicting HOME files
+* With `--check`, only validates symlinks and reports missing, broken, conflicting, or unexpected HOME links
 * Uses the repository as the source of truth
 * Does not modify repository content
 
@@ -213,7 +216,7 @@ Behavior:
 
 ### `tildr status`
 
-Shows the synchronization state of all managed files.
+Shows the synchronization state of files effective for the active profile.
 
 ```sh
 tildr status
@@ -321,10 +324,10 @@ linux       ~/.dotfiles/profiles/linux/.bashrc
 :   View the output in an interactive pager (uses `$PAGER` or `less -RFX`).
 
 **--export** *\<FILE\>*
-:   Export the list of managed files to a JSON file. The JSON contains a version number, export timestamp, and an array of relative file paths.
+:   Export the effective managed files as logical HOME-relative paths. With `--profile`, exports that profile's paths instead.
 
 **--import** *\<FILE\>*
-:   Import a previously exported JSON file and create symlinks for all listed files in `$HOME`. Files already correctly linked are skipped. Files not found in the repository are reported as warnings.
+:   Import a previously exported JSON file and create symlinks using the current active profile. Correct links and regular-file conflicts are preserved; files without an effective source are reported as warnings. Older exports containing `common/` or `profiles/<name>/` paths remain supported.
 
 **Export JSON format:**
 
@@ -347,6 +350,7 @@ Notes:
 * Use `--profile` to target a variant explicitly: `tildr restore .bashrc --profile linux`, `tildr del .bashrc --profile no-profile`, or `tildr cat .bashrc --profile linux`
 * Use `tildr list --source` to inspect all repository source paths
 * Use `tildr source-path <file>` to inspect the repository source path for one file
+* Export files always contain logical paths and never expose the storage hierarchy
 * Tree view prints the managed HOME path tree
 * `.tildrignore` patterns and internally excluded files are not shown
 
@@ -488,7 +492,7 @@ Options:
 
 | Flag        |Short | Description               |
 |-------------|------|---------------------------|
-| `--all`     | `-a` | Unlink all managed files  |
+| `--all`     | `-a` | Unlink all files effective for the active profile |
 | `--dry-run` | `-n` | Preview changes           |
 | `--force`   | `-f` | Skip confirmation prompts |
 | `--quiet`   | `-q` | Suppress output           |
@@ -497,7 +501,8 @@ Behavior:
 
 * Only symlinks in `$HOME` are removed
 * Repository files remain untouched
-* Directory targets are expanded recursively over managed files
+* Directory targets are expanded recursively using active-profile variants with no-profile fallbacks
+* Use `--profile <NAME>` to operate recursively on a specific profile instead
 * Confirms before acting on a directory target unless `--force` is passed
 * Empty parent directories in `$HOME` are cleaned up when possible
 * If no target is passed, Tildr opens an interactive picker
@@ -519,7 +524,7 @@ Options:
 
 | Flag        | Short| Description               |
 |-------------|------|---------------------------|
-| `--all`     | `-a` | Restore all managed files |
+| `--all`     | `-a` | Restore all files effective for the active profile |
 | `--dry-run` | `-n` | Preview changes           |
 | `--force`   | `-f` | Skip confirmation prompts |
 | `--quiet`   | `-q` | Suppress output           |
@@ -529,6 +534,8 @@ Behavior:
 * Removes the home symlink if present
 * Moves the real file back from the repository into `$HOME`
 * Removes empty directories from the repository after restoration
+* Directory targets and `--all` select active-profile variants with no-profile fallbacks
+* Use `--profile <NAME>` to restore recursively from a specific profile instead
 * Confirms before acting on a directory target unless `--force` is passed
 * If no target is passed, Tildr opens an interactive picker
 * Auto-commits the repository when `git.auto_commit = true`
@@ -583,7 +590,7 @@ Options:
 | Flag        |Short | Description                                           |
 |-------------|------|-------------------------------------------------------|
 | `--dry-run` | `-n` | Preview pull / merge / push actions without executing |
-| `--force`   | `-f` | Pass `--force` to the final `git push`                |
+| `--force`   | `-f` | Use `--force-with-lease` for the final `git push`      |
 | `--quiet`   | `-q` | Suppress output                                       |
 
 Behavior:
@@ -594,6 +601,7 @@ Behavior:
 * If only local commits exist, pushes them
 * If only remote commits exist, performs a fast-forward pull
 * If both local and remote commits exist, simulates a merge first
+* Reapplies the effective profile after pulls and merges so new, moved, or removed files are reconciled in `$HOME`
 * Aborts safely and reports conflicting files when a merge conflict would occur
 * Uses the saved Git availability from Tildr config instead of probing `PATH` on every run
 
@@ -616,7 +624,7 @@ Checks performed:
 | Git         | Repository is a Git repo and the working tree has no pending or untracked changes  |
 | Permissions | Repository and managed files are accessible                                        |
 | Disk        | Repository total size                                                              |
-| Symlinks    | All managed symlinks are correct; reports broken or missing links                  |
+| Symlinks    | Effective active-profile symlinks are correct; reports broken or missing links      |
 
 Output example:
 
@@ -719,6 +727,8 @@ Behavior:
 * Removes the old symlink from `$HOME`
 * Creates a new symlink at the new path in `$HOME`
 * Source and destination are logical `$HOME` paths; do not include `common/` or `profiles/<name>/`
+* Removes empty source directories left in profile storage
+* `.bak` is a valid managed suffix; use `.tildrignore` when backup files should be excluded
 * If the destination is a filename only (no directory), the original directory is preserved
 * If no arguments are passed, Tildr opens an interactive picker to select the source, then prompts for the new path
 * Auto-commits the repository when `git.auto_commit = true`
@@ -872,8 +882,9 @@ chmod +x setup.sh
 * Generates a shell script that reproduces the entire Tildr setup on a new machine
 * Auto-detects the git remote URL for the clone step
 * Checks prerequisites (git, tildr, optionally gpg)
+* Preserves the configured repository location relative to `$HOME`
 * Clones the repository or creates it if it doesn't exist
-* Initializes Tildr config
+* Initializes or updates Tildr config to point at that exact destination
 * Runs `tildr apply` to create symlinks
 * Decrypts secrets if `.tildr/encrypted.gpg` exists
 * Output is idempotent — safe to run multiple times
@@ -896,6 +907,10 @@ tildr group delete dev
 tildr group apply dev
 tildr group unlink dev
 ```
+
+Groups store logical HOME-relative paths. Existing `groups.json` entries using
+legacy `common/`, `profiles/<name>/`, `~`, or `$HOME` paths are normalized when
+loaded and saved in logical form on the next group mutation.
 
 Options:
 
@@ -965,7 +980,7 @@ Options:
 
 | Subcommand                                             | Description                                                             |
 |--------------------------------------------------------|-------------------------------------------------------------------------|
-| `create <NAME> [--description <DESC>]`                 | Create a new profile (`"common"`, `"no-profile"`, and `"default"` are reserved) |
+| `create <NAME> [--description <DESC>]`                 | Create a new profile using one path-safe name (`"common"`, `"no-profile"`, and `"default"` are reserved) |
 | `add <FROM> [-f <FILES>] --to <TO>`                    | Copy files between no-profile files, profiles, or between profiles      |
 | `mv <FROM> [-f <FILES>] --to <TO>`                     | Move files between no-profile files, profiles, or between profiles      |
 | `del <NAME>`                                           | Delete a profile and restore orphans to `common/`                       |
@@ -1012,7 +1027,7 @@ The active profile is a per-file override mechanism. When `tildr apply`, `tildr 
 4. If no shared no-profile version exists, fall back to legacy `profiles/common/<file>`
 5. If no legacy shared version exists, fall back to legacy `profiles/default/<file>` or root files
 
-This means **all managed files are always processed** — the active profile only determines *which variant* of each file to use, not whether to skip files.
+Files that exist only in an inactive named profile are not linked until that profile is activated. For every effective logical path, the active profile determines which physical variant is used.
 
 Example: if the active profile is `work` and it tracks `.bashrc` and `.ssh/config`:
 
@@ -1095,11 +1110,12 @@ Behavior:
 * `no-profile` is the command argument for shared files stored in `common/`; `common` remains accepted for compatibility
 * Legacy repositories with `profiles/common/` are still supported as a fallback
 * `default` is only kept as a legacy compatibility fallback
-* `add` copies files preserving the source; `mv` moves files (copies then removes originals)
+* `add` copies files preserving the source; `mv` moves files atomically when possible
+* Existing destination variants are skipped instead of overwritten
 * `mv` removes empty source directories left after moving files
 * Without `-f`, `add`/`mv` operate on all eligible files (orphans for `no-profile`, all tracked files for a profile)
 * `del` removes the profile directory and restores orphaned files to `common/`
-* `rename` renames the profile directory and updates all tracked file paths; if the profile is active, updates active profile name; re-creates symlinks for linked files
+* `rename` supports empty profiles, renames the profile directory, updates the active profile name, and immediately repairs affected links
 * `set` and `unset` immediately relink `$HOME` to the new effective profile
 * `del` relinks `$HOME` after deletion, so removed active profiles fall back to no-profile files
 * `apply` can be run manually to repair or reapply links using the active profile

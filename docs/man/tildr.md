@@ -76,7 +76,7 @@ Instead of keeping the original file in place, **Tildr** moves the managed file 
 - `group` manages named groups of managed files for batch operations
 - `profile` manages machine-specific dotfile variants for work, personal, laptop, etc.
 
-**Tildr** manages files, not directories as first-class objects. Directory operations are recursive and act on all managed files under the selected path.
+**Tildr** manages files, not directories as first-class objects. Directory operations are recursive and act on the effective active-profile variants under the selected path; `--profile` targets another variant explicitly.
 
 # REPOSITORY MODEL
 
@@ -311,7 +311,7 @@ See **tildr-commands(1)** for the full `tildr repo path` documentation.
 - Tildr is designed for home-directory management on Linux and macOS
 - The repository must stay inside `$HOME`
 - Relative paths for managed targets are interpreted from `$HOME`
-- Directory operations are recursive over all files under that path
+- Directory operations are recursive over effective active-profile variants under that path
 - `apply` does not overwrite conflicting regular files unless `--force` is provided
 - `unlink` removes only symlinks, never repository content
 - `restore` physically moves the real file back out of the repository
@@ -319,7 +319,7 @@ See **tildr-commands(1)** for the full `tildr repo path` documentation.
 - `git.auto_commit` affects `add`, `restore`, `del`, `mv`, `secret`, `exclude`, `group`, and `profile` — not `apply`, `unlink`, `git`, or `sync`
 - `git.enable = false` disables Tildr-managed Git operations even if Git is installed
 - `tildr secret` requires `gpg` to be installed and available in `PATH`
-- Sensitive files registered with `tildr secret add` are never stored in plain text in the repository
+- Sensitive files registered with `tildr secret add` are removed from Git tracking; only the encrypted bundle is committed
 - `crypto.mode` controls whether symmetric (passphrase) or asymmetric (key pair) GPG encryption is used
 - In asymmetric mode, `crypto.gpg_key` is saved automatically after interactive key selection on first use
 - `core.color = false` disables all colored output; `NO_COLOR` environment variable is also respected

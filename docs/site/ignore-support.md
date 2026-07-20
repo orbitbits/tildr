@@ -154,13 +154,12 @@ During repository scans, Tildr **always** excludes the following entries regardl
 | Entry | Type | Reason |
 |-------|------|--------|
 | `.git` | Directory | Git repository data |
-| `.gitignore` | File | Standard Git ignore rules |
-| `.tildrignore` | File | Tildr ignore patterns |
+| Root `.gitignore` | File | Standard Git ignore rules for the repository |
+| Root `.tildrignore` | File | Tildr ignore patterns |
 | `.tildr/` | Directory | Internal Tildr configuration files |
 | `.DS_Store` | File | macOS metadata |
 | `Thumbs.db` | File | Windows thumbnail cache |
 | `.gitkeep` | File | Placeholder for empty directories |
-| `*.bak` | Files | Backup files |
 | `*.tmp` | Files | Temporary files |
 | `*.swp` | Files | Vim swap files |
 | `*~` | Files | Editor backup files |
@@ -171,6 +170,12 @@ These entries are excluded from:
 - `tildr apply` symlink creation
 - `tildr stats` calculations
 - Interactive picker lists
+
+The root control files are context-sensitive. A managed `$HOME/.gitignore` at
+`common/.gitignore` or `profiles/<name>/.gitignore` is a normal dotfile, as is a
+managed `.tildrignore` inside profile storage. Files ending in `.bak` can also
+be managed explicitly; add `*.bak` to the root `.tildrignore` when you prefer
+to exclude them.
 
 ---
 
@@ -264,5 +269,5 @@ tildr exclude list
 * `.tildrignore` patterns only affect Tildr's repository scanning
 * They do not affect Git tracking — use `.gitignore` for that
 * Patterns are applied recursively to all subdirectories
-* The `.tildrignore` file itself is always excluded from Tildr operations
+* The root `.tildrignore` control file is excluded from Tildr operations
 * Internal exclusions (`.git`, `.tildr/`, etc.) cannot be overridden

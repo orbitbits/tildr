@@ -28,7 +28,7 @@ Tildr maintains two files at the root of your repository:
 * `.tildr/encrypted-items` — a plaintext manifest listing the relative paths of all registered sensitive files, one per line. This file is committed to the repository.
 * `.tildr/encrypted.gpg` — an encrypted bundle containing all the registered files packed together. This file is also committed to the repository.
 
-The original sensitive files are **never stored in the repository**. When you register a file with `tildr secret add`, Tildr automatically adds it to `.gitignore` and removes it from Git tracking if it was already being tracked. Only the encrypted bundle enters version control.
+Sensitive files managed through symlinks may physically live under `common/` or `profiles/<name>/`, but they are **never kept in Git tracking**. When you register a file with `tildr secret add`, Tildr adds the effective physical source path to `.gitignore` and removes that source from Git tracking if necessary. Only the encrypted bundle enters version control.
 
 ### Encryption model
 
@@ -80,7 +80,7 @@ Behavior:
 
 * The file must exist in `$HOME`
 * The relative path is added to `.tildr/encrypted-items`
-* The file path is appended to `.gitignore` in the repository root so it is never committed
+* The effective profile source path, such as `common/.ssh/id_rsa` or `profiles/linux/.ssh/id_rsa`, is appended to the root `.gitignore` so it is never committed
 * If the file was already tracked by Git, `git rm --cached` is run to remove it from the index without deleting the file from disk
 * All registered files (including the newly added one) are re-packed into a tar archive and re-encrypted into `.tildr/encrypted.gpg`
 * GPG will prompt for a passphrase (symmetric) or use the configured key (asymmetric) on encryption
@@ -96,6 +96,8 @@ Behavior:
 
   ```sh
   tildr secret rm .ssh/id_rsa
+  tildr secret rm ~/.ssh/id_rsa
+  tildr secret rm $HOME/.ssh/id_rsa
 ```
 
 Behavior:

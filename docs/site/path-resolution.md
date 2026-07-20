@@ -177,13 +177,13 @@ tildr add ~/.current-shell
 
 #### Directories
 
-Directory arguments are expanded recursively to all managed files under that path:
+Directory arguments are expanded recursively to effective active-profile files, with no-profile fallbacks, under that path:
 
 ```sh
 # Adds all files under .config/nvim/
 tildr add .config/nvim
 
-# Unlinks all managed files under .config/
+# Unlinks all effective managed files under .config/
 tildr unlink .config
 ```
 
@@ -200,8 +200,8 @@ tildr add .bashrc    # Second time — skipped (already managed)
 
 ### Summary Table
 
-| Command | Path Base | Accepts Absolute? | Accepts `~`? |
-|---------|-----------|-------------------|--------------|
+| Command | Path Base | Accepts Absolute? | Accepts `~` / `$HOME`? |
+|---------|-----------|-------------------|-------------------------|
 | `tildr add` | `$HOME` | Yes (inside `$HOME`) | Yes |
 | `tildr restore` | `$HOME` | Yes (inside `$HOME`) | Yes |
 | `tildr unlink` | `$HOME` | Yes (inside `$HOME`) | Yes |
@@ -209,8 +209,10 @@ tildr add .bashrc    # Second time — skipped (already managed)
 | `tildr cat` | `$HOME` | Yes (inside `$HOME`) | Yes |
 | `tildr edit` | `$HOME` | Yes (inside `$HOME`) | Yes |
 | `tildr mv` | `$HOME` | Yes (inside `$HOME`) | Yes |
-| `tildr secret add` | `$HOME` | Yes (inside `$HOME`) | Yes |
+| `tildr profile add/mv -f` | `$HOME` | Yes (inside `$HOME`) | Yes |
+| `tildr secret add/rm` | `$HOME` | Yes (inside `$HOME`) | Yes |
 | `tildr init --repo` | CWD | Yes (inside `$HOME`) | Yes |
 | `tildr list --export` | CWD | Yes | Yes |
 | `tildr list --import` | CWD | Yes | Yes |
 | `tildr backup --output` | CWD | Yes | Yes |
+| `tildr snapshot --output` | CWD | Yes | Yes |

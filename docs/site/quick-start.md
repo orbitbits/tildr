@@ -159,7 +159,7 @@ Each `add` command:
 tildr status
 ```
 
-Shows the synchronization state of all managed files:
+Shows the synchronization state of files effective for the active profile:
 
 | Status           | Meaning                                                        |
 |------------------|----------------------------------------------------------------|

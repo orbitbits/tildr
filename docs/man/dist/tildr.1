@@ -95,8 +95,9 @@ operations
 personal, laptop, etc.
 .PP
 \f[B]Tildr\f[R] manages files, not directories as first\-class objects.
-Directory operations are recursive and act on all managed files under
-the selected path.
+Directory operations are recursive and act on the effective
+active\-profile variants under the selected path; \f[CR]\-\-profile\f[R]
+targets another variant explicitly.
 .SH REPOSITORY MODEL
 For every managed file:
 .IP "1." 3
@@ -348,7 +349,8 @@ The repository must stay inside \f[CR]$HOME\f[R]
 .IP \[bu] 2
 Relative paths for managed targets are interpreted from \f[CR]$HOME\f[R]
 .IP \[bu] 2
-Directory operations are recursive over all files under that path
+Directory operations are recursive over effective active\-profile
+variants under that path
 .IP \[bu] 2
 \f[CR]apply\f[R] does not overwrite conflicting regular files unless
 \f[CR]\-\-force\f[R] is provided
@@ -372,8 +374,8 @@ even if Git is installed
 \f[CR]tildr secret\f[R] requires \f[CR]gpg\f[R] to be installed and
 available in \f[CR]PATH\f[R]
 .IP \[bu] 2
-Sensitive files registered with \f[CR]tildr secret add\f[R] are never
-stored in plain text in the repository
+Sensitive files registered with \f[CR]tildr secret add\f[R] are removed
+from Git tracking; only the encrypted bundle is committed
 .IP \[bu] 2
 \f[CR]crypto.mode\f[R] controls whether symmetric (passphrase) or
 asymmetric (key pair) GPG encryption is used
