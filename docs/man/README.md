@@ -12,11 +12,13 @@ make man
 
 ## Manual
 
-To generate the `man` documentation manually, use the command:
+To generate one `man` page manually, use the command:
 
 ```sh
-pandoc -s -t man docs/man/tildr*.md -o docs/man/dist/tildr*.1
+pandoc -s -t man docs/man/tildr.md -o docs/man/dist/tildr.1
 ```
+
+Repeat the command for each Markdown source, changing both the input and output file names.
 
 To compress the `man` files into `.gz` files, use the following command:
 

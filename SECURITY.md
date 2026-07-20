@@ -34,14 +34,14 @@ gpg --import pubkey.asc
 
 ### Verifying the Binary
 
-After downloading the binary and its signature file (`.asc`), verify the integrity:
+After downloading the binary, `SHA256SUMS`, and `SHA256SUMS.sig`, verify the integrity:
 
 ```sh
 # Download the binary and signature
-# Example: tildr-0.1.0-x86_64 and SHA256SUMS.asc
+# Example: tildr-0.3.0-linux-x86_64, SHA256SUMS, and SHA256SUMS.sig
 
 # Verify the SHA256SUMS signature
-gpg --verify SHA256SUMS.asc
+gpg --verify SHA256SUMS.sig SHA256SUMS
 
 # If valid, verify the binary against the checksums
 sha256sum -c SHA256SUMS

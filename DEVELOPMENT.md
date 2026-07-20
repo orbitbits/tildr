@@ -45,10 +45,16 @@ cd tildr
 make build
 ```
 
-The default development build currently runs:
+The default development build runs:
 
 - `cargo fmt --all`
 - `cargo build`
+
+Enable the repository hooks if you want the same local guardrails used by maintainers:
+
+```sh
+git config core.hooksPath hooks
+```
 
 ---
 
@@ -58,20 +64,21 @@ Typical local workflow:
 
 ```sh
 make build
+cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 ```
 
 Useful commands:
 
-| Command                         | Purpose                                                      |
-|---------------------------------|--------------------------------------------------------------|
-| `make build`                    | Format and build the workspace                               |
-| `make release`                  | Generate man pages, format, test, and build release binaries |
-| `make man`                      | Generate `man` pages into `docs/man/dist`                    |
-| `make man-gz`                   | Generate and compress `man` pages                            |
-| `cargo test`                    | Run the full test suite                                      |
-| `cargo test -p tildr-commands` | Focus on the command crate                                   |
-| `cargo clippy`                  | Run lints manually                                           |
+| Command                                                    | Purpose                                                      |
+|------------------------------------------------------------|--------------------------------------------------------------|
+| `make build`                                               | Format and build the workspace                               |
+| `make release`                                             | Generate man pages, format, test, and build release binaries |
+| `make man`                                                 | Generate `man` pages into `docs/man/dist`                    |
+| `make man-gz`                                              | Generate and compress `man` pages                            |
+| `cargo test`                                               | Run the full test suite                                      |
+| `cargo test -p tildr-commands`                             | Focus on the command crate                                   |
+| `cargo clippy --all-targets --all-features -- -D warnings` | Run lints as CI errors                                       |
 
 When changing CLI behavior, keep these areas aligned:
 
@@ -106,6 +113,8 @@ Allowed types in the hook:
 - `perf`
 - `build`
 - `ci`
+
+The hook does not currently accept `revert` as a type. Use a normal type such as `fix` or `chore` unless the hook is updated.
 
 ---
 
@@ -226,9 +235,9 @@ This hook runs:
 make build
 ```
 
-Then it checks whether the working tree changed during that process.
+Then it checks whether files under `crates/` changed during that process.
 
-If tracked files changed, the commit is aborted with a warning that generated artifacts may be out of date. In practice, this is a safety net for forgotten formatting or other generated changes.
+If Rust files changed, the commit is aborted. In practice, this is a safety net for forgotten formatting or other generated Rust changes.
 
 If you changed manual sources, regenerate the manual output yourself before committing:
 
@@ -236,6 +245,23 @@ If you changed manual sources, regenerate the manual output yourself before comm
 make man
 git add docs/man docs/man/dist docs/site/
 ```
+
+### CI
+
+Continuous integration is defined in:
+
+- `.github/workflows/ci.yml`
+- `.github/workflows/release.yml`
+
+The CI workflow runs on Pull Requests and pushes to `main`.
+
+It checks:
+
+- `cargo fmt --all -- --check`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo test`
+- `make man`
+- generated man pages under `docs/man/dist`
 
 ---
 
@@ -355,12 +381,12 @@ tildr/
 ├── crates/             # Workspace crates
 ├── docs/
 │   ├── man/            # Man-page Markdown sources + dist output
-│   └── md/             # Long-form Markdown documentation
+│   └── site/           # Long-form Markdown documentation
 ├── hooks/              # Git hooks used by contributors
 ├── tools/
 │   ├── installers/     # Linux/macOS installer scripts
 │   └── plugins/        # File-manager integrations
-├── tildr/             # Binary crate entrypoint
+├── tildr/              # Binary crate entrypoint
 ├── Makefile            # Local build and doc-generation commands
 ├── DEVELOPMENT.md      # This guide
 └── .github/workflows/  # CI and release automation

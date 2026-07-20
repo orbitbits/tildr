@@ -22,6 +22,30 @@ If a path contains spaces, use single or double quotes:
 .EX
 tildr unlink \[aq].config/my app/config.toml\[aq] .config/nvim/init.vim
 .EE
+.SH PATH INPUT
+Commands that receive files accept several equivalent HOME\-based paths:
+.IP
+.EX
+tildr add .config/starship.toml
+tildr add \[ti]/.config/starship.toml
+tildr add $HOME/.config/starship.toml
+.EE
+.PP
+Absolute paths inside \f[CR]$HOME\f[R] also work.
+When your current directory is inside \f[CR]$HOME\f[R], relative paths
+are resolved from that directory when possible:
+.IP
+.EX
+cd \[ti]/Documents
+tildr add document.ods
+tildr restore document.ods
+.EE
+.PP
+The commands above are treated like
+\f[CR]\[ti]/Documents/document.ods\f[R].
+This applies to managed\-file commands such as \f[CR]add\f[R],
+\f[CR]restore\f[R], \f[CR]unlink\f[R], \f[CR]cat\f[R], \f[CR]edit\f[R],
+\f[CR]del\f[R], and \f[CR]mv\f[R].
 .SH COMMANDS
 .SS tildr init
 Initializes the Tildr repository and writes the user configuration file.
@@ -114,6 +138,8 @@ repository and replaces each file with a symlink.
 .EX
 tildr add .bashrc
 tildr add .config/nvim
+tildr add \[ti]/.config/starship.toml
+tildr add $HOME/.config/starship.toml
 tildr add .config/nvim/init.lua \-\-dry\-run
 tildr add .bashrc .config/nvim/init.lua
 tildr add .config/app01.json \-\-nolink
@@ -160,11 +186,18 @@ symlinks.
 .IP
 .EX
 tildr apply
+tildr apply \-\-check
 tildr apply \-\-dry\-run
 tildr apply \-\-force \-\-verbose
 .EE
 .PP
 \f[B]Options:\f[R]
+.TP
+\f[B]\[en]check\f[R]
+Verify that all managed files are correctly linked without changing
+files.
+Exits with a non\-zero status when a link is missing, broken, points to
+the wrong source, or conflicts with a regular file in \f[CR]$HOME\f[R].
 .TP
 \f[B]\-n\f[R], \f[B]\[en]dry\-run\f[R]
 Preview actions.
@@ -187,6 +220,9 @@ Repairs broken or incorrect symlinks automatically
 Skips regular files already present in \f[CR]$HOME\f[R] unless
 \f[CR]\-\-force\f[R] is used
 .IP \[bu] 2
+With \f[CR]\-\-check\f[R], only validates symlinks and reports missing,
+broken, or conflicting HOME files
+.IP \[bu] 2
 Uses the repository as the source of truth
 .IP \[bu] 2
 Does not modify repository content
@@ -201,6 +237,23 @@ tildr status \-\-json
 tildr status \-\-counter
 tildr status \-\-less
 .EE
+.PP
+\f[B]Output example:\f[R]
+.IP
+.EX
+PROFILE  FILEPATH            STATUS
+common   \[ti]/.zshrc            ✔ linked
+common   \[ti]/Templates/main.sh  ✔ linked
+linux    \[ti]/.bashrc           ✔ linked
+.EE
+.PP
+The table output always includes the \f[CR]PROFILE\f[R] column.
+Without \f[CR]\-\-profile\f[R], Tildr shows the effective variant for
+each logical file.
+By default \f[CR]FILEPATH\f[R] is the home\-relative path you can pass
+to commands such as \f[CR]restore\f[R], \f[CR]unlink\f[R],
+\f[CR]cat\f[R], and \f[CR]del\f[R]; use \f[CR]list \-\-source\f[R] or
+\f[CR]source\-path\f[R] to inspect repository source files.
 .PP
 \f[B]Options:\f[R]
 .TP
@@ -238,15 +291,42 @@ Broken: 0
 Not symlink: 1
 .EE
 .SS tildr list
-Lists managed files in the repository.
+Lists managed files as HOME paths.
 .IP
 .EX
 tildr list
 tildr list \-\-long
+tildr list \-\-source
 tildr list \-\-tree
 tildr list \-\-less
 tildr list \-\-export \[ti]/tildr\-files.json
 tildr list \-\-import \[ti]/tildr\-files.json
+.EE
+.PP
+\f[B]Output example (default):\f[R]
+.IP
+.EX
+PROFILE  FILEPATH
+common   \[ti]/.zshrc
+common   \[ti]/Templates/main.sh
+linux    \[ti]/.bashrc
+.EE
+.PP
+\f[B]Output example (\f[CB]\-\-long\f[B]):\f[R]
+.IP
+.EX
+PROFILE  FILEPATH            TYPE  SIZE
+common   \[ti]/.zshrc            file  2.1 KiB
+common   \[ti]/Templates/main.sh  file  892 B
+linux    \[ti]/.bashrc           file  3.4 KiB
+.EE
+.PP
+\f[B]Output example (\f[CB]\-\-source\f[B]):\f[R]
+.IP
+.EX
+PROFILE  PATH
+common   \[ti]/.dotfiles/common/.zshrc
+linux    \[ti]/.dotfiles/profiles/linux/.bashrc
 .EE
 .PP
 \f[B]Options:\f[R]
@@ -255,7 +335,10 @@ tildr list \-\-import \[ti]/tildr\-files.json
 Show the repository as a directory tree.
 .TP
 \f[B]\-l\f[R], \f[B]\[en]long\f[R]
-Show type and file size for each entry.
+Show profile, HOME path, type and file size for each entry.
+.TP
+\f[B]\[en]source\f[R]
+Show repository source paths instead of HOME paths.
 .TP
 \f[B]\[en]less\f[R]
 View the output in an interactive pager (uses \f[CR]$PAGER\f[R] or
@@ -287,10 +370,24 @@ Files not found in the repository are reported as warnings.
 .PP
 \f[B]Notes:\f[R]
 .IP \[bu] 2
-Standard listing includes only managed files discovered by repository
-scanning
+\f[CR]FILEPATH\f[R] is always the HOME path, for example
+\f[CR]\[ti]/.bashrc\f[R]
 .IP \[bu] 2
-Tree view prints the repository directory structure directly
+Commands that manipulate files should use the logical path:
+\f[CR]tildr restore .bashrc\f[R]
+.IP \[bu] 2
+Use \f[CR]\-\-profile\f[R] to target a variant explicitly:
+\f[CR]tildr restore .bashrc \-\-profile linux\f[R],
+\f[CR]tildr del .bashrc \-\-profile common\f[R], or
+\f[CR]tildr cat .bashrc \-\-profile linux\f[R]
+.IP \[bu] 2
+Use \f[CR]tildr list \-\-source\f[R] to inspect all repository source
+paths
+.IP \[bu] 2
+Use \f[CR]tildr source\-path <file>\f[R] to inspect the repository
+source path for one file
+.IP \[bu] 2
+Tree view prints the managed HOME path tree
 .IP \[bu] 2
 \f[CR].tildrignore\f[R] patterns and internally excluded files are not
 shown
@@ -300,6 +397,24 @@ machines
 .IP \[bu] 2
 Import creates parent directories in \f[CR]$HOME\f[R] as needed and
 skips files already correctly linked
+.SS tildr source\-path
+Prints the repository source path for one managed HOME file.
+.IP
+.EX
+tildr source\-path \[ti]/.bash_profile
+tildr source\-path .bashrc \-\-profile linux
+.EE
+.PP
+\f[B]Output example:\f[R]
+.IP
+.EX
+\[ti]/.dotfiles/profiles/linux/.bash_profile
+.EE
+.PP
+\f[B]Options:\f[R]
+.TP
+\f[B]\[en]profile\f[R] \f[I]<NAME>\f[R]
+Resolve the file from a specific profile variant.
 .SS tildr repo path
 Prints the absolute path to the configured Tildr repository.
 .IP
@@ -333,6 +448,7 @@ Prints the content of a managed file from the repository.
 .IP
 .EX
 tildr cat .bashrc
+tildr cat .bashrc \-\-profile linux
 tildr cat .config/nvim/init.lua \-\-less
 tildr cat config
 tildr cat
@@ -349,6 +465,9 @@ PAGER=bat tildr cat \-\-less
 .TP
 \f[B]\[en]less\f[R]
 Open output in a pager.
+.TP
+\f[B]\[en]profile\f[R] \f[I]<NAME>\f[R]
+Read the file from a specific profile variant.
 .PP
 \f[B]Behavior:\f[R]
 .IP \[bu] 2
@@ -357,6 +476,9 @@ If no target is passed, Tildr opens an interactive picker
 The special target \f[CR]config\f[R] resolves to the Tildr config file
 itself
 .IP \[bu] 2
+Use \f[CR]\-\-profile <NAME>\f[R] to read a variant without switching
+the active profile
+.IP \[bu] 2
 When \f[CR]\-\-less\f[R] is used, Tildr respects \f[CR]$PAGER\f[R] and
 falls back to \f[CR]less \-RFX\f[R] on TTY output
 .SS tildr edit
@@ -364,6 +486,7 @@ Opens a managed file in the repository with the configured editor.
 .IP
 .EX
 tildr edit .bashrc
+tildr edit .bashrc \-\-profile linux
 tildr edit
 .EE
 .PP
@@ -373,6 +496,11 @@ environment variable like this:
 .EX
 EDITOR=vim tildr edit .bashrc
 .EE
+.PP
+\f[B]Options:\f[R]
+.TP
+\f[B]\[en]profile\f[R] \f[I]<NAME>\f[R]
+Edit the file from a specific profile variant.
 .PP
 \f[B]Behavior:\f[R]
 .IP \[bu] 2
@@ -749,6 +877,13 @@ Remove symlinks for all files in the group.
 Groups are stored in \f[CR].tildr/groups.json\f[R] in the repository
 root
 .IP \[bu] 2
+Groups store logical \f[CR]$HOME\f[R] paths, such as \f[CR].bashrc\f[R]
+or \f[CR].config/nvim/init.lua\f[R]
+.IP \[bu] 2
+\f[CR]\-\-files\f[R] accepts \f[CR]$HOME\f[R] paths, \f[CR]\[ti]\f[R],
+\f[CR]$HOME\f[R], cwd\-relative paths, \f[CR]common/<path>\f[R], and
+\f[CR]profiles/<name>/<path>\f[R]
+.IP \[bu] 2
 \f[CR]\-\-files\f[R] accepts both files and folders; folders are
 expanded recursively
 .IP \[bu] 2
@@ -770,34 +905,71 @@ in the group
 .IP \[bu] 2
 Group operations work on files already managed by Tildr
 .SS tildr profile
-Manages profiles for machine\-specific dotfile variants.
-Profiles allow you to have different versions of the same file for
-different environments (work, personal, laptop, etc.).
+Manages profile variants for machine\-specific dotfiles.
+This is the main workflow for keeping one dotfiles repository while
+switching between machines, distributions, jobs, or personal setups.
+.PP
+Files in \f[CR]common/\f[R] are shared everywhere.
+A named profile such as \f[CR]linux\f[R], \f[CR]work\f[R], or
+\f[CR]laptop\f[R] can override any common file.
+When you run \f[CR]tildr profile set <name>\f[R], Tildr stores that
+profile as active and immediately relinks \f[CR]$HOME\f[R] so matching
+files point to \f[CR]profiles/<name>/\f[R], while everything else keeps
+pointing to \f[CR]common/\f[R].
 .IP
 .EX
 tildr profile create work \-\-description \[dq]Work environment\[dq]
-tildr profile add work \-\-files .bashrc .ssh/config
-  tildr profile list
-  tildr profile list \-\-long
-  tildr profile list work \-\-long
-  tildr profile list \-\-less
-  tildr profile set work
-  tildr profile current
-  tildr profile unset
+tildr profile add common \-\-files .bashrc .ssh/config \-\-to work
+tildr profile mv common \-\-to work                               \f[I]# move all common files to work\f[R]
+tildr profile mv common \-f .bashrc \-\-to work                    \f[I]# move .bashrc to work\f[R]
+tildr profile mv work \-\-to common                               \f[I]# restore all from work to common\f[R]
+tildr profile add work \-f .bashrc \-\-to personal                 \f[I]# copy .bashrc between profiles\f[R]
+tildr profile rename linux archlinux                            \f[I]# rename profile\f[R]
+tildr profile del work
+tildr profile list
+tildr profile list \-\-long
+tildr profile list work \-\-long
+tildr profile list \-\-less
+tildr profile set work                                          \f[I]# activates and relinks $HOME\f[R]
+tildr profile current
+tildr profile unset                                             \f[I]# returns links to common files\f[R]
+tildr profile migrate
+tildr profile migrate \-\-dry\-run
 .EE
 .PP
 \f[B]Subcommands:\f[R]
 .TP
 \f[B]create\f[R] \f[I]<NAME>\f[R] \f[B][\[en]description\f[R] \f[I]<DESC>\f[R]\f[B]]\f[R]
 Create a new profile.
+\f[CR]\[dq]common\[dq]\f[R] and \f[CR]\[dq]default\[dq]\f[R] are
+reserved and cannot be used as profile names.
 .TP
-\f[B]add\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
-Add files to a profile.
-Files are copied from the repo root to \f[CR]profiles/<name>/\f[R].
+\f[B]add\f[R] \f[I]<FROM>\f[R] \f[B][\-f\f[R] \f[I]<FILES>\f[R]\f[B]] \[en]to\f[R] \f[I]<TO>\f[R]
+Copy files between common files (\f[CR]common\f[R]), profiles, or
+between profiles.
+With no \f[CR]\-f\f[R], copies all eligible files from source (orphans
+for \f[CR]common\f[R], all tracked files for a profile).
 Folders are expanded recursively.
 .TP
-\f[B]rm\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
-Remove files from a profile.
+\f[B]mv\f[R] \f[I]<FROM>\f[R] \f[B][\-f\f[R] \f[I]<FILES>\f[R]\f[B]] \[en]to\f[R] \f[I]<TO>\f[R]
+Move files between common files (\f[CR]common\f[R]), profiles, or
+between profiles.
+Same as \f[CR]add\f[R] but removes the source files.
+Without \f[CR]\-f\f[R], moves all eligible files from source.
+.TP
+\f[B]del\f[R] \f[I]<NAME>\f[R]
+Delete a profile entirely.
+Removes it from \f[CR]profiles.json\f[R], deletes the
+\f[CR]profiles/<name>/\f[R] directory, and restores orphaned files to
+\f[CR]common/\f[R].
+.TP
+\f[B]rename\f[R] \f[I]<FROM>\f[R] \f[I]<TO>\f[R]
+Rename a profile.
+Accepts quoted names for profiles with spaces.
+Updates all tracked file paths in \f[CR]profiles.json\f[R] and the
+\f[CR]profiles/<name>/\f[R] directory.
+If the profile is active, updates active profile name.
+Re\-creates symlinks for linked files pointing to the renamed profile.
 .TP
 \f[B]list\f[R]
 List all available profiles.
@@ -818,26 +990,179 @@ Page the output through less.
 Show only the specified profile.
 .TP
 \f[B]set\f[R] \f[I]<NAME>\f[R]
-Set the active profile.
+Set the active profile and relink \f[CR]$HOME\f[R] immediately.
+Stores the profile name in \f[CR].tildr/profiles.json\f[R].
+Only one profile can be active at a time.
+Setting a new profile replaces the previous one.
+Matching files point to \f[CR]profiles/<name>/\f[R]; files without a
+profile variant keep using \f[CR]common/\f[R].
 .TP
 \f[B]unset\f[R]
-Unset the active profile (revert to default).
+Unset the active profile and relink \f[CR]$HOME\f[R] to common files.
+Clears the \f[CR]active\f[R] field in \f[CR].tildr/profiles.json\f[R].
+After unsetting, all files resolve to their common version when
+available.
 .TP
 \f[B]current\f[R]
 Show the currently active profile.
+.TP
+\f[B]migrate\f[R] \f[B][\[en]dry\-run]\f[R]
+Move repo\-root dotfiles into \f[CR]common/\f[R].
+Use this for older repositories that still store dotfiles directly at
+the repository root.
+It preserves relative paths and does not move Tildr internals such as
+\f[CR].tildr/\f[R], \f[CR].git/\f[R], or \f[CR]profiles/\f[R].
+Without \f[CR]\-\-dry\-run\f[R], performs the migration and commits.
+With \f[CR]\-\-dry\-run\f[R], shows what would be moved without making
+changes.
+.PP
+\f[B]Active Profile Behavior:\f[R]
+.PP
+The active profile is a per\-file override mechanism.
+When \f[CR]tildr apply\f[R], \f[CR]tildr status\f[R], or
+\f[CR]tildr doctor\f[R] processes a managed file, the resolution works
+as follows:
+.IP "1." 3
+Check if the file has a variant in the active profile
+.IP "2." 3
+If yes, use the profile variant (\f[CR]profiles/<name>/<file>\f[R])
+.IP "3." 3
+If no, fall back to the common version (\f[CR]common/<file>\f[R])
+.IP "4." 3
+If no common version exists, fall back to legacy
+\f[CR]profiles/common/<file>\f[R]
+.IP "5." 3
+If no legacy common version exists, fall back to legacy
+\f[CR]profiles/default/<file>\f[R] or root files
+.PP
+This means \f[B]all managed files are always processed\f[R] \[em] the
+active profile only determines \f[I]which variant\f[R] of each file to
+use, not whether to skip files.
+.PP
+Example: if the active profile is \f[CR]work\f[R] and it tracks
+\f[CR].bashrc\f[R] and \f[CR].ssh/config\f[R]:
+.IP \[bu] 2
+\f[CR]\[ti]/.bashrc\f[R] → \f[CR]profiles/work/.bashrc\f[R] (profile
+variant)
+.IP \[bu] 2
+\f[CR]\[ti]/.ssh/config\f[R] → \f[CR]profiles/work/.ssh/config\f[R]
+(profile variant)
+.IP \[bu] 2
+\f[CR]\[ti]/.gitconfig\f[R] → \f[CR]common/.gitconfig\f[R] (common
+version, not in profile)
+.PP
+Switching profiles applies the new links right away:
+.IP
+.EX
+tildr profile set work
+\f[I]# \[ti]/.bashrc now points to profiles/work/.bashrc when that variant exists\f[R]
+
+tildr profile set personal
+\f[I]# \[ti]/.bashrc now points to profiles/personal/.bashrc when that variant exists\f[R]
+
+tildr profile unset
+\f[I]# \[ti]/.bashrc falls back to common/.bashrc\f[R]
+.EE
+.PP
+\f[B]Migration:\f[R]
+.PP
+Use \f[CR]tildr profile migrate\f[R] when you have an older repository
+with dotfiles at the repository root or in legacy
+\f[CR]profiles/common/\f[R] and want to adopt the profile layout.
+It moves shared dotfiles and directories into \f[CR]common/\f[R],
+preserving their relative paths.
+It does not move Tildr internals such as \f[CR].tildr/\f[R],
+\f[CR].git/\f[R], or named profiles under \f[CR]profiles/\f[R].
+.PP
+Preview the migration first:
+.IP
+.EX
+tildr profile migrate \-\-dry\-run
+.EE
+.PP
+Example dry\-run output:
+.IP
+.EX
+  Would migrate: .bashrc \-> common/.bashrc
+  Would migrate: .gitconfig \-> common/.gitconfig
+  Would migrate: .config \-> common/.config
+  Would migrate: profiles/common/.zshrc \-> common/.zshrc
+
+Would migrate: 4 file(s) would be moved to common/ (dry run)
+.EE
+.PP
+Then perform the migration:
+.IP
+.EX
+tildr profile migrate
+tildr profile list \-\-long
+tildr status
+.EE
+.PP
+Before:
+.IP
+.EX
+\[ti]/.dotfiles/
+  .bashrc
+  .gitconfig
+  .config/nvim/init.lua
+  .tildr/
+.EE
+.PP
+After:
+.IP
+.EX
+\[ti]/.dotfiles/
+  .tildr/
+  common/
+    .bashrc
+    .gitconfig
+    .config/nvim/init.lua
+  profiles/
+.EE
 .PP
 \f[B]Behavior:\f[R]
 .IP \[bu] 2
 Profiles are stored in \f[CR].tildr/profiles.json\f[R] in the repository
 root
 .IP \[bu] 2
-\f[CR]add\f[R] copies files from repo root to
-\f[CR]profiles/<name>/\f[R] directory
+\f[CR]common\f[R] is the shared location for dotfiles without a profile
+(\f[CR]common/\f[R])
 .IP \[bu] 2
-\f[CR]apply\f[R] uses the active profile to resolve which file variant
-to symlink
+Legacy repositories with \f[CR]profiles/common/\f[R] are still supported
+as a fallback
 .IP \[bu] 2
-Files not in the active profile fall back to the default (root) version
+\f[CR]default\f[R] is only kept as a legacy compatibility fallback
+.IP \[bu] 2
+\f[CR]add\f[R] copies files preserving the source; \f[CR]mv\f[R] moves
+files (copies then removes originals)
+.IP \[bu] 2
+Without \f[CR]\-f\f[R], \f[CR]add\f[R]/\f[CR]mv\f[R] operate on all
+eligible files (orphans for \f[CR]common\f[R], all tracked files for a
+profile)
+.IP \[bu] 2
+\f[CR]del\f[R] removes the profile directory and restores orphaned files
+to \f[CR]common/\f[R]
+.IP \[bu] 2
+\f[CR]rename\f[R] renames the profile directory and updates all tracked
+file paths; if the profile is active, updates active profile name;
+re\-creates symlinks for linked files
+.IP \[bu] 2
+\f[CR]set\f[R] and \f[CR]unset\f[R] immediately relink \f[CR]$HOME\f[R]
+to the new effective profile
+.IP \[bu] 2
+\f[CR]del\f[R] relinks \f[CR]$HOME\f[R] after deletion, so removed
+active profiles fall back to common files
+.IP \[bu] 2
+\f[CR]apply\f[R] can be run manually to repair or reapply links using
+the active profile
+.IP \[bu] 2
+\f[CR]status\f[R] uses the active profile to verify symlink targets
+match the expected variant
+.IP \[bu] 2
+\f[CR]doctor\f[R] uses the active profile to check symlink integrity
+.IP \[bu] 2
+Files not in the active profile fall back to the common version
 .IP \[bu] 2
 Only one profile can be active at a time
 .IP \[bu] 2
@@ -846,8 +1171,9 @@ Auto\-commits changes to the repository
 \f[B]Example structure:\f[R]
 .IP
 .EX
-\&.bashrc                              # default version
-\&.ssh/config                          # default version
+common/
+  .bashrc                            # common version
+  .ssh/config                        # common SSH config
 profiles/
   work/
     .bashrc                          # work variant
@@ -1152,7 +1478,9 @@ Tildr is designed for home\-directory management on Linux and macOS
 .IP \[bu] 2
 The repository must stay inside \f[CR]$HOME\f[R]
 .IP \[bu] 2
-Relative paths for managed targets are interpreted from \f[CR]$HOME\f[R]
+Relative paths for managed targets are interpreted from
+\f[CR]$HOME\f[R], or from the current directory when you are inside
+\f[CR]$HOME\f[R] and the path matches there
 .IP \[bu] 2
 Directory operations are recursive over all files under that path
 .IP \[bu] 2
@@ -1168,8 +1496,9 @@ repository
 permanent deletion
 .IP \[bu] 2
 \f[CR]git.auto_commit\f[R] affects \f[CR]add\f[R], \f[CR]restore\f[R],
-\f[CR]del\f[R], \f[CR]mv\f[R], and \f[CR]secret\f[R] \[em] not
-\f[CR]apply\f[R], \f[CR]unlink\f[R], \f[CR]git\f[R], or \f[CR]sync\f[R]
+\f[CR]del\f[R], \f[CR]mv\f[R], \f[CR]secret\f[R], \f[CR]exclude\f[R],
+\f[CR]group\f[R], and \f[CR]profile\f[R] \[em] not \f[CR]apply\f[R],
+\f[CR]unlink\f[R], \f[CR]git\f[R], or \f[CR]sync\f[R]
 .IP \[bu] 2
 \f[CR]git.enable = false\f[R] disables Tildr\-managed Git operations
 even if Git is installed

@@ -43,6 +43,7 @@ Open an issue describing:
 - What you expected to happen
 - What actually happened
 - Tildr version, operating system, and steps to reproduce it
+- Whether profiles, groups, secrets, or generated man pages are involved
 
 ### 2. Suggest Improvements
 
@@ -53,16 +54,39 @@ Open an issue labeled `enhancement` describing your idea before implementing it.
 1. Fork the repository
 2. Create a descriptive branch: `git checkout -b feat/feature-name`
 3. Make clear and atomic commits
-4. Ensure the code compiles and the tests pass
-5. Open a Pull Request describing what was done and why
+4. Ensure the code compiles, lints, and tests pass
+5. Update documentation when behavior, commands, flags, output, profiles, groups, or security workflows change
+6. Open a Pull Request describing what was done and why
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for development setup, build commands, and project architecture.
 
 ### 4. Code Standards
 
 - Follow the style already adopted in the project
-- Write commit messages in English, in the imperative: `Add feature X`, `Fix bug Y`
+- Write commit messages in English using Conventional Commits, such as `feat: add source path lookup` or `fix(group): normalize paths`
 - Document public functions when necessary
+- Prefer small, focused changes that can be reviewed independently
+- Add or update tests for bug fixes and user-visible behavior changes
+- Keep generated artifacts in sync when the repository already tracks them
+
+### 5. Local Checks
+
+Before opening a Pull Request, run:
+
+```sh
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test
+```
+
+When documentation under `docs/man/*.md` changes, also run:
+
+```sh
+make man
+git diff -- docs/man docs/man/dist
+```
+
+The generated files in `docs/man/dist` are committed because installers consume them.
 
 ---
 

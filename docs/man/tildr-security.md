@@ -13,7 +13,7 @@ tildr-security — binary verification and release security for Tildr
 # SYNOPSIS
 
 ```sh
-gpg --verify SHA256SUMS.asc
+gpg --verify SHA256SUMS.sig SHA256SUMS
 sha256sum -c SHA256SUMS
 ```
 
@@ -43,11 +43,11 @@ curl -fsSL https://raw.githubusercontent.com/orbitbits/pubkey/main/pubkey.asc | 
 
 # VERIFYING A RELEASE
 
-After downloading the binary, **SHA256SUMS**, and **SHA256SUMS.asc**:
+After downloading the binary, **SHA256SUMS**, and **SHA256SUMS.sig**:
 
 ```sh
 # Step 1: verify the GPG signature over SHA256SUMS
-gpg --verify SHA256SUMS.asc
+gpg --verify SHA256SUMS.sig SHA256SUMS
 
 # Step 2: verify the binary checksum
 sha256sum -c SHA256SUMS
@@ -76,7 +76,7 @@ tildr-0.1.0-linux-x86_64: OK
 *SHA256SUMS*
 :   Checksums file listing the SHA256 hash of each release artifact.
 
-*SHA256SUMS.asc*
+*SHA256SUMS.sig*
 :   Detached GPG signature over the SHA256SUMS file.
 
 # SEE ALSO

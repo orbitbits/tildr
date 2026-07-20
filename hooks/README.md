@@ -10,11 +10,11 @@ git config core.hooksPath hooks
 
 ### `pre-commit`
 
-Runs `make build` (cargo fmt + cargo build) before each commit. Aborts the commit if the build fails or if the build generates uncommitted changes (e.g., formatted code or generated man pages).
+Runs `make build` (`cargo fmt --all` + `cargo build`) before each commit. Aborts the commit if the build fails or if formatting changes files under `crates/`.
 
 ### `commit-msg`
 
-Validates commit messages against the [Conventional Commits](https://www.conventionalcommits.org/) specification. Allowed types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `style`, `perf`, `ci`, `build`, `revert`.
+Validates commit messages against the [Conventional Commits](https://www.conventionalcommits.org/) specification. Allowed types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `style`, `perf`, `ci`, `build`.
 
 ## Development
 

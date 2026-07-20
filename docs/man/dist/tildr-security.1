@@ -6,7 +6,7 @@ tildr\-security \[em] binary verification and release security for Tildr
 .SH SYNOPSIS
 .IP
 .EX
-gpg \-\-verify SHA256SUMS.asc
+gpg \-\-verify SHA256SUMS.sig SHA256SUMS
 sha256sum \-c SHA256SUMS
 .EE
 .SH DESCRIPTION
@@ -33,11 +33,11 @@ curl \-fsSL https://raw.githubusercontent.com/orbitbits/pubkey/main/pubkey.asc \
 .EE
 .SH VERIFYING A RELEASE
 After downloading the binary, \f[B]SHA256SUMS\f[R], and
-\f[B]SHA256SUMS.asc\f[R]:
+\f[B]SHA256SUMS.sig\f[R]:
 .IP
 .EX
 \f[I]# Step 1: verify the GPG signature over SHA256SUMS\f[R]
-gpg \-\-verify SHA256SUMS.asc
+gpg \-\-verify SHA256SUMS.sig SHA256SUMS
 
 \f[I]# Step 2: verify the binary checksum\f[R]
 sha256sum \-c SHA256SUMS
@@ -67,7 +67,7 @@ The maintainers can be held accountable for the content of each release.
 \f[I]SHA256SUMS\f[R]
 Checksums file listing the SHA256 hash of each release artifact.
 .TP
-\f[I]SHA256SUMS.asc\f[R]
+\f[I]SHA256SUMS.sig\f[R]
 Detached GPG signature over the SHA256SUMS file.
 .SH SEE ALSO
 \f[B]tildr(1)\f[R], \f[B]tildr\-config(1)\f[R],

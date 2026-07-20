@@ -264,6 +264,7 @@ Daily operations:
 .IP
 .EX
 tildr apply
+tildr apply \-\-check
 tildr status
 tildr stats
 tildr git status
@@ -302,15 +303,12 @@ Machine\-specific profiles:
 .IP
 .EX
 tildr profile create work \-\-description \[dq]Work laptop\[dq]
-tildr profile add work \-\-files .bashrc .ssh/config
+tildr profile add common \-\-files .bashrc .ssh/config \-\-to work
 tildr profile set work
-tildr apply
 
 tildr profile set personal
-tildr apply
 
 tildr profile unset
-tildr apply
 .EE
 .PP
 Bootstrap on a new machine:
@@ -357,8 +355,9 @@ repository
 permanent deletion, otherwise files go to trash
 .IP \[bu] 2
 \f[CR]git.auto_commit\f[R] affects \f[CR]add\f[R], \f[CR]restore\f[R],
-\f[CR]del\f[R], \f[CR]mv\f[R], and \f[CR]secret\f[R] \[em] not
-\f[CR]apply\f[R], \f[CR]unlink\f[R], \f[CR]git\f[R], or \f[CR]sync\f[R]
+\f[CR]del\f[R], \f[CR]mv\f[R], \f[CR]secret\f[R], \f[CR]exclude\f[R],
+\f[CR]group\f[R], and \f[CR]profile\f[R] \[em] not \f[CR]apply\f[R],
+\f[CR]unlink\f[R], \f[CR]git\f[R], or \f[CR]sync\f[R]
 .IP \[bu] 2
 \f[CR]git.enable = false\f[R] disables Tildr\-managed Git operations
 even if Git is installed
