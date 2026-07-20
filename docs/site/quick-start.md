@@ -280,10 +280,12 @@ tildr group create dev --files .bashrc .zshrc .tmux.conf
 tildr group list
 
 # Apply all files in a group
-tildr group apply dev
+tildr group rename dev shell
+
+tildr group apply shell
 
 # Remove symlinks for all files in a group
-tildr group unlink dev
+tildr group unlink shell
 ```
 
 ---
@@ -305,7 +307,9 @@ tildr profile add no-profile --files .bashrc .gitconfig --to personal
 tildr profile set work
 
 # Switch profiles and relink again
-tildr profile set personal
+tildr profile rename personal desktop --description "Desktop dotfiles"
+
+tildr profile set desktop
 
 # Deactivate and relink to shared no-profile files
 tildr profile unset

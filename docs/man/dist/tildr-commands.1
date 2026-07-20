@@ -878,6 +878,7 @@ tildr group add dev \-\-files .tmux.conf
 tildr group add term \-\-files .term
 tildr group rm dev \-\-files .tmux.conf
 tildr group rm term \-\-files .term
+tildr group rename dev shell
 tildr group delete dev
 tildr group apply dev
 tildr group unlink dev
@@ -897,6 +898,10 @@ If no \f[CR]\-\-files\f[R] is provided, opens a file picker.
 \f[B]rm\f[R] \f[I]<NAME>\f[R] \f[B]\[en]files\f[R] \f[I]<FILES>\f[R]
 Remove files or folders from a group.
 Folders remove all entries that start with that path recursively.
+.TP
+\f[B]rename\f[R] \f[I][<FROM>]\f[R] \f[I][<TO>]\f[R]
+Rename a group.
+Prompts for missing names and preserves the group\[cq]s file list.
 .TP
 \f[B]delete\f[R] \f[I]<NAME>\f[R]
 Delete a group.
@@ -932,6 +937,9 @@ expanded recursively
 path (e.g.\ \f[CR]\-\-files .term\f[R] removes
 \f[CR].term/behavior.sh\f[R], \f[CR].term/colors.sh\f[R], etc.)
 .IP \[bu] 2
+\f[CR]rename\f[R] preserves the group\[cq]s file list and only changes
+the group name
+.IP \[bu] 2
 When no \f[CR]\-\-files\f[R] is provided, \f[CR]add\f[R] opens a file
 picker in the repository
 .IP \[bu] 2
@@ -964,7 +972,8 @@ tildr profile mv no\-profile \-f .bashrc \-\-to work                    \f[I]# m
 tildr profile mv no\-profile \-f \[ti]/.xinitrc \-\-to work                 \f[I]# HOME paths are accepted\f[R]
 tildr profile mv work \-\-to no\-profile                               \f[I]# restore all from work to no\-profile\f[R]
 tildr profile add work \-f .bashrc \-\-to personal                     \f[I]# copy .bashrc between profiles\f[R]
-tildr profile rename linux archlinux                                \f[I]# rename profile\f[R]
+tildr profile rename                                                \f[I]# interactive rename\f[R]
+tildr profile rename linux archlinux \-\-description \[dq]Dotfiles Arch Linux\[dq]
 tildr profile del work
 tildr profile list
 tildr profile list \-\-long
@@ -1004,13 +1013,12 @@ Removes it from \f[CR]profiles.json\f[R], deletes the
 \f[CR]profiles/<name>/\f[R] directory, and restores orphaned files to
 \f[CR]common/\f[R].
 .TP
-\f[B]rename\f[R] \f[I]<FROM>\f[R] \f[I]<TO>\f[R]
-Rename a profile.
-Accepts quoted names for profiles with spaces.
-Updates all tracked file paths in \f[CR]profiles.json\f[R] and the
-\f[CR]profiles/<name>/\f[R] directory.
-If the profile is active, updates active profile name.
-Re\-creates symlinks for linked files pointing to the renamed profile.
+\f[B]rename\f[R] \f[I][<FROM>]\f[R] \f[I][<TO>]\f[R] \f[B][\[en]description** \f[BI]<DESC>\f[B]**]\f[R]
+Rename a profile and optionally replace its description.
+Prompts for missing names and description in interactive mode.
+When \f[CR]\-\-description\f[R] is omitted in CLI mode, the existing
+description is preserved.
+If the profile is active, updates the active profile name.
 .TP
 \f[B]list\f[R]
 List all available profiles.
@@ -1037,6 +1045,14 @@ You can use \f[CR].bashrc\f[R], \f[CR]\[ti]/.bashrc\f[R],
 relative to your current directory when you are inside \f[CR]$HOME\f[R],
 or compatibility storage paths such as \f[CR]common/.bashrc\f[R] and
 \f[CR]profiles/linux/.bashrc\f[R].
+.PP
+\f[CR]profile rename\f[R] can run fully interactively:
+.IP
+.EX
+Enter current profile name:
+Enter new profile name:
+Enter description:
+.EE
 .TP
 \f[B]set\f[R] \f[I]<NAME>\f[R]
 Set the active profile and relink \f[CR]$HOME\f[R] immediately.

@@ -772,6 +772,7 @@ tildr group add dev --files .tmux.conf
 tildr group add term --files .term
 tildr group rm dev --files .tmux.conf
 tildr group rm term --files .term
+tildr group rename dev shell
 tildr group delete dev
 tildr group apply dev
 tildr group unlink dev
@@ -787,6 +788,9 @@ tildr group unlink dev
 
 **rm** *\<NAME\>* **--files** *\<FILES\>*
 :   Remove files or folders from a group. Folders remove all entries that start with that path recursively.
+
+**rename** *[\<FROM\>]* *[\<TO\>]*
+:   Rename a group. Prompts for missing names and preserves the group's file list.
 
 **delete** *\<NAME\>*
 :   Delete a group.
@@ -808,6 +812,7 @@ tildr group unlink dev
 - `--files` accepts both files and folders; folders are expanded recursively
 - `add` with a folder adds all files inside it (e.g. `--files .term` adds `.term/*.sh`, etc.)
 - `rm` with a folder removes all entries that start with that path (e.g. `--files .term` removes `.term/behavior.sh`, `.term/colors.sh`, etc.)
+- `rename` preserves the group's file list and only changes the group name
 - When no `--files` is provided, `add` opens a file picker in the repository
 - `apply` creates symlinks in `$HOME` for all files in the group
 - `unlink` removes symlinks from `$HOME` for all files in the group
@@ -827,7 +832,8 @@ tildr profile mv no-profile -f .bashrc --to work                    # move .bash
 tildr profile mv no-profile -f ~/.xinitrc --to work                 # HOME paths are accepted
 tildr profile mv work --to no-profile                               # restore all from work to no-profile
 tildr profile add work -f .bashrc --to personal                     # copy .bashrc between profiles
-tildr profile rename linux archlinux                                # rename profile
+tildr profile rename                                                # interactive rename
+tildr profile rename linux archlinux --description "Dotfiles Arch Linux"
 tildr profile del work
 tildr profile list
 tildr profile list --long
@@ -854,8 +860,8 @@ tildr profile migrate --dry-run
 **del** *\<NAME\>*
 :   Delete a profile entirely. Removes it from `profiles.json`, deletes the `profiles/<name>/` directory, and restores orphaned files to `common/`.
 
-**rename** *\<FROM\>* *\<TO\>*
-:   Rename a profile. Accepts quoted names for profiles with spaces. Updates all tracked file paths in `profiles.json` and the `profiles/<name>/` directory. If the profile is active, updates active profile name. Re-creates symlinks for linked files pointing to the renamed profile.
+**rename** *[\<FROM\>]* *[\<TO\>]* **[--description** *\<DESC\>***]**
+:   Rename a profile and optionally replace its description. Prompts for missing names and description in interactive mode. When `--description` is omitted in CLI mode, the existing description is preserved. If the profile is active, updates the active profile name.
 
 **list**
 :   List all available profiles.
@@ -870,6 +876,14 @@ tildr profile migrate --dry-run
 :   Show only the specified profile.
 
 File arguments for `profile add -f` and `profile mv -f` are logical HOME paths. You can use `.bashrc`, `~/.bashrc`, `$HOME/.bashrc`, absolute paths inside `$HOME`, paths relative to your current directory when you are inside `$HOME`, or compatibility storage paths such as `common/.bashrc` and `profiles/linux/.bashrc`.
+
+`profile rename` can run fully interactively:
+
+```text
+Enter current profile name:
+Enter new profile name:
+Enter description:
+```
 
 **set** *\<NAME\>*
 :   Set the active profile and relink `$HOME` immediately. Stores the profile name in `.tildr/profiles.json`. Only one profile can be active at a time. Setting a new profile replaces the previous one. Matching files point to `profiles/<name>/`; files without a profile variant keep using `common/`.

@@ -891,6 +891,7 @@ tildr group add dev --files .tmux.conf
 tildr group add term --files .term
 tildr group rm dev --files .tmux.conf
 tildr group rm term --files .term
+tildr group rename dev shell
 tildr group delete dev
 tildr group apply dev
 tildr group unlink dev
@@ -903,6 +904,7 @@ Options:
 | `create <NAME> --files <FILES>`   | Create a new group with the specified files or folders                  |
 | `add <NAME> --files <FILES>`      | Add files or folders to an existing group                               |
 | `rm <NAME> --files <FILES>`       | Remove files or folders from a group                                    |
+| `rename [<FROM>] [<TO>]`          | Rename a group; prompts when names are omitted                          |
 | `delete <NAME>`                   | Delete a group                                                          |
 | `list`                            | List all groups and their files                                         |
 | `apply <NAME>`                    | Create symlinks for all files in the group                              |
@@ -916,6 +918,7 @@ Behavior:
 * `--files` accepts both files and folders; folders are expanded recursively
 * `add` with a folder adds all files inside it (e.g. `--files .term` adds `.term/*.sh`, etc.)
 * `rm` with a folder removes all entries that start with that path (e.g. `--files .term` removes `.term/behavior.sh`, `.term/colors.sh`, etc.)
+* `rename` preserves the group's file list and only changes the group name
 * When no `--files` is provided, `add` opens a file picker in the repository
 * `apply` creates symlinks in `$HOME` for all files in the group
 * `unlink` removes symlinks from `$HOME` for all files in the group
@@ -944,7 +947,8 @@ tildr profile mv no-profile -f .bashrc --to work                    # move .bash
 tildr profile mv no-profile -f ~/.xinitrc --to work                 # HOME paths are accepted
 tildr profile mv work --to no-profile                               # restore all from work to no-profile
 tildr profile add work -f .bashrc --to personal                     # copy .bashrc between profiles
-tildr profile rename linux archlinux                                # rename profile
+tildr profile rename                                                # interactive rename
+tildr profile rename linux archlinux --description "Dotfiles Arch Linux"
 tildr profile del work
 tildr profile list
 tildr profile list --long
@@ -965,7 +969,7 @@ Options:
 | `add <FROM> [-f <FILES>] --to <TO>`                    | Copy files between no-profile files, profiles, or between profiles      |
 | `mv <FROM> [-f <FILES>] --to <TO>`                     | Move files between no-profile files, profiles, or between profiles      |
 | `del <NAME>`                                           | Delete a profile and restore orphans to `common/`                       |
-| `rename <FROM> <TO>`                                   | Rename a profile (accepts quoted names)                                 |
+| `rename [<FROM>] [<TO>] [--description <DESC>]`        | Rename a profile and optionally replace its description                  |
 | `list [<NAME>] [--long] [--less]`                      | List all available profiles                                             |
 | `set <NAME>`                                           | Set the active profile and relink `$HOME` immediately                   |
 | `unset`                                                | Unset the active profile and relink `$HOME` to no-profile files         |
@@ -985,6 +989,18 @@ You can use `.bashrc`, `~/.bashrc`, `$HOME/.bashrc`, absolute paths inside
 `$HOME`, paths relative to your current directory when you are inside `$HOME`,
 or compatibility storage paths such as `common/.bashrc` and
 `profiles/linux/.bashrc`.
+
+`profile rename` can run fully interactively:
+
+```text
+Enter current profile name:
+Enter new profile name:
+Enter description:
+```
+
+When `--description` is omitted in CLI mode, the existing description is preserved.
+In interactive mode, pressing Enter at the description prompt also preserves the
+existing description.
 
 #### Active Profile
 

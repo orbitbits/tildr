@@ -264,8 +264,10 @@ Batch operations with groups:
 ```sh
 tildr group create dev --files .bashrc .zshrc .tmux.conf
 tildr group add term --files .term
-tildr group apply dev
-tildr group unlink dev
+tildr group rename dev shell
+
+tildr group apply shell
+tildr group unlink shell
 ```
 
 Machine-specific profiles:
@@ -275,7 +277,9 @@ tildr profile create work --description "Work laptop"
 tildr profile add no-profile --files .bashrc .ssh/config --to work
 tildr profile set work
 
-tildr profile set personal
+tildr profile rename personal desktop --description "Desktop dotfiles"
+
+tildr profile set desktop
 
 tildr profile unset
 ```

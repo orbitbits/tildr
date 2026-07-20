@@ -160,6 +160,7 @@ When `true`, Tildr automatically commits changes after these commands:
 | `tildr group create` | Commits after creating a group |
 | `tildr group add` | Commits after adding files to a group |
 | `tildr group rm` | Commits after removing files from a group |
+| `tildr group rename` | Commits after renaming a group |
 | `tildr profile create` | Commits after creating a profile |
 | `tildr profile add` | Commits after copying files between profiles |
 | `tildr profile mv` | Commits after moving files between profiles |
