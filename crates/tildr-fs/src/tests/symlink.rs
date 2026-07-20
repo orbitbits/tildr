@@ -86,3 +86,20 @@ fn is_symlink_to_accepts_relative_target() {
 
   fs::remove_dir_all(&dir).ok();
 }
+
+#[test]
+fn is_symlink_within_accepts_broken_repo_target() {
+  let dir = temp_dir();
+  let repo = dir.join("repo");
+  let home = dir.join("home");
+  fs::create_dir_all(&repo).unwrap();
+  fs::create_dir_all(&home).unwrap();
+  let link = home.join("file.txt");
+
+  create_symlink(&repo.join("missing.txt"), &link).unwrap();
+
+  assert!(is_symlink_within(&link, &repo));
+  assert!(!is_symlink_within(&link, &home));
+
+  fs::remove_dir_all(&dir).ok();
+}

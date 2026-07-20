@@ -5,10 +5,11 @@ mod utils;
 use anyhow::Result;
 use std::sync::OnceLock;
 use tildr_core::context::Context;
-use tildr_repo::{ManagedEntry, scatildr_repo};
+use tildr_repo::ManagedEntry;
 use tildr_ui::{color::Colorize, icons, info, success};
 
 use self::checks::*;
+use crate::utils::target::scan_effective_entries;
 
 pub fn run(ctx: &Context) -> Result<()> {
   Doctor::new(ctx).run()
@@ -79,7 +80,7 @@ impl<'a> Doctor<'a> {
     }
 
     if self.entries.get().is_none() {
-      let entries = scatildr_repo(&self.ctx.repo_path)?;
+      let entries = scan_effective_entries(self.ctx)?;
       let _ = self.entries.set(entries);
     }
 

@@ -1,13 +1,14 @@
 use anyhow::{Result, bail};
 use console::style;
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Component, Path, PathBuf};
 use tildr_core::context::Context;
-use tildr_fs::paths::resolve_home_path;
+use tildr_fs::paths::{normalize_lexically, resolve_home_path};
 use tildr_repo::{ManagedEntry, scatildr_repo};
 
 use crate::profile::{
-  COMMON_PROFILE, DEFAULT_PROFILE, Profiles, normalize_profile_name, profile_dir,
+  COMMON_PROFILE, DEFAULT_PROFILE, NO_PROFILE_ALIAS, Profiles, display_profile_name,
+  normalize_profile_name, profile_dir, validate_profile_component,
 };
 
 pub enum ResolvedTarget {
@@ -42,9 +43,24 @@ pub struct ManagedEntryProfile {
 }
 
 /// Scan all managed entries. The scanner reads files under `common/` and `profiles/*/`.
-pub fn scan_all_entries(_ctx: &Context) -> Result<Vec<ManagedEntry>> {
-  let entries = scatildr_repo(&_ctx.repo_path)?;
+pub fn scan_all_entries(ctx: &Context) -> Result<Vec<ManagedEntry>> {
+  let entries = scatildr_repo(&ctx.repo_path)?;
   Ok(entries)
+}
+
+fn with_profile(ctx: &Context, entry: ManagedEntry) -> ManagedEntryProfile {
+  let repo_relative = entry
+    .repo_path
+    .strip_prefix(&ctx.repo_path)
+    .unwrap_or(&entry.repo_path)
+    .to_path_buf();
+
+  ManagedEntryProfile {
+    profile: entry.profile,
+    filepath: entry.relative,
+    repo_relative,
+    repo_path: entry.repo_path,
+  }
 }
 
 /// Scan all managed entries with profile information for display.
@@ -53,19 +69,7 @@ pub fn scan_all_entries_with_profile(ctx: &Context) -> Result<Vec<ManagedEntryPr
 
   let mut result: Vec<ManagedEntryProfile> = entries
     .into_iter()
-    .map(|e| {
-      let repo_relative = e
-        .repo_path
-        .strip_prefix(&ctx.repo_path)
-        .unwrap_or(&e.repo_path)
-        .to_path_buf();
-      ManagedEntryProfile {
-        profile: e.profile,
-        filepath: e.relative,
-        repo_relative,
-        repo_path: e.repo_path,
-      }
-    })
+    .map(|entry| with_profile(ctx, entry))
     .collect();
 
   result.sort_by(|a, b| {
@@ -88,23 +92,6 @@ pub fn select_effective_entry(
   entries
     .iter()
     .find(|entry| entry.repo_path == expected)
-    .or_else(|| {
-      profiles
-        .active
-        .as_deref()
-        .and_then(|active| entries.iter().find(|entry| entry.profile == active))
-    })
-    .or_else(|| entries.iter().find(|entry| entry.profile == COMMON_PROFILE))
-    .or_else(|| {
-      entries
-        .iter()
-        .find(|entry| entry.profile == DEFAULT_PROFILE)
-    })
-    .or_else(|| {
-      entries
-        .iter()
-        .min_by(|left, right| left.repo_relative.cmp(&right.repo_relative))
-    })
     .cloned()
 }
 
@@ -120,6 +107,30 @@ pub fn effective_entries(
 
   entries.sort_by(|left, right| left.filepath.cmp(&right.filepath));
   entries
+}
+
+pub fn scan_effective_entries(ctx: &Context) -> Result<Vec<ManagedEntry>> {
+  let profiles = Profiles::load(ctx)?;
+  let mut by_filepath: HashMap<PathBuf, Vec<ManagedEntryProfile>> = HashMap::new();
+
+  for entry in scan_all_entries(ctx)? {
+    let entry = with_profile(ctx, entry);
+    by_filepath
+      .entry(entry.filepath.clone())
+      .or_default()
+      .push(entry);
+  }
+
+  Ok(
+    effective_entries(&ctx.repo_path, &profiles, &by_filepath)
+      .into_iter()
+      .map(|entry| ManagedEntry {
+        profile: entry.profile,
+        relative: entry.filepath,
+        repo_path: entry.repo_path,
+      })
+      .collect(),
+  )
 }
 
 pub fn to_relative(ctx: &Context, path: &Path) -> Result<PathBuf> {
@@ -154,12 +165,15 @@ pub fn resolve_logical_file(
       }
     }
 
-    if candidate.exists() {
+    if candidate.is_file() {
       return Ok(FileResolution::Found(ManagedEntry {
         profile: name.to_string(),
         relative: relative.to_path_buf(),
         repo_path: candidate,
       }));
+    }
+    if candidate.is_dir() {
+      return Ok(FileResolution::NotManaged);
     }
     bail!(
       "File '{}' not found in profile '{}'.",
@@ -170,7 +184,7 @@ pub fn resolve_logical_file(
 
   // --- Standard hierarchy: active → default ---
   let resolved_path = profiles.resolve(&ctx.repo_path, &file_str);
-  if resolved_path.exists() {
+  if resolved_path.is_file() {
     // Deduce profile name from the resolved path
     let profile_name = if resolved_path.starts_with(profile_dir(&ctx.repo_path, COMMON_PROFILE)) {
       COMMON_PROFILE.to_string()
@@ -195,7 +209,9 @@ pub fn resolve_logical_file(
   let others: Vec<String> = entries
     .iter()
     .filter(|e| e.relative == relative)
-    .map(|e| e.profile.clone())
+    .map(|e| display_profile_name(&e.profile).to_string())
+    .collect::<BTreeSet<_>>()
+    .into_iter()
     .collect();
 
   if !others.is_empty() {
@@ -205,14 +221,43 @@ pub fn resolve_logical_file(
   Ok(FileResolution::NotManaged)
 }
 
-fn normalize_storage_target(target: &str) -> (String, Option<String>) {
-  let path = Path::new(target);
+pub fn storage_to_home_relative(repo_path: &Path, path: &Path) -> PathBuf {
+  let relative = path.strip_prefix(repo_path).unwrap_or(path);
+  let normalized = normalize_lexically(relative);
+  let parts: Vec<_> = normalized
+    .components()
+    .filter_map(|component| match component {
+      Component::Normal(part) => Some(part.to_os_string()),
+      _ => None,
+    })
+    .collect();
 
-  if path.is_absolute() {
-    return (target.to_string(), None);
+  match parts.as_slice() {
+    [head, rest @ ..]
+      if (head == COMMON_PROFILE || head == NO_PROFILE_ALIAS || head == "no_profile")
+        && !rest.is_empty() =>
+    {
+      rest.iter().collect()
+    }
+    [profiles, _profile, rest @ ..] if profiles == "profiles" && !rest.is_empty() => {
+      rest.iter().collect()
+    }
+    _ => normalized,
   }
+}
 
-  let parts: Vec<String> = path
+fn normalize_storage_target(ctx: &Context, target: &str) -> (String, Option<String>) {
+  let path = Path::new(target);
+  let relative = if path.is_absolute() {
+    let Ok(relative) = path.strip_prefix(&ctx.repo_path) else {
+      return (target.to_string(), None);
+    };
+    relative
+  } else {
+    path
+  };
+  let normalized = normalize_lexically(relative);
+  let parts: Vec<String> = normalized
     .components()
     .filter_map(|component| match component {
       Component::Normal(part) => Some(part.to_string_lossy().to_string()),
@@ -220,30 +265,25 @@ fn normalize_storage_target(target: &str) -> (String, Option<String>) {
     })
     .collect();
 
-  match parts.as_slice() {
-    [head, rest @ ..] if head == COMMON_PROFILE && !rest.is_empty() => (
-      rest
-        .iter()
-        .fold(PathBuf::new(), |mut path, part| {
-          path.push(part);
-          path
-        })
+  let inferred_profile = match parts.as_slice() {
+    [head, rest @ ..] if normalize_profile_name(head) == COMMON_PROFILE && !rest.is_empty() => {
+      Some(COMMON_PROFILE.to_string())
+    }
+    [profiles, profile, rest @ ..] if profiles == "profiles" && !rest.is_empty() => {
+      Some(normalize_profile_name(profile).to_string())
+    }
+    _ => None,
+  };
+
+  if inferred_profile.is_some() {
+    (
+      storage_to_home_relative(&ctx.repo_path, &normalized)
         .display()
         .to_string(),
-      Some(COMMON_PROFILE.to_string()),
-    ),
-    [profiles, profile, rest @ ..] if profiles == "profiles" && !rest.is_empty() => (
-      rest
-        .iter()
-        .fold(PathBuf::new(), |mut path, part| {
-          path.push(part);
-          path
-        })
-        .display()
-        .to_string(),
-      Some(profile.clone()),
-    ),
-    _ => (target.to_string(), None),
+      inferred_profile,
+    )
+  } else {
+    (target.to_string(), None)
   }
 }
 
@@ -260,7 +300,7 @@ fn candidate_home_paths(ctx: &Context, target: &str) -> Vec<PathBuf> {
     if let Ok(cwd) = std::env::current_dir()
       && cwd.starts_with(&ctx.home_path)
     {
-      candidates.push(cwd.join(input_path));
+      candidates.push(normalize_lexically(&cwd.join(input_path)));
     }
 
     candidates.push(ctx.home_path.join(input_path));
@@ -268,6 +308,17 @@ fn candidate_home_paths(ctx: &Context, target: &str) -> Vec<PathBuf> {
 
   candidates.dedup();
   candidates
+}
+
+pub fn logical_home_candidates(ctx: &Context, target: &str) -> Result<Vec<PathBuf>> {
+  let mut relatives = Vec::new();
+  for candidate in candidate_home_paths(ctx, target) {
+    let relative = to_relative(ctx, &candidate)?;
+    if !relatives.contains(&relative) {
+      relatives.push(relative);
+    }
+  }
+  Ok(relatives)
 }
 
 pub fn resolve_target(
@@ -279,23 +330,32 @@ pub fn resolve_target(
     return Ok(ResolvedTarget::Interactive);
   };
 
-  let (target, inferred_profile) = normalize_storage_target(&target);
-  let effective_profile = profile_override.or(inferred_profile.as_deref());
+  if let Some(profile) = profile_override {
+    let profile = normalize_profile_name(profile);
+    validate_profile_component(profile)?;
+    if profile != COMMON_PROFILE
+      && profile != DEFAULT_PROFILE
+      && !Profiles::load(ctx)?.profiles.contains_key(profile)
+    {
+      bail!("Profile '{profile}' not found.");
+    }
+  }
 
-  let mut relatives = Vec::new();
+  let (target, inferred_profile) = normalize_storage_target(ctx, &target);
+  let effective_profile = profile_override
+    .map(normalize_profile_name)
+    .map(str::to_string)
+    .or(inferred_profile);
+
+  let relatives = logical_home_candidates(ctx, &target)?;
   let mut ambiguous: Option<(PathBuf, Vec<String>)> = None;
 
-  for home_path in candidate_home_paths(ctx, &target) {
-    let relative = to_relative(ctx, &home_path)?;
-    if !relatives.contains(&relative) {
-      relatives.push(relative.clone());
-    }
-
+  for relative in &relatives {
     // Single-file resolution uses the profile hierarchy
-    match resolve_logical_file(ctx, &relative, effective_profile)? {
+    match resolve_logical_file(ctx, relative, effective_profile.as_deref())? {
       FileResolution::Found(entry) => return Ok(ResolvedTarget::File(entry)),
       FileResolution::AmbiguousAcrossProfiles(profiles) => {
-        ambiguous.get_or_insert((relative, profiles));
+        ambiguous.get_or_insert((relative.clone(), profiles));
       }
       FileResolution::NotManaged => {}
     }
@@ -304,15 +364,39 @@ pub fn resolve_target(
   // Fallback: directory resolution (scan all entries for prefix match)
   let entries = scan_all_entries(ctx)?;
 
-  let dir_entries: Vec<ManagedEntry> = entries
+  let mut dir_entries: Vec<ManagedEntry> = entries
     .into_iter()
     .filter(|entry| {
       relatives
         .iter()
         .any(|relative| entry.relative.starts_with(relative))
     })
-    .filter(|entry| effective_profile.is_none_or(|profile| entry.profile == profile))
+    .filter(|entry| {
+      effective_profile
+        .as_deref()
+        .is_none_or(|profile| entry.profile == profile)
+    })
     .collect();
+
+  if effective_profile.is_none() {
+    let profiles = Profiles::load(ctx)?;
+    let mut by_filepath: HashMap<PathBuf, Vec<ManagedEntryProfile>> = HashMap::new();
+    for entry in dir_entries {
+      let entry = with_profile(ctx, entry);
+      by_filepath
+        .entry(entry.filepath.clone())
+        .or_default()
+        .push(entry);
+    }
+    dir_entries = effective_entries(&ctx.repo_path, &profiles, &by_filepath)
+      .into_iter()
+      .map(|entry| ManagedEntry {
+        profile: entry.profile,
+        relative: entry.filepath,
+        repo_path: entry.repo_path,
+      })
+      .collect();
+  }
 
   if dir_entries.is_empty() {
     if let Some((relative, profiles)) = ambiguous {

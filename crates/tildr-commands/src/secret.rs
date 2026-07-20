@@ -6,7 +6,9 @@ use tildr_domain::SecretMode;
 use tildr_fs::paths::resolve_home_path;
 use tildr_ui::{color::Colorize, info, prompt::MinimalTheme, success};
 
+use crate::profile::Profiles;
 use crate::utils::auto_commit::auto_commit;
+use crate::utils::target::logical_home_candidates;
 
 pub fn run(ctx: &Context, mode: SecretMode) -> Result<()> {
   if !detect_gpg_available() {
@@ -21,7 +23,7 @@ pub fn run(ctx: &Context, mode: SecretMode) -> Result<()> {
       let source = resolve_home_path(&file, &ctx.home_path);
       if !source.exists() {
         bail!(
-          "File not found: {} \nTry using tilder secret decrypt first to extract the files.",
+          "File not found: {} \nTry using tildr secret decrypt first to extract the files.",
           source.display()
         );
       }
@@ -35,8 +37,16 @@ pub fn run(ctx: &Context, mode: SecretMode) -> Result<()> {
       manifest.add(&relative)?;
       info(&format!("Added to .tildr/encrypted-items: {}", relative));
 
-      add_to_gitignore(&ctx.repo_path, &relative)?;
-      git_untrack_if_tracked(&ctx.repo_path, &relative)?;
+      let profiles = Profiles::load(ctx)?;
+      let managed_source = profiles.resolve(&ctx.repo_path, &relative);
+      let git_path = managed_source
+        .strip_prefix(&ctx.repo_path)
+        .map(|path| path.display().to_string())
+        .unwrap_or_else(|_| relative.clone());
+      add_to_gitignore(&ctx.repo_path, &git_path)?;
+      if ctx.config.git.operations_enabled() && ctx.repo_path.join(".git").is_dir() {
+        git_untrack_if_tracked(&ctx.repo_path, &git_path)?;
+      }
 
       let entries = manifest.entries()?;
       encrypt_bundle(ctx, &gpg, &entries)?;
@@ -61,11 +71,26 @@ pub fn run(ctx: &Context, mode: SecretMode) -> Result<()> {
     }
 
     SecretMode::Remove { file } => {
-      let removed = manifest.remove(&file)?;
+      let entries = manifest.entries()?;
+      let candidates = logical_home_candidates(ctx, &file)?;
+      let relative = candidates
+        .iter()
+        .map(|path| path.display().to_string())
+        .find(|candidate| entries.contains(candidate))
+        .unwrap_or_else(|| {
+          candidates
+            .first()
+            .map(|path| path.display().to_string())
+            .unwrap_or_else(|| file.clone())
+        });
+      let removed = manifest.remove(&relative)?;
       if !removed {
-        bail!("File not in .tildr/encrypted-items: {}", file);
+        bail!("File not in .tildr/encrypted-items: {}", relative);
       }
-      info(&format!("Removed from .tildr/encrypted-items: {}", file));
+      info(&format!(
+        "Removed from .tildr/encrypted-items: {}",
+        relative
+      ));
 
       let entries = manifest.entries()?;
       if entries.is_empty() {
@@ -79,7 +104,7 @@ pub fn run(ctx: &Context, mode: SecretMode) -> Result<()> {
         success("Encrypted bundle updated");
       }
 
-      auto_commit(ctx, &format!("secret: remove {}", file));
+      auto_commit(ctx, &format!("secret: remove {}", relative));
     }
 
     SecretMode::Encrypt => {

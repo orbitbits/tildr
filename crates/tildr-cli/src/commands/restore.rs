@@ -19,7 +19,7 @@ pub struct Command {
   #[arg(short, long)]
   pub profile: Option<String>,
 
-  /// Restore all managed files to HOME
+  /// Restore every file effective for the active profile to HOME
   #[arg(short, long, conflicts_with = "targets")]
   pub all: bool,
 

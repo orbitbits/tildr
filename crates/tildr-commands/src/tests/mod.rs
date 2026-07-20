@@ -1,6 +1,9 @@
+pub mod add;
 pub mod apply;
 pub mod group;
+pub mod list;
 pub mod mv;
 pub mod profile;
+pub mod restore;
 pub mod status;
 pub mod target;

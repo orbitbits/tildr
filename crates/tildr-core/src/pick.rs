@@ -7,7 +7,7 @@ use crossterm::{
 use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use tildr_fs::paths::resolve_home_path;
+use tildr_fs::paths::{normalize_lexically, resolve_home_path};
 use tildr_repo::scatildr_repo;
 use tildr_ui::{color::Colorize, prompt::MinimalTheme};
 use tildr_utils::sys::has_display;
@@ -34,7 +34,7 @@ fn logical_candidates(ctx: &Context, input: &str, home_path: &std::path::Path) -
     && let Ok(cwd) = std::env::current_dir()
     && cwd.starts_with(&ctx.home_path)
   {
-    let cwd_path = cwd.join(input_path);
+    let cwd_path = normalize_lexically(&cwd.join(input_path));
     if let Ok(relative) = cwd_path.strip_prefix(&ctx.home_path)
       && !candidates.iter().any(|candidate| candidate == relative)
     {
@@ -131,7 +131,10 @@ pub fn target(
         let input: String = dialoguer::Input::with_theme(&MinimalTheme)
           .with_prompt("File path")
           .interact_text()?;
-        PathBuf::from(input)
+        resolve_home_path(&input, &ctx.home_path)
+          .strip_prefix(&ctx.home_path)
+          .map_err(|_| anyhow::anyhow!("Path must be inside HOME directory"))?
+          .to_path_buf()
       };
 
       return Ok(ctx.home_path.join(&relative));

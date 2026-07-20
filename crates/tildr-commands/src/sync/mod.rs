@@ -69,6 +69,7 @@ pub fn run(ctx: &Context, args: SyncArgs) -> Result<()> {
     }
     SyncScenario::PullOnly { remote_ahead } => {
       git.fast_forward_merge(&tracking.upstream_ref())?;
+      apply_after_pull(ctx, args.quiet)?;
 
       if !args.quiet {
         success(&format!(
@@ -93,6 +94,8 @@ pub fn run(ctx: &Context, args: SyncArgs) -> Result<()> {
           let _ = git.merge_abort();
           return Err(err);
         }
+
+        apply_after_pull(ctx, args.quiet)?;
 
         let pushed = git.count_commits(&format!("{}..HEAD", tracking.upstream_ref()))?;
         re_encrypt_before_push(ctx)?;
@@ -120,6 +123,19 @@ pub fn run(ctx: &Context, args: SyncArgs) -> Result<()> {
   }
 
   Ok(())
+}
+
+fn apply_after_pull(ctx: &Context, quiet: bool) -> Result<()> {
+  crate::apply::run(
+    ctx,
+    crate::apply::ApplyArgs {
+      check: false,
+      dry_run: false,
+      force: false,
+      verbose: false,
+      quiet,
+    },
+  )
 }
 
 fn re_encrypt_before_push(ctx: &Context) -> Result<()> {

@@ -17,7 +17,7 @@ pub struct Command {
   #[arg(short, long)]
   pub quiet: bool,
 
-  /// Skip confirmation prompts without asking
+  /// Use a force-with-lease push when pushing changes
   #[arg(short, long)]
   pub force: bool,
 }

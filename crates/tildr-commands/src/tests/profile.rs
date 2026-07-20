@@ -174,12 +174,25 @@ fn profiles_save_and_load_roundtrip() {
 
 #[test]
 fn profile_create_adds_new_profile() {
-  let (root, ctx) = test_ctx("create");
+  let (root, mut ctx) = test_ctx("create");
+  ctx.config.git.auto_commit = false;
 
-  Profiles::load(&ctx).unwrap().save(&ctx).unwrap();
+  run(
+    &ctx,
+    &ProfileMode::Create {
+      name: "linux".to_string(),
+      description: Some("Linux dotfiles".to_string()),
+    },
+  )
+  .unwrap();
 
   let loaded = Profiles::load(&ctx).unwrap();
   assert!(loaded.active.is_none());
+  assert_eq!(
+    loaded.profiles["linux"].description.as_deref(),
+    Some("Linux dotfiles")
+  );
+  assert!(ctx.repo_path.join("profiles/linux").is_dir());
 
   fs::remove_dir_all(&root).ok();
 }
@@ -201,6 +214,12 @@ fn profile_rename_updates_name_description_and_active_profile() {
     },
   );
   profiles.save(&ctx).unwrap();
+  #[cfg(unix)]
+  std::os::unix::fs::symlink(
+    ctx.repo_path.join("profiles/linux/.bashrc"),
+    ctx.home_path.join(".bashrc"),
+  )
+  .unwrap();
 
   run(
     &ctx,
@@ -221,6 +240,10 @@ fn profile_rename_updates_name_description_and_active_profile() {
   );
   assert!(!ctx.repo_path.join("profiles/linux").exists());
   assert!(ctx.repo_path.join("profiles/archlinux/.bashrc").exists());
+  assert!(tildr_fs::symlink::is_symlink_to(
+    &ctx.home_path.join(".bashrc"),
+    &ctx.repo_path.join("profiles/archlinux/.bashrc")
+  ));
 
   fs::remove_dir_all(&root).ok();
 }
@@ -257,6 +280,51 @@ fn profile_rename_preserves_description_without_override() {
     Some("Linux dotfiles")
   );
 
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_rename_supports_empty_profile_without_storage_directory() {
+  let (root, mut ctx) = test_ctx("rename-empty");
+  ctx.config.git.auto_commit = false;
+  let mut profiles = Profiles::load(&ctx).unwrap();
+  profiles
+    .profiles
+    .insert("empty".to_string(), ProfileDef::default());
+  profiles.save(&ctx).unwrap();
+
+  run(
+    &ctx,
+    &ProfileMode::Rename {
+      from: Some("empty".to_string()),
+      to: Some("renamed".to_string()),
+      description: None,
+    },
+  )
+  .unwrap();
+
+  let loaded = Profiles::load(&ctx).unwrap();
+  assert!(!loaded.profiles.contains_key("empty"));
+  assert!(loaded.profiles.contains_key("renamed"));
+  assert!(ctx.repo_path.join("profiles/renamed").is_dir());
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_create_rejects_path_like_name() {
+  let (root, mut ctx) = test_ctx("unsafe-name");
+  ctx.config.git.auto_commit = false;
+
+  let result = run(
+    &ctx,
+    &ProfileMode::Create {
+      name: "../common".to_string(),
+      description: None,
+    },
+  );
+
+  assert!(result.is_err());
+  assert!(!ctx.repo_path.join("common").exists());
   fs::remove_dir_all(&root).ok();
 }
 

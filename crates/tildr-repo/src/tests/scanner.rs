@@ -58,6 +58,49 @@ fn scan_ignores_git_files() {
 }
 
 #[test]
+fn scan_keeps_legacy_git_dotfiles() {
+  let dir = temp_repo();
+  fs::write(dir.join(".gitconfig"), "[user]").unwrap();
+  fs::create_dir_all(dir.join(".github/workflows")).unwrap();
+  fs::write(dir.join(".github/workflows/ci.yml"), "name: ci").unwrap();
+
+  let entries = scatildr_repo(&dir).unwrap();
+
+  assert_eq!(entries.len(), 1);
+  assert_eq!(entries[0].relative, PathBuf::from(".gitconfig"));
+  assert_eq!(entries[0].profile, "default");
+
+  fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn scan_distinguishes_root_control_files_from_managed_dotfiles() {
+  let dir = temp_repo();
+  fs::create_dir_all(dir.join("common")).unwrap();
+  fs::create_dir_all(dir.join("profiles/linux")).unwrap();
+  fs::write(dir.join(".gitignore"), "target/").unwrap();
+  fs::write(dir.join(".tildrignore"), "cache/").unwrap();
+  fs::write(dir.join("common/.gitignore"), "*.log").unwrap();
+  fs::write(dir.join("profiles/linux/.tildrignore"), "linux-cache/").unwrap();
+
+  let entries = scatildr_repo(&dir).unwrap();
+
+  assert_eq!(entries.len(), 2);
+  assert!(
+    entries
+      .iter()
+      .any(|entry| { entry.profile == "common" && entry.relative == Path::new(".gitignore") })
+  );
+  assert!(
+    entries
+      .iter()
+      .any(|entry| { entry.profile == "linux" && entry.relative == Path::new(".tildrignore") })
+  );
+
+  fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
 fn scan_skips_tildr_directory() {
   let dir = temp_repo();
   let pd = profiles_default(&dir);

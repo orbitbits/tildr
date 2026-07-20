@@ -26,7 +26,7 @@ pub enum CliSecretMode {
   /// Unregister a file (does not delete the original)
   #[command(name = "rm")]
   Remove {
-    /// Relative path as listed in .tildr/encrypted-items
+    /// HOME path or relative path as listed in .tildr/encrypted-items
     file: String,
   },
 

@@ -2,7 +2,7 @@ use super::RestoreArgs;
 use crate::utils::{
   auto_commit::auto_commit_dry_run,
   executor::execute_entries,
-  target::{ResolvedTarget, collect_resolved_entries, resolve_targets, scan_all_entries},
+  target::{ResolvedTarget, collect_resolved_entries, resolve_targets, scan_effective_entries},
 };
 use anyhow::{Result, bail};
 use tildr_core::{
@@ -39,7 +39,7 @@ pub fn run(ctx: &Context, targets: Vec<String>, args: RestoreArgs) -> Result<()>
 }
 
 fn run_all(ctx: &Context, args: RestoreArgs) -> Result<()> {
-  let entries = scan_all_entries(ctx)?;
+  let entries = scan_effective_entries(ctx)?;
 
   if entries.is_empty() {
     bail!("No managed files found");
@@ -91,6 +91,7 @@ fn execute_restore_entries(
 ) -> Result<(usize, usize, Vec<tildr_ui::output::ActionLog>)> {
   execute_entries(entries, dry_run, "Restored", "Would restore", |entry| {
     let home_path = ctx.home_path.join(&entry.relative);
+    let repo_relative = entry.repo_path.strip_prefix(&ctx.repo_path)?.to_path_buf();
 
     if !entry.repo_path.exists() {
       return Ok(false);
@@ -98,7 +99,7 @@ fn execute_restore_entries(
 
     ManagedPathOp::new(&home_path, &entry.repo_path, &entry.relative).restore()?;
 
-    cleanup_empty_ancestors(&ctx.repo_path, &entry.relative);
+    cleanup_empty_ancestors(&ctx.repo_path, &repo_relative);
 
     Ok(true)
   })

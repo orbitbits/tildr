@@ -67,6 +67,29 @@ fn group_create_normalizes_common_storage_paths() {
 }
 
 #[test]
+fn group_create_normalizes_no_profile_alias() {
+  let root = test_dir("no-profile-path");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("common")).unwrap();
+  fs::write(repo.join("common/.wgetrc"), "content").unwrap();
+  let ctx = setup_context(&home, &repo);
+
+  crate::group::run(
+    &ctx,
+    &GroupMode::Create {
+      name: "net".to_string(),
+      files: vec!["no-profile/.wgetrc".to_string()],
+    },
+  )
+  .unwrap();
+
+  assert_eq!(group_files(&ctx, "net"), vec![".wgetrc"]);
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
 fn group_create_expands_profile_storage_directories() {
   let root = test_dir("profile-dir");
   let home = root.join("home");
@@ -111,6 +134,37 @@ fn group_apply_uses_context_home_path() {
     },
   )
   .unwrap();
+  crate::group::run(
+    &ctx,
+    &GroupMode::Apply {
+      name: "shell".to_string(),
+    },
+  )
+  .unwrap();
+
+  assert!(is_symlink_to(
+    &home.join(".bashrc"),
+    &repo.join("common/.bashrc")
+  ));
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn group_apply_normalizes_legacy_stored_paths() {
+  let root = test_dir("legacy-stored-path");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("common")).unwrap();
+  fs::create_dir_all(repo.join(".tildr")).unwrap();
+  fs::write(repo.join("common/.bashrc"), "content").unwrap();
+  fs::write(
+    repo.join(".tildr/groups.json"),
+    r#"{"groups":{"shell":["common/.bashrc"]}}"#,
+  )
+  .unwrap();
+  let ctx = setup_context(&home, &repo);
+
   crate::group::run(
     &ctx,
     &GroupMode::Apply {

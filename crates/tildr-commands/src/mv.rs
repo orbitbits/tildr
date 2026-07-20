@@ -6,7 +6,7 @@ use tildr_core::{
 };
 use tildr_fs::{
   paths::resolve_home_path,
-  symlink::{create_symlink, is_symlink},
+  symlink::{is_symlink, is_symlink_within},
   utils::remove_file_or_dir,
 };
 use tildr_ui::{
@@ -20,6 +20,7 @@ use crate::utils::{
   auto_commit::auto_commit_dry_run,
   target::{ResolvedTarget, resolve_target},
 };
+use tildr_utils::ops::cleanup_empty_ancestors;
 
 pub struct MvArgs {
   pub source: Option<String>,
@@ -92,8 +93,17 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
     );
   }
 
-  if dest_repo.exists() {
+  if dest_repo.symlink_metadata().is_ok() {
     bail!("Destination already exists in repo: {}", dest_rel.display());
+  }
+
+  if dest_home.symlink_metadata().is_ok()
+    && (!is_symlink(&dest_home) || !is_symlink_within(&dest_home, &ctx.repo_path))
+  {
+    bail!(
+      "Destination already exists in HOME and is not managed by Tildr: {}",
+      dest_rel.display()
+    );
   }
 
   // --- Dry run ---
@@ -122,18 +132,23 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
   // --- Move file in repo ---
   fs::rename(&source_repo, &dest_repo)?;
 
-  // --- Remove old symlink in HOME ---
-  if is_symlink(&source_home) {
+  if is_symlink(&source_home) && is_symlink_within(&source_home, &ctx.repo_path) {
     remove_file_or_dir(&source_home)?;
   }
 
-  // --- Create parent dirs in HOME if needed ---
-  if let Some(parent) = dest_home.parent() {
-    fs::create_dir_all(parent)?;
-  }
+  let source_repo_relative = source_repo.strip_prefix(&ctx.repo_path)?.to_path_buf();
+  cleanup_empty_ancestors(&ctx.repo_path, &source_repo_relative);
 
-  // --- Create new symlink in HOME ---
-  create_symlink(&dest_repo, &dest_home)?;
+  crate::apply::run(
+    ctx,
+    crate::apply::ApplyArgs {
+      check: false,
+      dry_run: false,
+      force: false,
+      verbose: false,
+      quiet: true,
+    },
+  )?;
 
   // --- Output ---
   let actions = vec![ActionLog {

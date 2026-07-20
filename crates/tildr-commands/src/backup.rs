@@ -3,11 +3,12 @@ use std::process::Command as StdCommand;
 use anyhow::{Context as _, Result};
 use console::style;
 use tildr_core::context::Context;
+use tildr_fs::paths::expand_home;
 use tildr_utils::fs::format_size;
 
 pub fn run(ctx: &Context, output: &Option<String>) -> Result<()> {
   let backup_path = match output {
-    Some(p) => std::path::PathBuf::from(p),
+    Some(path) => expand_home(path),
     None => {
       let today = chrono::Local::now().format("%Y-%m-%d");
       ctx
@@ -15,6 +16,11 @@ pub fn run(ctx: &Context, output: &Option<String>) -> Result<()> {
         .join(format!(".dotfiles-backup-{}.tar.gz", today))
     }
   };
+
+  if let Some(parent) = backup_path.parent() {
+    std::fs::create_dir_all(parent)
+      .with_context(|| format!("Failed to create backup directory: {}", parent.display()))?;
+  }
 
   let status = StdCommand::new("tar")
     .arg("-czf")

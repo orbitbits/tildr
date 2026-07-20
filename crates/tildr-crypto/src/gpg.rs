@@ -191,6 +191,15 @@ impl GpgIntegration {
       bail!("No files listed in .tildr/encrypted-items");
     }
     for entry in entries {
+      let path = Path::new(entry);
+      if entry.is_empty()
+        || path.is_absolute()
+        || path
+          .components()
+          .any(|component| !matches!(component, std::path::Component::Normal(_)))
+      {
+        bail!("Invalid HOME-relative path in encrypted-items: {entry}");
+      }
       let full = home_path.join(entry);
       if !full.exists() {
         bail!("File not found: {}", full.display());
@@ -205,6 +214,7 @@ impl GpgIntegration {
       tar_path.to_string_lossy().to_string(),
       "-C".to_string(),
       home_path.to_string_lossy().to_string(),
+      "--".to_string(),
     ];
     for entry in entries {
       args.push(entry.clone());

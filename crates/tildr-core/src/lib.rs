@@ -7,3 +7,6 @@ pub mod constants;
 pub mod context;
 pub mod errors;
 pub mod pick;
+
+#[cfg(test)]
+mod tests;

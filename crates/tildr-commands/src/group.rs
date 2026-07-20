@@ -7,14 +7,15 @@ use console::style;
 use dialoguer::Input;
 use serde::{Deserialize, Serialize};
 use tildr_core::context::Context;
-use tildr_fs::paths::resolve_home_path;
 use tildr_fs::symlink::{create_symlink, is_symlink, is_symlink_to};
 use tildr_ui::prompt::MinimalTheme;
 use tildr_utils::{fs::tildr_dir, sys::has_display};
 
 use crate::profile::Profiles;
 use crate::utils::auto_commit::auto_commit;
-use crate::utils::target::{ResolvedTarget, resolve_targets};
+use crate::utils::target::{
+  ResolvedTarget, logical_home_candidates, resolve_targets, storage_to_home_relative,
+};
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Groups {
@@ -32,7 +33,14 @@ impl Groups {
       return Ok(Self::default());
     }
     let data = fs::read_to_string(&path).context("Failed to read groups file")?;
-    let groups: Groups = serde_json::from_str(&data).context("Failed to parse groups file")?;
+    let mut groups: Groups = serde_json::from_str(&data).context("Failed to parse groups file")?;
+    for files in groups.groups.values_mut() {
+      let mut normalized = BTreeSet::new();
+      for file in files.iter() {
+        normalized.insert(normalize_stored_group_file(ctx, file));
+      }
+      *files = normalized.into_iter().collect();
+    }
     Ok(groups)
   }
 
@@ -47,28 +55,24 @@ impl Groups {
   }
 }
 
-/// Convert a repository storage path to the HOME-relative path managed by Tildr.
-fn storage_to_home_relative(repo_path: &std::path::Path, path: &std::path::Path) -> String {
-  let relative = path
-    .strip_prefix(repo_path)
-    .unwrap_or(path)
-    .to_string_lossy()
-    .to_string();
+fn normalize_stored_group_file(ctx: &Context, file: &str) -> String {
+  let logical = storage_to_home_relative(&ctx.repo_path, std::path::Path::new(file));
+  let logical_str = logical.display().to_string();
+  let path = std::path::Path::new(&logical_str);
 
-  if let Some(stripped) = relative.strip_prefix("common/") {
-    return stripped.to_string();
-  }
-
-  if let Some(stripped) = relative.strip_prefix("profiles/")
-    && let Some(rest) = stripped.find('/')
+  if path.is_absolute()
+    || logical_str == "~"
+    || logical_str.starts_with("~/")
+    || logical_str == "$HOME"
+    || logical_str.starts_with("$HOME/")
   {
-    let after = &stripped[rest + 1..];
-    if !after.is_empty() {
-      return after.to_string();
+    let home_path = tildr_fs::paths::resolve_home_path(&logical_str, &ctx.home_path);
+    if let Ok(relative) = home_path.strip_prefix(&ctx.home_path) {
+      return relative.display().to_string();
     }
   }
 
-  relative
+  logical_str
 }
 
 fn pick_files_for_group(ctx: &Context) -> Result<Vec<String>> {
@@ -86,10 +90,11 @@ fn pick_files_for_group(ctx: &Context) -> Result<Vec<String>> {
             .unwrap_or(&path)
             .to_string_lossy()
             .to_string();
-          files.push(storage_to_home_relative(
-            &ctx.repo_path,
-            std::path::Path::new(&relative),
-          ));
+          files.push(
+            storage_to_home_relative(&ctx.repo_path, std::path::Path::new(&relative))
+              .display()
+              .to_string(),
+          );
         }
         Ok(files)
       }
@@ -137,7 +142,7 @@ fn create(ctx: &Context, name: &str, files: &[String]) -> Result<()> {
     "{} Group '{}' created with {} file(s).",
     style("Created:").green().bold(),
     name,
-    files.len()
+    groups.groups[name].len()
   );
   auto_commit(ctx, &format!("group create {}", name));
   Ok(())
@@ -216,6 +221,7 @@ fn delete(ctx: &Context, name: &str) -> Result<()> {
     style("Deleted:").red().bold(),
     name
   );
+  auto_commit(ctx, &format!("group delete {name}"));
   Ok(())
 }
 
@@ -412,24 +418,24 @@ fn insert_dir_files(
     .filter_map(|entry| entry.ok())
   {
     if entry.file_type().is_file() {
-      logical_files.insert(storage_to_home_relative(&ctx.repo_path, entry.path()));
+      logical_files.insert(
+        storage_to_home_relative(&ctx.repo_path, entry.path())
+          .display()
+          .to_string(),
+      );
     }
   }
 }
 
 fn normalize_group_patterns(ctx: &Context, files: &[String]) -> Result<Vec<String>> {
-  files
-    .iter()
-    .map(|file| storage_to_home_relative(&ctx.repo_path, std::path::Path::new(file)))
-    .map(|file| {
-      let home_path = resolve_home_path(&file, &ctx.home_path);
-      Ok(
-        home_path
-          .strip_prefix(&ctx.home_path)
-          .unwrap_or_else(|_| std::path::Path::new(&file))
-          .display()
-          .to_string(),
-      )
-    })
-    .collect()
+  let mut patterns = BTreeSet::new();
+
+  for file in files {
+    let logical = storage_to_home_relative(&ctx.repo_path, std::path::Path::new(file));
+    for candidate in logical_home_candidates(ctx, &logical.display().to_string())? {
+      patterns.insert(candidate.display().to_string());
+    }
+  }
+
+  Ok(patterns.into_iter().collect())
 }

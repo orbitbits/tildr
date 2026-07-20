@@ -55,10 +55,16 @@ impl GitIntegration {
   }
 
   pub fn commit(&self, message: &str) -> Result<()> {
-    Command::new("git")
+    let output = Command::new("git")
       .args(["commit", "-m", message])
       .current_dir(&self.repo_path)
       .output()?;
+    if !output.status.success() {
+      anyhow::bail!(
+        "git commit failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+      );
+    }
     Ok(())
   }
 
@@ -67,8 +73,27 @@ impl GitIntegration {
       return Ok(());
     }
     self.add_all()?;
+    if !self.has_staged_changes()? {
+      return Ok(());
+    }
     self.commit(message)?;
     Ok(())
+  }
+
+  fn has_staged_changes(&self) -> Result<bool> {
+    let output = Command::new("git")
+      .args(["diff", "--cached", "--quiet", "--exit-code"])
+      .current_dir(&self.repo_path)
+      .output()?;
+
+    match output.status.code() {
+      Some(0) => Ok(false),
+      Some(1) => Ok(true),
+      _ => anyhow::bail!(
+        "git diff --cached failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+      ),
+    }
   }
 
   pub fn status_issues(&self) -> Result<Vec<GitStatusIssue>> {

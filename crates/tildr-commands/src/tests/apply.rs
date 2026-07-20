@@ -341,3 +341,62 @@ fn apply_check_fails_on_regular_file_without_replacing_it() {
   assert_eq!(fs::read_to_string(&home_file).unwrap(), "home content");
   fs::remove_dir_all(&root).ok();
 }
+
+#[test]
+fn apply_removes_link_for_inactive_only_file() {
+  let root = test_dir("remove-inactive-link");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("profiles/linux")).unwrap();
+  fs::write(repo.join("profiles/linux/.zshrc"), "linux").unwrap();
+  let link = home.join(".zshrc");
+  #[cfg(unix)]
+  std::os::unix::fs::symlink(repo.join("profiles/linux/.zshrc"), &link).unwrap();
+  let ctx = setup_context(&home, &repo);
+
+  run(
+    &ctx,
+    ApplyArgs {
+      check: false,
+      dry_run: false,
+      force: false,
+      verbose: false,
+      quiet: true,
+    },
+  )
+  .unwrap();
+
+  assert!(link.symlink_metadata().is_err());
+  assert!(repo.join("profiles/linux/.zshrc").exists());
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn apply_check_reports_link_for_inactive_only_file() {
+  let root = test_dir("check-inactive-link");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("profiles/linux")).unwrap();
+  fs::write(repo.join("profiles/linux/.zshrc"), "linux").unwrap();
+  let link = home.join(".zshrc");
+  #[cfg(unix)]
+  std::os::unix::fs::symlink(repo.join("profiles/linux/.zshrc"), &link).unwrap();
+  let ctx = setup_context(&home, &repo);
+
+  let result = run(
+    &ctx,
+    ApplyArgs {
+      check: true,
+      dry_run: false,
+      force: false,
+      verbose: false,
+      quiet: true,
+    },
+  );
+
+  assert!(result.is_err());
+  assert!(link.symlink_metadata().is_ok());
+  fs::remove_dir_all(&root).ok();
+}

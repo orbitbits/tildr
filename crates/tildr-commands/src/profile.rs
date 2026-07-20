@@ -7,7 +7,7 @@ use console::style;
 use dialoguer::Input;
 use serde::{Deserialize, Serialize};
 use tildr_core::context::Context;
-use tildr_fs::paths::resolve_home_path;
+use tildr_fs::paths::{normalize_lexically, resolve_home_path};
 use tildr_repo::scatildr_repo;
 use tildr_ui::prompt::MinimalTheme;
 use tildr_utils::{fs::tildr_dir, pager::page_string};
@@ -48,11 +48,34 @@ pub fn display_profile_name(profile: &str) -> &str {
 }
 
 pub fn profile_dir(repo_path: &Path, profile: &str) -> PathBuf {
-  match profile {
+  match normalize_profile_name(profile) {
     COMMON_PROFILE => repo_path.join(COMMON_PROFILE),
     DEFAULT_PROFILE => repo_path.to_path_buf(),
     _ => repo_path.join("profiles").join(profile),
   }
+}
+
+pub(crate) fn validate_profile_component(name: &str) -> Result<()> {
+  let normalized = normalize_profile_name(name);
+  let mut components = Path::new(normalized).components();
+  let valid = name == name.trim()
+    && !name.is_empty()
+    && matches!(components.next(), Some(std::path::Component::Normal(_)))
+    && components.next().is_none();
+
+  if !valid {
+    anyhow::bail!("Invalid profile name '{name}'. Use a single name without path separators.");
+  }
+
+  Ok(())
+}
+
+fn validate_named_profile(name: &str) -> Result<()> {
+  validate_profile_component(name)?;
+  if name == DEFAULT_PROFILE || normalize_profile_name(name) == COMMON_PROFILE {
+    anyhow::bail!("'{name}' is a reserved name and cannot be used for a profile.");
+  }
+  Ok(())
 }
 
 fn legacy_common_dir(repo_path: &Path) -> PathBuf {
@@ -168,9 +191,7 @@ pub fn run(ctx: &Context, mode: &tildr_domain::ProfileMode) -> Result<()> {
 }
 
 fn create(ctx: &Context, name: &str, description: &Option<String>) -> Result<()> {
-  if name == DEFAULT_PROFILE || normalize_profile_name(name) == COMMON_PROFILE {
-    anyhow::bail!("'{name}' is a reserved name and cannot be used for a profile.");
-  }
+  validate_named_profile(name)?;
   let mut profiles = Profiles::load(ctx)?;
   if profiles.profiles.contains_key(name) {
     anyhow::bail!("Profile '{}' already exists.", name);
@@ -179,6 +200,7 @@ fn create(ctx: &Context, name: &str, description: &Option<String>) -> Result<()>
     description: description.clone(),
   };
   profiles.profiles.insert(name.to_string(), def);
+  fs::create_dir_all(profile_dir(&ctx.repo_path, name))?;
   profiles.save(ctx)?;
   println!(
     "{} Profile '{}' created.",
@@ -259,7 +281,7 @@ fn logical_file_candidates(ctx: &Context, input: &str) -> Vec<PathBuf> {
     && let Ok(cwd) = std::env::current_dir()
     && cwd.starts_with(&ctx.home_path)
   {
-    let cwd_path = cwd.join(input_path);
+    let cwd_path = normalize_lexically(&cwd.join(input_path));
     if let Ok(relative) = cwd_path.strip_prefix(&ctx.home_path) {
       let relative = relative.to_path_buf();
       if !candidates.iter().any(|candidate| candidate == &relative) {
@@ -333,6 +355,8 @@ fn transfer(
 ) -> Result<()> {
   let from = normalize_profile_name(from);
   let to = normalize_profile_name(to);
+  validate_profile_component(from)?;
+  validate_profile_component(to)?;
 
   if from == to {
     println!("{}", style("Source and destination are the same.").dim());
@@ -371,7 +395,7 @@ fn transfer(
   for file in &file_list {
     let src = profile_dir(&ctx.repo_path, from).join(file);
 
-    if !src.exists() {
+    if src.symlink_metadata().is_err() {
       println!("  {} {} (file not found)", style("Skipped:").yellow(), file);
       continue;
     }
@@ -386,10 +410,19 @@ fn transfer(
       ctx.repo_path.join(file)
     };
 
-    fs::copy(&src, &dst)?;
+    if dst.symlink_metadata().is_ok() {
+      println!(
+        "  {} {} (destination already exists)",
+        style("Skipped:").yellow(),
+        file
+      );
+      continue;
+    }
 
     if remove_source {
-      fs::remove_file(&src)?;
+      fs::rename(&src, &dst)?;
+    } else {
+      fs::copy(&src, &dst)?;
     }
 
     count += 1;
@@ -399,6 +432,11 @@ fn transfer(
       profile_file_label(to, file)
     );
     println!("  {} {}", action_fn(action), direction);
+  }
+
+  if count == 0 {
+    println!("{}", style("Nothing to do.").dim());
+    return Ok(());
   }
 
   if remove_source {
@@ -413,6 +451,8 @@ fn transfer(
     }
   }
 
+  relink_effective_profile(ctx)?;
+
   auto_commit(
     ctx,
     &format!(
@@ -426,6 +466,7 @@ fn transfer(
 }
 
 fn delete(ctx: &Context, name: &str) -> Result<()> {
+  validate_named_profile(name)?;
   let mut profiles = Profiles::load(ctx)?;
   let _def = profiles
     .profiles
@@ -486,20 +527,15 @@ fn rename(
   let from = prompt_required("Enter current profile name", from)?;
   let to = prompt_required("Enter new profile name", to)?;
 
+  validate_named_profile(&from)?;
+  validate_named_profile(&to)?;
+
   if from == to {
     println!("{}", style("Source and destination are the same.").dim());
     return Ok(());
   }
 
   let mut profiles = Profiles::load(ctx)?;
-
-  if normalize_profile_name(&from) == COMMON_PROFILE || from == DEFAULT_PROFILE {
-    anyhow::bail!("'{from}' is a reserved name and cannot be renamed.");
-  }
-
-  if normalize_profile_name(&to) == COMMON_PROFILE || to == DEFAULT_PROFILE {
-    anyhow::bail!("'{to}' is a reserved name and cannot be used for a profile.");
-  }
 
   if !profiles.profiles.contains_key(&from) {
     anyhow::bail!("Profile '{from}' not found.");
@@ -511,9 +547,15 @@ fn rename(
 
   let old_dir = ctx.repo_path.join("profiles").join(&from);
   let new_dir = ctx.repo_path.join("profiles").join(&to);
+  if new_dir.symlink_metadata().is_ok() {
+    anyhow::bail!("Profile directory '{}' already exists.", new_dir.display());
+  }
 
-  // Rename the profile directory
-  fs::rename(&old_dir, &new_dir)?;
+  if old_dir.exists() {
+    fs::rename(&old_dir, &new_dir)?;
+  } else {
+    fs::create_dir_all(&new_dir)?;
+  }
 
   // Move the profile definition
   let mut def = profiles
@@ -525,7 +567,8 @@ fn rename(
   profiles.profiles.insert(to.clone(), def);
 
   // If the renamed profile was active, update the active profile
-  if profiles.active.as_deref() == Some(&from) {
+  let was_active = profiles.active.as_deref() == Some(&from);
+  if was_active {
     profiles.active = Some(to.clone());
   }
 
@@ -535,6 +578,9 @@ fn rename(
     "{} Profile '{from}' renamed to '{to}'.",
     style("Renamed:").green().bold()
   );
+  if was_active {
+    relink_effective_profile(ctx)?;
+  }
   auto_commit(ctx, &format!("profile rename {from} {to}"));
   Ok(())
 }
@@ -592,6 +638,7 @@ fn list(ctx: &Context, long: bool, less: bool, name: Option<&str>) -> Result<()>
   let known_profiles: Vec<String> = profiles.profiles.keys().cloned().collect();
 
   let names: Vec<String> = if let Some(name) = name {
+    validate_named_profile(name)?;
     let name = normalize_profile_name(name);
     if !profiles.profiles.contains_key(name) {
       anyhow::bail!("Profile '{name}' not found.");
@@ -690,6 +737,7 @@ fn list(ctx: &Context, long: bool, less: bool, name: Option<&str>) -> Result<()>
 }
 
 fn set(ctx: &Context, name: &str) -> Result<()> {
+  validate_named_profile(name)?;
   let mut profiles = Profiles::load(ctx)?;
   if !profiles.profiles.contains_key(name) {
     anyhow::bail!("Profile '{name}' not found.");

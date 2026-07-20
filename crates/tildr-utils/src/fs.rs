@@ -26,7 +26,7 @@ const IGNORE_FILES: &[&str] = &[
 ];
 //
 // List of ignored extensions in all repository Tildr
-const IGNORE_EXTENSION: &[&str] = &["bak", "tmp", "swp"];
+const IGNORE_EXTENSION: &[&str] = &["tmp", "swp"];
 //
 // List of ignored suffixes in all repository Tildr
 const IGNORE_SUFFIXES: &[&str] = &["~"];

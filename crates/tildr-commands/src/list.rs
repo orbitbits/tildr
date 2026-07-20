@@ -1,19 +1,24 @@
 use anyhow::{Context as AnyhowContext, Result};
 use serde::{Deserialize, Serialize};
 use std::{
-  collections::{BTreeMap, HashMap},
+  collections::{BTreeMap, BTreeSet, HashMap},
   fmt::Write,
   fs,
   path::{Path, PathBuf},
 };
 use tildr_core::context::Context;
-use tildr_fs::symlink::{create_symlink, is_symlink, is_symlink_to};
+use tildr_fs::{
+  paths::{expand_home, normalize_lexically},
+  symlink::{create_symlink, is_symlink, is_symlink_to},
+};
 use tildr_ui::info;
 use tildr_utils::{fs::format_size, pager::page_string};
 
 use crate::{
   profile::{Profiles, display_profile_name, normalize_profile_name},
-  utils::target::{ManagedEntryProfile, effective_entries, scan_all_entries_with_profile},
+  utils::target::{
+    ManagedEntryProfile, effective_entries, scan_all_entries_with_profile, storage_to_home_relative,
+  },
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -39,7 +44,7 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   }
 
   if let Some(ref path) = args.export {
-    return export_to_file(ctx, path);
+    return export_to_file(ctx, path, args.profile.as_deref());
   }
 
   if let Some(ref path) = args.import {
@@ -67,7 +72,7 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   // If --profile is specified, filter to only that profile's files.
   // Otherwise show the effective variant for each logical filepath:
   // active profile -> common -> default -> legacy root.
-  let entries_to_show: Vec<ManagedEntryProfile> = if let Some(ref profile_name) = args.profile {
+  let mut entries_to_show: Vec<ManagedEntryProfile> = if let Some(ref profile_name) = args.profile {
     let profile_name = normalize_profile_name(profile_name);
     by_filepath
       .values()
@@ -76,9 +81,14 @@ pub fn run(ctx: &Context, args: ListArgs) -> Result<()> {
   } else {
     effective_entries(&ctx.repo_path, &profiles, &by_filepath)
   };
+  entries_to_show.sort_by(|left, right| left.filepath.cmp(&right.filepath));
 
   if entries_to_show.is_empty() {
-    info("No managed files for the specified profile.");
+    if args.profile.is_some() {
+      info("No managed files for the specified profile.");
+    } else {
+      info("No managed files for the active profile. Use --profile to inspect another profile.");
+    }
     return Ok(());
   }
 
@@ -242,11 +252,13 @@ fn write_long(
     if let Some(variants) = by_filepath.get(&entry.filepath)
       && variants.len() > 1
     {
-      let variant_profiles: Vec<String> = variants
+      let mut variant_profiles: Vec<String> = variants
         .iter()
         .filter(|v| v.profile != entry.profile)
         .map(|v| display_profile_name(&v.profile).to_string())
         .collect();
+      variant_profiles.sort();
+      variant_profiles.dedup();
       if !variant_profiles.is_empty() {
         writeln!(
           buf,
@@ -269,7 +281,7 @@ fn home_display(path: &Path) -> String {
   }
 }
 
-fn export_to_file(ctx: &Context, path: &str) -> Result<()> {
+fn export_to_file(ctx: &Context, path: &str, profile: Option<&str>) -> Result<()> {
   let entries = scan_all_entries_with_profile(ctx)?;
 
   if entries.is_empty() {
@@ -277,22 +289,55 @@ fn export_to_file(ctx: &Context, path: &str) -> Result<()> {
     return Ok(());
   }
 
-  let files: Vec<String> = entries
-    .iter()
-    .map(|e| e.repo_relative.display().to_string())
+  let mut by_filepath: HashMap<PathBuf, Vec<ManagedEntryProfile>> = HashMap::new();
+  for entry in entries {
+    by_filepath
+      .entry(entry.filepath.clone())
+      .or_default()
+      .push(entry);
+  }
+  let profiles = Profiles::load(ctx)?;
+  let selected = if let Some(profile) = profile {
+    let profile = normalize_profile_name(profile);
+    by_filepath
+      .values()
+      .flat_map(|entries| {
+        entries
+          .iter()
+          .filter(|entry| entry.profile == profile)
+          .cloned()
+      })
+      .collect()
+  } else {
+    effective_entries(&ctx.repo_path, &profiles, &by_filepath)
+  };
+  let files: Vec<String> = selected
+    .into_iter()
+    .map(|entry| entry.filepath.display().to_string())
+    .collect::<BTreeSet<_>>()
+    .into_iter()
     .collect();
 
   let export = ExportFile { version: 1, files };
 
   let json = serde_json::to_string_pretty(&export).context("Failed to serialize export")?;
-  fs::write(path, &json).context("Failed to write export file")?;
+  let output_path = expand_home(path);
+  if let Some(parent) = output_path.parent() {
+    fs::create_dir_all(parent).context("Failed to create export directory")?;
+  }
+  fs::write(&output_path, &json).context("Failed to write export file")?;
 
-  println!("Exported {} file(s) to {}", entries.len(), path);
+  println!(
+    "Exported {} file(s) to {}",
+    export.files.len(),
+    output_path.display()
+  );
   Ok(())
 }
 
 fn import_from_file(ctx: &Context, path: &str) -> Result<()> {
-  let content = fs::read_to_string(path).context("Failed to read import file")?;
+  let input_path = expand_home(path);
+  let content = fs::read_to_string(&input_path).context("Failed to read import file")?;
   let export: ExportFile =
     serde_json::from_str(&content).context("Failed to parse import file (invalid JSON)")?;
 
@@ -308,13 +353,33 @@ fn import_from_file(ctx: &Context, path: &str) -> Result<()> {
   let mut created = 0u32;
   let mut skipped = 0u32;
   let mut not_found = 0u32;
+  let profiles = Profiles::load(ctx)?;
+  let mut logical_files = BTreeSet::new();
 
   for file in &export.files {
-    let repo_file: PathBuf = ctx.repo_path.join(file);
-    let home_file: PathBuf = ctx.home_path.join(file);
+    let logical = storage_to_home_relative(&ctx.repo_path, Path::new(file));
+    let logical = normalize_lexically(&logical);
+    if logical.as_os_str().is_empty()
+      || logical.is_absolute()
+      || logical
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+      anyhow::bail!("Invalid HOME-relative path in import file: {file}");
+    }
+    logical_files.insert(logical);
+  }
+
+  for file in &logical_files {
+    let file_str = file.display().to_string();
+    let repo_file = profiles.resolve(&ctx.repo_path, &file_str);
+    let home_file = ctx.home_path.join(file);
 
     if !repo_file.exists() {
-      eprintln!("  Warning: '{}' not found in repository, skipping", file);
+      eprintln!(
+        "  Warning: '{}' has no source for the active profile, skipping",
+        file.display()
+      );
       not_found += 1;
       continue;
     }
@@ -333,13 +398,15 @@ fn import_from_file(ctx: &Context, path: &str) -> Result<()> {
       continue;
     }
 
-    // Remove existing file/symlink if present
-    if home_file.exists() || home_file.symlink_metadata().is_ok() {
-      if home_file.is_dir() && !home_file.is_symlink() {
-        fs::remove_dir_all(&home_file)?;
-      } else {
-        fs::remove_file(&home_file)?;
-      }
+    if is_symlink(&home_file) {
+      fs::remove_file(&home_file)?;
+    } else if home_file.exists() {
+      eprintln!(
+        "  Warning: '{}' already exists in HOME and is not a symlink, skipping",
+        file.display()
+      );
+      skipped += 1;
+      continue;
     }
 
     create_symlink(&repo_file, &home_file)?;

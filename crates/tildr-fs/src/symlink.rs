@@ -1,6 +1,8 @@
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 
+use crate::paths::normalize_lexically;
+
 #[cfg(unix)]
 pub fn create_symlink(src: &Path, dst: &Path) -> Result<()> {
   std::os::unix::fs::symlink(src, dst)?;
@@ -28,18 +30,26 @@ pub fn symlink_target(path: &Path) -> Option<PathBuf> {
   std::fs::read_link(path).ok()
 }
 
-pub fn is_symlink_to(path: &Path, target: &Path) -> bool {
-  let Some(link_target) = symlink_target(path) else {
-    return false;
-  };
-
-  let absolute_link_target = if link_target.is_absolute() {
-    link_target
+pub fn symlink_target_absolute(path: &Path) -> Option<PathBuf> {
+  let target = symlink_target(path)?;
+  let absolute = if target.is_absolute() {
+    target
   } else {
     path
       .parent()
-      .map(|parent| parent.join(&link_target))
-      .unwrap_or(link_target)
+      .map_or(target.clone(), |parent| parent.join(target))
+  };
+
+  Some(normalize_lexically(&absolute))
+}
+
+pub fn is_symlink_within(path: &Path, root: &Path) -> bool {
+  symlink_target_absolute(path).is_some_and(|target| target.starts_with(root))
+}
+
+pub fn is_symlink_to(path: &Path, target: &Path) -> bool {
+  let Some(absolute_link_target) = symlink_target_absolute(path) else {
+    return false;
   };
 
   paths_match(&absolute_link_target, target)

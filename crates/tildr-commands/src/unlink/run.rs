@@ -13,7 +13,7 @@ use tildr_ui::{
 use super::UnlinkArgs;
 use crate::utils::{
   executor::execute_entries,
-  target::{ResolvedTarget, collect_resolved_entries, resolve_targets, scan_all_entries},
+  target::{ResolvedTarget, collect_resolved_entries, resolve_targets, scan_effective_entries},
 };
 use tildr_utils::confirm::confirm;
 use tildr_utils::ops::{ManagedPathOp, cleanup_empty_ancestors};
@@ -46,7 +46,7 @@ pub fn run(ctx: &Context, targets: Vec<String>, all: bool, args: UnlinkArgs) -> 
 }
 
 fn run_all(ctx: &Context, args: UnlinkArgs) -> Result<()> {
-  let entries = scan_all_entries(ctx)?;
+  let entries = scan_effective_entries(ctx)?;
 
   if entries.is_empty() {
     bail!("No managed files found");

@@ -1,4 +1,6 @@
-use crate::utils::target::{FileResolution, ResolvedTarget, resolve_logical_file, resolve_target};
+use crate::utils::target::{
+  FileResolution, ResolvedTarget, resolve_logical_file, resolve_target, scan_effective_entries,
+};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
@@ -220,6 +222,23 @@ fn common_storage_target_resolves_to_home_relative_file() {
 }
 
 #[test]
+fn no_profile_storage_alias_resolves_to_home_relative_file() {
+  let (root, ctx) = test_ctx("no-profile-storage-target");
+  create_profile_file(&ctx, "common", ".wgetrc", "common");
+
+  let result = resolve_target(&ctx, Some("no-profile/.wgetrc".to_string()), None).unwrap();
+  match result {
+    ResolvedTarget::File(entry) => {
+      assert_eq!(entry.profile, "common");
+      assert_eq!(entry.relative, PathBuf::from(".wgetrc"));
+    }
+    _ => panic!("Expected no-profile/.wgetrc to resolve as a managed file"),
+  }
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
 fn profile_storage_target_resolves_to_home_relative_file() {
   let (root, ctx) = test_ctx("profile-storage-target");
   create_profile_file(&ctx, "linux", ".bashrc", "linux");
@@ -295,5 +314,62 @@ fn cwd_relative_target_under_home_resolves_to_home_relative_file() {
   }
 
   std::env::set_current_dir(old_cwd).unwrap();
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn directory_target_selects_active_and_fallback_variants() {
+  let (root, ctx) = test_ctx("effective-directory");
+  create_profile_file(&ctx, "common", ".config/shared.conf", "common");
+  create_profile_file(&ctx, "common", ".config/override.conf", "common");
+  create_profile_file(&ctx, "linux", ".config/override.conf", "linux");
+  create_profile_file(&ctx, "work", ".config/inactive.conf", "work");
+  set_active(&ctx, "linux");
+
+  let result = resolve_target(&ctx, Some(".config".to_string()), None).unwrap();
+  let ResolvedTarget::Dir { entries, .. } = result else {
+    panic!("Expected a managed directory");
+  };
+
+  assert_eq!(entries.len(), 2);
+  assert!(entries.iter().any(|entry| {
+    entry.relative == Path::new(".config/shared.conf") && entry.profile == "common"
+  }));
+  assert!(entries.iter().any(|entry| {
+    entry.relative == Path::new(".config/override.conf") && entry.profile == "linux"
+  }));
+  assert!(!entries.iter().any(|entry| entry.profile == "work"));
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn no_profile_override_filters_directory_targets() {
+  let (root, ctx) = test_ctx("no-profile-directory");
+  create_profile_file(&ctx, "common", ".config/common.conf", "common");
+  create_profile_file(&ctx, "linux", ".config/linux.conf", "linux");
+
+  let result = resolve_target(&ctx, Some(".config".to_string()), Some("no-profile")).unwrap();
+  let ResolvedTarget::Dir { entries, .. } = result else {
+    panic!("Expected a managed directory");
+  };
+
+  assert_eq!(entries.len(), 1);
+  assert_eq!(entries[0].profile, "common");
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn effective_scan_excludes_inactive_only_files() {
+  let (root, ctx) = test_ctx("effective-scan");
+  create_profile_file(&ctx, "common", ".bashrc", "common");
+  create_profile_file(&ctx, "work", ".workrc", "work");
+
+  let entries = scan_effective_entries(&ctx).unwrap();
+
+  assert_eq!(entries.len(), 1);
+  assert_eq!(entries[0].relative, PathBuf::from(".bashrc"));
+
   fs::remove_dir_all(&root).ok();
 }

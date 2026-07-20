@@ -130,13 +130,14 @@ fn execute_delete_entries(
 
   execute_entries(entries, dry_run, &labels[0], &labels[1], |entry| {
     let home_path = ctx.home_path.join(&entry.relative);
+    let repo_relative = entry.repo_path.strip_prefix(&ctx.repo_path)?.to_path_buf();
 
     if !entry.repo_path.exists() {
       return Ok(false);
     }
 
     ManagedPathOp::new(&home_path, &entry.repo_path, &entry.relative).delete(mode)?;
-    cleanup_empty_ancestors(&ctx.repo_path, &entry.relative);
+    cleanup_empty_ancestors(&ctx.repo_path, &repo_relative);
 
     Ok(true)
   })

@@ -101,7 +101,13 @@ pub fn scatildr_repo(repo_path: &Path) -> Result<Vec<ManagedEntry>> {
       let mut guard = poisoned.into_inner();
       mem::take(&mut *guard)
     });
-  entries.sort_unstable_by(|left, right| left.relative.cmp(&right.relative));
+  entries.sort_unstable_by(|left, right| {
+    left
+      .relative
+      .cmp(&right.relative)
+      .then_with(|| left.profile.cmp(&right.profile))
+      .then_with(|| left.repo_path.cmp(&right.repo_path))
+  });
 
   Ok(entries)
 }
@@ -116,9 +122,9 @@ fn scan_entry(
   let file_type = entry.file_type();
   let is_dir = file_type.is_some_and(|kind| kind.is_dir());
 
-  // Only skip .git, not profiles
+  // Repository metadata is never a managed HOME subtree.
   if let Some(name) = path.file_name()
-    && name == OsStr::new(".git")
+    && (name == OsStr::new(".git") || name == OsStr::new(".github"))
   {
     return if is_dir {
       WalkState::Skip
@@ -129,7 +135,7 @@ fn scan_entry(
 
   // `.tildr` should prune the subtree, while the remaining generic ignores
   // keep the previous behavior of skipping only the current entry.
-  if should_ignore(path) {
+  if should_ignore(path) && !is_storage_control_dotfile(path, repo_path) {
     return if is_dir && path.file_name() == Some(OsStr::new(".tildr")) {
       WalkState::Skip
     } else {
@@ -180,15 +186,18 @@ fn scan_entry(
     }
   }
 
-  // Process files at the repo root (legacy default profile)
-  // Skip internal directories: .git, .tildr, profiles/, common/
+  // Process files at the repo root (legacy default profile).
   if let Ok(relative) = path.strip_prefix(repo_path) {
-    let relative_str = relative.to_string_lossy();
-    if !relative_str.starts_with("profiles/")
-      && !relative_str.starts_with("common/")
-      && !relative_str.starts_with(".git")
-      && !relative_str.starts_with(".tildr")
-    {
+    let first = relative.components().next().map(|part| part.as_os_str());
+    if !matches!(
+      first,
+      Some(name)
+        if name == OsStr::new("profiles")
+          || name == OsStr::new("common")
+          || name == OsStr::new(".git")
+          || name == OsStr::new(".github")
+          || name == OsStr::new(".tildr")
+    ) {
       entries.push(ManagedEntry {
         profile: "default".to_string(),
         relative: relative.to_path_buf(),
@@ -198,4 +207,25 @@ fn scan_entry(
   }
 
   WalkState::Continue
+}
+
+fn is_storage_control_dotfile(path: &Path, repo_path: &Path) -> bool {
+  let Some(name) = path.file_name() else {
+    return false;
+  };
+  if name != OsStr::new(".gitignore") && name != OsStr::new(".tildrignore") {
+    return false;
+  }
+
+  let Ok(relative) = path.strip_prefix(repo_path) else {
+    return false;
+  };
+  let mut components = relative.components();
+  match components.next().map(|component| component.as_os_str()) {
+    Some(first) if first == OsStr::new("common") => components.next().is_some(),
+    Some(first) if first == OsStr::new("profiles") => {
+      components.next().is_some() && components.next().is_some()
+    }
+    _ => false,
+  }
 }

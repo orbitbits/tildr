@@ -51,7 +51,7 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
   // If --profile is specified, filter to only that profile's files.
   // Otherwise show the effective variant for each logical filepath:
   // active profile -> common -> default -> legacy root.
-  let entries_to_show: Vec<ManagedEntryProfile> = if let Some(ref profile_name) = args.profile {
+  let mut entries_to_show: Vec<ManagedEntryProfile> = if let Some(ref profile_name) = args.profile {
     let profile_name = normalize_profile_name(profile_name);
     by_filepath
       .values()
@@ -60,9 +60,16 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
   } else {
     effective_entries(&ctx.repo_path, &profiles, &by_filepath)
   };
+  entries_to_show.sort_by(|left, right| left.filepath.cmp(&right.filepath));
 
   if entries_to_show.is_empty() {
-    tildr_ui::info("No managed files for the specified profile.");
+    if args.profile.is_some() {
+      tildr_ui::info("No managed files for the specified profile.");
+    } else {
+      tildr_ui::info(
+        "No managed files for the active profile. Use --profile to inspect another profile.",
+      );
+    }
     return Ok(());
   }
 

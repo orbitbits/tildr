@@ -1,19 +1,22 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::fs;
+use std::path::PathBuf;
 
 use anyhow::{Result, bail};
 use tildr_core::context::Context;
 use tildr_fs::{
-  symlink::{create_symlink, is_symlink, is_symlink_to},
+  symlink::{create_symlink, is_symlink, is_symlink_to, is_symlink_within},
   utils::remove_file_or_dir,
 };
-use tildr_repo::scatildr_repo;
 use tildr_ui::{
   output::{ActionLog, SummaryKind, print_actions, print_summary},
   warn,
 };
 
-use crate::profile::Profiles;
+use crate::{
+  profile::Profiles,
+  utils::target::{ManagedEntryProfile, effective_entries, scan_all_entries_with_profile},
+};
 
 pub struct ApplyArgs {
   pub check: bool,
@@ -29,24 +32,58 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
     return Ok(());
   }
 
-  let entries = scatildr_repo(&ctx.repo_path)?;
+  let entries = scan_all_entries_with_profile(ctx)?;
   let profiles = Profiles::load(ctx)?;
-  let files: Vec<String> = entries
-    .into_iter()
-    .map(|entry| entry.relative.to_string_lossy().to_string())
-    .collect::<BTreeSet<_>>()
-    .into_iter()
-    .collect();
+  let mut by_filepath: HashMap<PathBuf, Vec<ManagedEntryProfile>> = HashMap::new();
+  for entry in entries {
+    by_filepath
+      .entry(entry.filepath.clone())
+      .or_default()
+      .push(entry);
+  }
+  let effective_by_filepath: HashMap<PathBuf, ManagedEntryProfile> =
+    effective_entries(&ctx.repo_path, &profiles, &by_filepath)
+      .into_iter()
+      .map(|entry| (entry.filepath.clone(), entry))
+      .collect();
+  let files: BTreeSet<PathBuf> = by_filepath.keys().cloned().collect();
 
   let mut actions = Vec::new();
   let mut created = 0;
   let mut updated = 0;
+  let mut removed = 0;
   let mut up_to_date = 0;
   let mut check_issues = 0;
 
-  for file_str in &files {
-    let home = ctx.home_path.join(file_str);
-    let repo = profiles.resolve(&ctx.repo_path, file_str);
+  for file in &files {
+    let file_str = file.display().to_string();
+    let home = ctx.home_path.join(file);
+    let Some(entry) = effective_by_filepath.get(file) else {
+      if is_symlink(&home) && is_symlink_within(&home, &ctx.repo_path) {
+        if args.check {
+          check_issues += 1;
+          actions.push(ActionLog {
+            action: "Unexpected".to_string(),
+            file: file_str,
+          });
+        } else {
+          actions.push(ActionLog {
+            action: if args.dry_run {
+              "Would unlink".to_string()
+            } else {
+              "Unlinked".to_string()
+            },
+            file: file_str,
+          });
+          removed += 1;
+          if !args.dry_run {
+            remove_file_or_dir(&home)?;
+          }
+        }
+      }
+      continue;
+    };
+    let repo = &entry.repo_path;
 
     if !repo.exists() {
       continue;
@@ -56,13 +93,13 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
     let is_link = is_symlink(&home);
 
     // --- Case 1: Correct symlink ---
-    if is_link && is_symlink_to(&home, &repo) {
+    if is_link && is_symlink_to(&home, repo) {
       up_to_date += 1;
 
       if args.verbose && !args.quiet {
         actions.push(ActionLog {
           action: "Unchanged".to_string(),
-          file: file_str.clone(),
+          file: file_str,
         });
       }
 
@@ -82,7 +119,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
 
       actions.push(ActionLog {
         action: action.to_string(),
-        file: file_str.clone(),
+        file: file_str,
       });
 
       continue;
@@ -102,7 +139,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
         if args.verbose && !args.quiet {
           actions.push(ActionLog {
             action: "Skipped".to_string(),
-            file: file_str.clone(),
+            file: file_str,
           });
         }
 
@@ -120,7 +157,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
 
       actions.push(ActionLog {
         action: action.to_string(),
-        file: file_str.clone(),
+        file: file_str,
       });
 
       if is_update {
@@ -134,18 +171,18 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
 
     // --- Apply changes ---
     if needs_removal {
-      let _ = remove_file_or_dir(&home);
+      remove_file_or_dir(&home)?;
     }
 
     if let Some(parent) = home.parent() {
       fs::create_dir_all(parent)?;
     }
 
-    create_symlink(&repo, &home)?;
+    create_symlink(repo, &home)?;
 
     actions.push(ActionLog {
       action: action_str.to_string(),
-      file: file_str.clone(),
+      file: file_str,
     });
 
     if is_update {
@@ -167,6 +204,7 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
       SummaryKind::Apply {
         created,
         updated,
+        removed,
         up_to_date,
       }
     },

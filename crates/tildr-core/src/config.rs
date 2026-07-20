@@ -121,12 +121,7 @@ impl Config {
   }
 
   pub fn repo_path(&self) -> PathBuf {
-    if self.core.repo.starts_with("~/")
-      && let Some(home) = dirs::home_dir()
-    {
-      return home.join(&self.core.repo[2..]);
-    }
-    PathBuf::from(&self.core.repo)
+    tildr_fs::paths::expand_home(&self.core.repo)
   }
 }
 

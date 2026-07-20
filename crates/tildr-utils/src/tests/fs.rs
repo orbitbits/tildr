@@ -41,10 +41,10 @@ fn should_ignore_dotfiles() {
 
 #[test]
 fn should_ignore_backup_extensions() {
-  assert!(should_ignore(Path::new("file.bak")));
+  assert!(!should_ignore(Path::new("file.bak")));
   assert!(should_ignore(Path::new("file.tmp")));
   assert!(should_ignore(Path::new("file.swp")));
-  assert!(should_ignore(Path::new("file.BAK")));
+  assert!(!should_ignore(Path::new("file.BAK")));
 }
 
 #[test]

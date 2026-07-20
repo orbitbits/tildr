@@ -34,7 +34,7 @@ pub struct Command {
   #[arg(short, long)]
   pub quiet: bool,
 
-  /// Skip confirmation prompts without asking
+  /// Replace an existing source in the target profile
   #[arg(short, long)]
   pub force: bool,
 }

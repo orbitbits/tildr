@@ -5,6 +5,7 @@ use std::io::Write;
 use std::path::Path;
 use std::process::Command as StdCommand;
 use tildr_core::context::Context;
+use tildr_fs::paths::expand_home;
 
 pub fn run(ctx: &Context, output: &Option<String>) -> Result<()> {
   let git_available = ctx.config.git.operations_enabled();
@@ -17,6 +18,7 @@ pub fn run(ctx: &Context, output: &Option<String>) -> Result<()> {
 
   let script = generate_script(
     &ctx.repo_path,
+    &ctx.home_path,
     remote_url.as_deref(),
     has_secrets,
     git_available,
@@ -24,12 +26,12 @@ pub fn run(ctx: &Context, output: &Option<String>) -> Result<()> {
 
   match output {
     Some(path) => {
-      let path = Path::new(path);
+      let path = expand_home(path);
       if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
           .with_context(|| format!("Failed to create directory: {}", parent.display()))?;
       }
-      let mut file = fs::File::create(path)
+      let mut file = fs::File::create(&path)
         .with_context(|| format!("Failed to create file: {}", path.display()))?;
       file.write_all(script.as_bytes())?;
       println!(
@@ -63,16 +65,27 @@ fn get_remote_url(repo_path: &Path) -> Option<String> {
 
 fn generate_script(
   repo_path: &Path,
+  home_path: &Path,
   remote_url: Option<&str>,
   has_secrets: bool,
   git_available: bool,
 ) -> String {
   let today = chrono::Local::now().format("%Y-%m-%d");
   let repo_display = repo_path.display();
-  let repo_name = repo_path
-    .file_name()
-    .map(|n| n.to_string_lossy().to_string())
-    .unwrap_or_else(|| ".dotfiles".to_string());
+  let dest_assignment = repo_path.strip_prefix(home_path).map_or_else(
+    |_| {
+      format!(
+        "DEST=\"{}\"",
+        shell_double_quoted(&repo_path.to_string_lossy())
+      )
+    },
+    |relative| {
+      format!(
+        "DEST=\"$HOME/{}\"",
+        shell_double_quoted(&relative.to_string_lossy())
+      )
+    },
+  );
 
   let mut script = format!(
     r#"#!/usr/bin/env bash
@@ -112,7 +125,7 @@ command -v tildr >/dev/null 2>&1 || error "tildr is not installed. Please instal
         r#"
 info "[2/5] Cloning repository..."
 REPO_URL="{url}"
-DEST="$HOME/{repo_name}"
+{dest_assignment}
 
 if [ -d "$DEST" ]; then
   info "Repository already exists at $DEST, skipping clone"
@@ -120,14 +133,14 @@ else
   git clone "$REPO_URL" "$DEST"
 fi
 "#,
-        url = url,
-        repo_name = repo_name,
+        url = shell_double_quoted(url),
+        dest_assignment = dest_assignment,
       ));
     } else {
       script.push_str(&format!(
         r#"
 info "[2/5] Setting up repository..."
-DEST="$HOME/{repo_name}"
+{dest_assignment}
 
 if [ -d "$DEST" ]; then
   info "Repository already exists at $DEST, skipping creation"
@@ -137,14 +150,14 @@ else
   warn "No remote configured. Run 'git remote add origin <url>' inside $DEST"
 fi
 "#,
-        repo_name = repo_name,
+        dest_assignment = dest_assignment,
       ));
     }
   } else {
     script.push_str(&format!(
       r#"
 info "[2/5] Setting up repository..."
-DEST="$HOME/{repo_name}"
+{dest_assignment}
 
 if [ -d "$DEST" ]; then
   info "Repository already exists at $DEST, skipping creation"
@@ -153,18 +166,14 @@ else
   warn "Git is not available. Repository will not be version-controlled."
 fi
 "#,
-      repo_name = repo_name,
+      dest_assignment = dest_assignment,
     ));
   }
 
   script.push_str(
     r#"
 info "[3/5] Initializing Tildr..."
-if [ ! -f "$HOME/.config/tildr/config.toml" ]; then
-  tildr init --repo "$DEST" --no-git 2>/dev/null || tildr init --repo "$DEST"
-else
-  info "Config already exists, skipping init"
-fi
+tildr init --repo "$DEST" --no-git
 
 info "[4/5] Applying symlinks..."
 tildr apply
@@ -200,4 +209,44 @@ info "Run 'tildr doctor' to check for any issues."
   );
 
   script
+}
+
+fn shell_double_quoted(value: &str) -> String {
+  value
+    .replace('\\', "\\\\")
+    .replace('"', "\\\"")
+    .replace('$', "\\$")
+    .replace('`', "\\`")
+}
+
+#[cfg(test)]
+mod tests {
+  use super::generate_script;
+  use std::path::Path;
+
+  #[test]
+  fn snapshot_preserves_configured_repo_location_under_home() {
+    let script = generate_script(
+      Path::new("/home/user/Documents/dotfiles"),
+      Path::new("/home/user"),
+      Some("git@example.com:user/dotfiles.git"),
+      false,
+      true,
+    );
+
+    assert!(script.contains("DEST=\"$HOME/Documents/dotfiles\""));
+  }
+
+  #[test]
+  fn snapshot_escapes_shell_sensitive_remote_characters() {
+    let script = generate_script(
+      Path::new("/home/user/.dotfiles"),
+      Path::new("/home/user"),
+      Some("https://example.com/\"$repo.git"),
+      false,
+      true,
+    );
+
+    assert!(script.contains(r#"REPO_URL="https://example.com/\"\$repo.git""#));
+  }
 }

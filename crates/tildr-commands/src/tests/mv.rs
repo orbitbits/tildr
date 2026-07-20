@@ -153,3 +153,63 @@ fn mv_preserves_profile_storage_root_when_moving_between_dirs() {
   assert!(!repo.join("profiles/linux/.config/yarn/.config").exists());
   fs::remove_dir_all(&root).ok();
 }
+
+#[test]
+fn mv_removes_empty_source_directories() {
+  let root = test_dir("cleanup-source-dirs");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("common/.config/old/program")).unwrap();
+  fs::write(
+    repo.join("common/.config/old/program/config.toml"),
+    "content",
+  )
+  .unwrap();
+  let ctx = setup_context(&home, &repo);
+
+  run(
+    &ctx,
+    MvArgs {
+      source: Some(".config/old/program/config.toml".to_string()),
+      dest: Some(".config/new/config.toml".to_string()),
+      dry_run: false,
+      quiet: true,
+    },
+  )
+  .unwrap();
+
+  assert!(repo.join("common/.config/new/config.toml").exists());
+  assert!(!repo.join("common/.config/old").exists());
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn mv_rejects_unmanaged_home_destination() {
+  let root = test_dir("home-destination-conflict");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("common")).unwrap();
+  fs::write(repo.join("common/.yarnrc"), "managed").unwrap();
+  fs::write(home.join(".yarnrc.bak"), "user file").unwrap();
+  let ctx = setup_context(&home, &repo);
+
+  let result = run(
+    &ctx,
+    MvArgs {
+      source: Some(".yarnrc".to_string()),
+      dest: Some(".yarnrc.bak".to_string()),
+      dry_run: false,
+      quiet: true,
+    },
+  );
+
+  assert!(result.is_err());
+  assert!(repo.join("common/.yarnrc").exists());
+  assert_eq!(
+    fs::read_to_string(home.join(".yarnrc.bak")).unwrap(),
+    "user file"
+  );
+  fs::remove_dir_all(&root).ok();
+}

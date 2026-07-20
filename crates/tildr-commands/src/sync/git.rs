@@ -157,7 +157,7 @@ impl<'a> RepoGit<'a> {
     ];
 
     if force {
-      args.push("--force".to_string());
+      args.push("--force-with-lease".to_string());
     }
 
     self.check(args, "git push failed")

@@ -19,7 +19,7 @@ pub struct Command {
   #[arg(short, long)]
   pub profile: Option<String>,
 
-  /// Unlink all managed files from HOME
+  /// Unlink every file effective for the active profile from HOME
   #[arg(short, long, conflicts_with = "targets")]
   pub all: bool,
 

@@ -80,6 +80,7 @@ pub(crate) fn options_actions(action: &str) -> String {
     "Missing" => format!("{}{}", icons().cross, action).red(),
     "Broken" => format!("{}{}", icons().cross, action).red(),
     "Conflict" => format!("{}{}", icons().warn, action).yellow(),
+    "Unexpected" => format!("{}{}", icons().warn, action).yellow(),
     _ => action.normal(),
   }
 }
@@ -121,6 +122,7 @@ pub enum SummaryKind {
   Apply {
     created: usize,
     updated: usize,
+    removed: usize,
     up_to_date: usize,
   },
   Check {
@@ -168,9 +170,10 @@ pub fn print_summary(kind: SummaryKind, dry_run: bool, quiet: bool) {
     SummaryKind::Apply {
       created,
       updated,
+      removed,
       up_to_date,
     } => {
-      let total = created + updated;
+      let total = created + updated + removed;
 
       if total == 0 {
         println!(
@@ -181,12 +184,13 @@ pub fn print_summary(kind: SummaryKind, dry_run: bool, quiet: bool) {
         );
       } else {
         println!(
-          "{}{}{} link{} created, {} updated",
+          "{}{}{} link{} created, {} updated, {} removed",
           icons().info.cyan(),
           prefix,
           created,
           if created == 1 { "" } else { "s" },
-          updated
+          updated,
+          removed
         );
       }
     }

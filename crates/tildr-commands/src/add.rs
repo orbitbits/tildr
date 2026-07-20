@@ -23,6 +23,7 @@ use walkdir::WalkDir;
 
 use crate::profile::{
   COMMON_PROFILE, DEFAULT_PROFILE, Profiles, normalize_profile_name, profile_dir,
+  validate_profile_component,
 };
 use crate::utils::{auto_commit::auto_commit_dry_run, tildrignore};
 
@@ -38,6 +39,7 @@ pub struct AddArgs {
 fn resolve_profile(ctx: &Context, profile: &Option<String>) -> Result<String> {
   if let Some(name) = profile {
     let name = normalize_profile_name(name);
+    validate_profile_component(name)?;
     if name == COMMON_PROFILE || name == DEFAULT_PROFILE {
       return Ok(name.to_string());
     }
@@ -106,6 +108,19 @@ pub fn run(ctx: &Context, args: AddArgs) -> Result<()> {
     args.dry_run,
     args.quiet,
   );
+
+  if added > 0 && !args.dry_run && !args.nolink {
+    crate::apply::run(
+      ctx,
+      crate::apply::ApplyArgs {
+        check: false,
+        dry_run: false,
+        force: false,
+        verbose: false,
+        quiet: true,
+      },
+    )?;
+  }
 
   auto_commit_dry_run(
     ctx,
@@ -189,6 +204,8 @@ fn process_add_file(
 ) -> Result<(bool, Option<ActionLog>)> {
   let relative = to_relative(ctx, source)?;
   let target = profile_dir(&ctx.repo_path, profile_name).join(&relative);
+  let target_exists = target.symlink_metadata().is_ok();
+  let already_linked = is_symlink(source) && is_symlink_to(source, &target);
 
   // --- IGNORE ---
   if ignore.is_ignored(&relative) {
@@ -196,13 +213,34 @@ fn process_add_file(
   }
 
   // --- ALREADY LINKED (non-nolink) ---
-  if !args.nolink && is_symlink(source) && is_symlink_to(source, &target) {
+  if !args.nolink && already_linked {
     return Ok((false, None));
   }
 
-  // --- NOLINK: already in repo and not linked ---
-  if args.nolink && !source.exists() && target.exists() {
-    return Ok((false, None));
+  if args.nolink && already_linked {
+    if !args.dry_run {
+      remove_file_or_dir(source)?;
+      tildrignore::append_path(&ctx.repo_path, &relative)?;
+    }
+    return Ok((
+      true,
+      Some(ActionLog {
+        action: if args.dry_run {
+          "Would add (nolink)".to_string()
+        } else {
+          format!("{}Added (nolink)", icons().check).green()
+        },
+        file: format!("{}/{}", profile_name, relative.display()),
+      }),
+    ));
+  }
+
+  if target_exists && !args.force {
+    bail!(
+      "File already exists in profile '{}': {}. Use --force to replace it.",
+      profile_name,
+      relative.display()
+    );
   }
 
   // --- DRY RUN ---
@@ -226,14 +264,15 @@ fn process_add_file(
     fs::create_dir_all(parent)?;
   }
 
-  if target.exists() && args.force {
+  if target_exists {
     remove_file_or_dir(&target)?;
   }
 
   // --- NOLINK: move only, no symlink ---
   if args.nolink {
     // If source is a symlink pointing to repo, just remove it (file is already in repo)
-    if is_symlink(source) && is_symlink_to(source, &target) {
+    if is_symlink(source) {
+      fs::copy(source, &target)?;
       remove_file_or_dir(source)?;
     } else {
       move_file(source, &target)?;
@@ -250,7 +289,12 @@ fn process_add_file(
   }
 
   // --- MOVE + LINK ---
-  move_file(source, &target)?;
+  if is_symlink(source) {
+    fs::copy(source, &target)?;
+    remove_file_or_dir(source)?;
+  } else {
+    move_file(source, &target)?;
+  }
   create_symlink(&target, source)?;
 
   Ok((

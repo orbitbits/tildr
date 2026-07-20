@@ -5,7 +5,9 @@ use tildr_git::GitIntegration;
 pub fn auto_commit(ctx: &Context, msg: &str) {
   if ctx.config.git.auto_commit_enabled() {
     let git = GitIntegration::new(ctx.repo_path.clone());
-    let _ = git.auto_commit(&format!("{}: {}", APP_NAME, msg));
+    if let Err(err) = git.auto_commit(&format!("{}: {}", APP_NAME, msg)) {
+      tildr_ui::warn(&format!("Automatic commit failed: {err}"));
+    }
   }
 }
 
@@ -13,6 +15,8 @@ pub fn auto_commit(ctx: &Context, msg: &str) {
 pub fn auto_commit_dry_run(ctx: &Context, msg: &str, dry_run: bool) {
   if ctx.config.git.auto_commit_enabled() && !dry_run {
     let git = GitIntegration::new(ctx.repo_path.clone());
-    let _ = git.auto_commit(&format!("{}: {}", APP_NAME, msg));
+    if let Err(err) = git.auto_commit(&format!("{}: {}", APP_NAME, msg)) {
+      tildr_ui::warn(&format!("Automatic commit failed: {err}"));
+    }
   }
 }
