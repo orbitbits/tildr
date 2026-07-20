@@ -9,6 +9,7 @@ EXAMPLES:
   tildr group create dev --files .bashrc .config/nvim
   tildr group add dev --files .tmux.conf
   tildr group rm dev --files .tmux.conf
+  tildr group rename dev shell
   tildr group apply dev
   tildr group unlink dev\n"
 )]
@@ -49,6 +50,13 @@ pub enum CliGroupMode {
   Delete {
     /// Group name
     name: String,
+  },
+  /// Rename a group
+  Rename {
+    /// Current group name
+    from: Option<String>,
+    /// New group name
+    to: Option<String>,
   },
   /// List all groups
   List,

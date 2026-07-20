@@ -37,6 +37,12 @@ fn group_files(ctx: &Context, name: &str) -> Vec<String> {
     .collect()
 }
 
+fn group_exists(ctx: &Context, name: &str) -> bool {
+  let data = fs::read_to_string(ctx.repo_path.join(".tildr/groups.json")).unwrap();
+  let json: Value = serde_json::from_str(&data).unwrap();
+  json["groups"].get(name).is_some()
+}
+
 #[test]
 fn group_create_normalizes_common_storage_paths() {
   let root = test_dir("common-path");
@@ -149,5 +155,37 @@ fn group_unlink_uses_context_home_path() {
   .unwrap();
 
   assert!(home.join(".bashrc").symlink_metadata().is_err());
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn group_rename_moves_group_files_to_new_name() {
+  let root = test_dir("rename");
+  let home = root.join("home");
+  let repo = root.join("repo");
+  fs::create_dir_all(&home).unwrap();
+  fs::create_dir_all(repo.join("common")).unwrap();
+  fs::write(repo.join("common/.bashrc"), "content").unwrap();
+  let ctx = setup_context(&home, &repo);
+
+  crate::group::run(
+    &ctx,
+    &GroupMode::Create {
+      name: "shell".to_string(),
+      files: vec!["common/.bashrc".to_string()],
+    },
+  )
+  .unwrap();
+  crate::group::run(
+    &ctx,
+    &GroupMode::Rename {
+      from: Some("shell".to_string()),
+      to: Some("terminal".to_string()),
+    },
+  )
+  .unwrap();
+
+  assert!(!group_exists(&ctx, "shell"));
+  assert_eq!(group_files(&ctx, "terminal"), vec![".bashrc"]);
   fs::remove_dir_all(&root).ok();
 }

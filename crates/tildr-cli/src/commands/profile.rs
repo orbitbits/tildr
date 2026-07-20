@@ -30,6 +30,8 @@ EXAMPLES:
   # Copy or move variants between profiles
   tildr profile add work -f .bashrc --to laptop
   tildr profile mv work --to no-profile
+  tildr profile rename
+  tildr profile rename linux archlinux --description 'Dotfiles Arch Linux'
 
   tildr profile del work
   tildr profile list
@@ -86,9 +88,12 @@ pub enum CliProfileMode {
   /// Rename a profile
   Rename {
     /// Current profile name
-    from: String,
+    from: Option<String>,
     /// New profile name
-    to: String,
+    to: Option<String>,
+    /// Replace the profile description
+    #[arg(long)]
+    description: Option<String>,
   },
   /// List all available profiles
   List {

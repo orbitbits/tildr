@@ -179,6 +179,10 @@ pub enum GroupMode {
   Delete {
     name: String,
   },
+  Rename {
+    from: Option<String>,
+    to: Option<String>,
+  },
   List,
   Apply {
     name: String,
@@ -208,8 +212,9 @@ pub enum ProfileMode {
     name: String,
   },
   Rename {
-    from: String,
-    to: String,
+    from: Option<String>,
+    to: Option<String>,
+    description: Option<String>,
   },
   List {
     long: bool,

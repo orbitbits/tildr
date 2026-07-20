@@ -185,6 +185,82 @@ fn profile_create_adds_new_profile() {
 }
 
 #[test]
+fn profile_rename_updates_name_description_and_active_profile() {
+  let (root, mut ctx) = test_ctx("rename-description");
+  ctx.config.git.auto_commit = false;
+
+  fs::create_dir_all(ctx.repo_path.join("profiles/linux")).unwrap();
+  fs::write(ctx.repo_path.join("profiles/linux/.bashrc"), "linux").unwrap();
+
+  let mut profiles = Profiles::load(&ctx).unwrap();
+  profiles.active = Some("linux".to_string());
+  profiles.profiles.insert(
+    "linux".to_string(),
+    ProfileDef {
+      description: Some("Linux dotfiles".to_string()),
+    },
+  );
+  profiles.save(&ctx).unwrap();
+
+  run(
+    &ctx,
+    &ProfileMode::Rename {
+      from: Some("linux".to_string()),
+      to: Some("archlinux".to_string()),
+      description: Some("Dotfiles Arch Linux".to_string()),
+    },
+  )
+  .unwrap();
+
+  let loaded = Profiles::load(&ctx).unwrap();
+  assert_eq!(loaded.active, Some("archlinux".to_string()));
+  assert!(!loaded.profiles.contains_key("linux"));
+  assert_eq!(
+    loaded.profiles["archlinux"].description.as_deref(),
+    Some("Dotfiles Arch Linux")
+  );
+  assert!(!ctx.repo_path.join("profiles/linux").exists());
+  assert!(ctx.repo_path.join("profiles/archlinux/.bashrc").exists());
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_rename_preserves_description_without_override() {
+  let (root, mut ctx) = test_ctx("rename-preserves-description");
+  ctx.config.git.auto_commit = false;
+
+  fs::create_dir_all(ctx.repo_path.join("profiles/linux")).unwrap();
+
+  let mut profiles = Profiles::load(&ctx).unwrap();
+  profiles.profiles.insert(
+    "linux".to_string(),
+    ProfileDef {
+      description: Some("Linux dotfiles".to_string()),
+    },
+  );
+  profiles.save(&ctx).unwrap();
+
+  run(
+    &ctx,
+    &ProfileMode::Rename {
+      from: Some("linux".to_string()),
+      to: Some("archlinux".to_string()),
+      description: None,
+    },
+  )
+  .unwrap();
+
+  let loaded = Profiles::load(&ctx).unwrap();
+  assert_eq!(
+    loaded.profiles["archlinux"].description.as_deref(),
+    Some("Linux dotfiles")
+  );
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
 fn profile_set_relinks_home_to_active_variant() {
   let (root, mut ctx) = test_ctx("set-relinks");
   ctx.config.git.auto_commit = false;

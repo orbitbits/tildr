@@ -4,10 +4,12 @@ use std::path::PathBuf;
 
 use anyhow::{Context as _, Result};
 use console::style;
+use dialoguer::Input;
 use serde::{Deserialize, Serialize};
 use tildr_core::context::Context;
 use tildr_fs::paths::resolve_home_path;
 use tildr_fs::symlink::{create_symlink, is_symlink, is_symlink_to};
+use tildr_ui::prompt::MinimalTheme;
 use tildr_utils::{fs::tildr_dir, sys::has_display};
 
 use crate::profile::Profiles;
@@ -113,6 +115,7 @@ pub fn run(ctx: &Context, mode: &tildr_domain::GroupMode) -> Result<()> {
     tildr_domain::GroupMode::Add { name, files } => add(ctx, name, files.as_deref()),
     tildr_domain::GroupMode::Remove { name, files } => remove(ctx, name, files),
     tildr_domain::GroupMode::Delete { name } => delete(ctx, name),
+    tildr_domain::GroupMode::Rename { from, to } => rename(ctx, from.as_deref(), to.as_deref()),
     tildr_domain::GroupMode::List => list(ctx),
     tildr_domain::GroupMode::Apply { name } => apply(ctx, name),
     tildr_domain::GroupMode::Unlink { name } => unlink(ctx, name),
@@ -216,6 +219,36 @@ fn delete(ctx: &Context, name: &str) -> Result<()> {
   Ok(())
 }
 
+fn rename(ctx: &Context, from: Option<&str>, to: Option<&str>) -> Result<()> {
+  let mut groups = Groups::load(ctx)?;
+  let from = prompt_required("Enter current group name", from)?;
+  let to = prompt_required("Enter new group name", to)?;
+
+  if from == to {
+    println!("{}", style("Source and destination are the same.").dim());
+    return Ok(());
+  }
+
+  let files = groups
+    .groups
+    .remove(&from)
+    .context(format!("Group '{from}' not found."))?;
+
+  if groups.groups.contains_key(&to) {
+    groups.groups.insert(from.clone(), files);
+    anyhow::bail!("Group '{to}' already exists.");
+  }
+
+  groups.groups.insert(to.clone(), files);
+  groups.save(ctx)?;
+  println!(
+    "{} Group '{from}' renamed to '{to}'.",
+    style("Renamed:").green().bold()
+  );
+  auto_commit(ctx, &format!("group rename {from} {to}"));
+  Ok(())
+}
+
 fn list(ctx: &Context) -> Result<()> {
   let groups = Groups::load(ctx)?;
   if groups.groups.is_empty() {
@@ -237,6 +270,23 @@ fn list(ctx: &Context) -> Result<()> {
     }
   }
   Ok(())
+}
+
+fn prompt_required(prompt: &str, value: Option<&str>) -> Result<String> {
+  if let Some(value) = value.filter(|value| !value.trim().is_empty()) {
+    return Ok(value.trim().to_string());
+  }
+
+  loop {
+    let input: String = Input::with_theme(&MinimalTheme)
+      .with_prompt(prompt)
+      .interact_text()?;
+    let input = input.trim();
+    if !input.is_empty() {
+      return Ok(input.to_string());
+    }
+    println!("{}", style("Value cannot be empty.").yellow());
+  }
 }
 
 fn apply(ctx: &Context, name: &str) -> Result<()> {

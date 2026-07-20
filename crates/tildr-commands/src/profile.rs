@@ -4,10 +4,12 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
 use console::style;
+use dialoguer::Input;
 use serde::{Deserialize, Serialize};
 use tildr_core::context::Context;
 use tildr_fs::paths::resolve_home_path;
 use tildr_repo::scatildr_repo;
+use tildr_ui::prompt::MinimalTheme;
 use tildr_utils::{fs::tildr_dir, pager::page_string};
 use walkdir::WalkDir;
 
@@ -150,7 +152,11 @@ pub fn run(ctx: &Context, mode: &tildr_domain::ProfileMode) -> Result<()> {
     tildr_domain::ProfileMode::Add { files, from, to } => transfer(ctx, from, to, files, false),
     tildr_domain::ProfileMode::Mv { files, from, to } => transfer(ctx, from, to, files, true),
     tildr_domain::ProfileMode::Delete { name } => delete(ctx, name),
-    tildr_domain::ProfileMode::Rename { from, to } => rename(ctx, from, to),
+    tildr_domain::ProfileMode::Rename {
+      from,
+      to,
+      description,
+    } => rename(ctx, from.as_deref(), to.as_deref(), description.as_deref()),
     tildr_domain::ProfileMode::List { long, less, name } => {
       list(ctx, *long, *less, name.as_deref())
     }
@@ -470,7 +476,16 @@ fn delete(ctx: &Context, name: &str) -> Result<()> {
   Ok(())
 }
 
-fn rename(ctx: &Context, from: &str, to: &str) -> Result<()> {
+fn rename(
+  ctx: &Context,
+  from: Option<&str>,
+  to: Option<&str>,
+  description: Option<&str>,
+) -> Result<()> {
+  let should_prompt_description = from.is_none() || to.is_none();
+  let from = prompt_required("Enter current profile name", from)?;
+  let to = prompt_required("Enter new profile name", to)?;
+
   if from == to {
     println!("{}", style("Source and destination are the same.").dim());
     return Ok(());
@@ -478,34 +493,40 @@ fn rename(ctx: &Context, from: &str, to: &str) -> Result<()> {
 
   let mut profiles = Profiles::load(ctx)?;
 
-  if !profiles.profiles.contains_key(from) {
+  if normalize_profile_name(&from) == COMMON_PROFILE || from == DEFAULT_PROFILE {
+    anyhow::bail!("'{from}' is a reserved name and cannot be renamed.");
+  }
+
+  if normalize_profile_name(&to) == COMMON_PROFILE || to == DEFAULT_PROFILE {
+    anyhow::bail!("'{to}' is a reserved name and cannot be used for a profile.");
+  }
+
+  if !profiles.profiles.contains_key(&from) {
     anyhow::bail!("Profile '{from}' not found.");
   }
 
-  if profiles.profiles.contains_key(to) {
+  if profiles.profiles.contains_key(&to) {
     anyhow::bail!("Profile '{to}' already exists.");
   }
 
-  if from == "default" || to == "default" {
-    anyhow::bail!("'default' is a reserved name and cannot be renamed.");
-  }
-
-  let old_dir = ctx.repo_path.join("profiles").join(from);
-  let new_dir = ctx.repo_path.join("profiles").join(to);
+  let old_dir = ctx.repo_path.join("profiles").join(&from);
+  let new_dir = ctx.repo_path.join("profiles").join(&to);
 
   // Rename the profile directory
   fs::rename(&old_dir, &new_dir)?;
 
   // Move the profile definition
-  let def = profiles
+  let mut def = profiles
     .profiles
-    .remove(from)
+    .remove(&from)
     .context("Profile not found")?;
-  profiles.profiles.insert(to.to_string(), def);
+  def.description =
+    resolve_rename_description(&def.description, description, should_prompt_description)?;
+  profiles.profiles.insert(to.clone(), def);
 
   // If the renamed profile was active, update the active profile
-  if profiles.active.as_deref() == Some(from) {
-    profiles.active = Some(to.to_string());
+  if profiles.active.as_deref() == Some(&from) {
+    profiles.active = Some(to.clone());
   }
 
   profiles.save(ctx)?;
@@ -516,6 +537,54 @@ fn rename(ctx: &Context, from: &str, to: &str) -> Result<()> {
   );
   auto_commit(ctx, &format!("profile rename {from} {to}"));
   Ok(())
+}
+
+fn prompt_required(prompt: &str, value: Option<&str>) -> Result<String> {
+  if let Some(value) = value.filter(|value| !value.trim().is_empty()) {
+    return Ok(value.trim().to_string());
+  }
+
+  loop {
+    let input: String = Input::with_theme(&MinimalTheme)
+      .with_prompt(prompt)
+      .interact_text()?;
+    let input = input.trim();
+    if !input.is_empty() {
+      return Ok(input.to_string());
+    }
+    println!("{}", style("Value cannot be empty.").yellow());
+  }
+}
+
+fn resolve_rename_description(
+  current: &Option<String>,
+  description: Option<&str>,
+  should_prompt: bool,
+) -> Result<Option<String>> {
+  if let Some(description) = description {
+    let description = description.trim();
+    return Ok((!description.is_empty()).then(|| description.to_string()));
+  }
+
+  if !should_prompt {
+    return Ok(current.clone());
+  }
+
+  let prompt = match current.as_deref() {
+    Some(current) if !current.is_empty() => format!("Enter description [{current}]"),
+    _ => "Enter description".to_string(),
+  };
+  let input: String = Input::with_theme(&MinimalTheme)
+    .with_prompt(prompt)
+    .allow_empty(true)
+    .interact_text()?;
+  let input = input.trim();
+
+  if input.is_empty() {
+    Ok(current.clone())
+  } else {
+    Ok(Some(input.to_string()))
+  }
 }
 
 fn list(ctx: &Context, long: bool, less: bool, name: Option<&str>) -> Result<()> {
