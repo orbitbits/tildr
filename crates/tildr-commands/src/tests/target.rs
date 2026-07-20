@@ -259,6 +259,23 @@ fn home_env_target_resolves_to_home_relative_file() {
 }
 
 #[test]
+fn tilde_target_resolves_to_home_relative_file() {
+  let (root, ctx) = test_ctx("tilde-target");
+  create_profile_file(&ctx, "common", ".yarnrc", "yarn");
+
+  let result = resolve_target(&ctx, Some("~/.yarnrc".to_string()), None).unwrap();
+  match result {
+    ResolvedTarget::File(entry) => {
+      assert_eq!(entry.profile, "common");
+      assert_eq!(entry.relative, PathBuf::from(".yarnrc"));
+    }
+    _ => panic!("Expected ~/.yarnrc to resolve as a managed file"),
+  }
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
 fn cwd_relative_target_under_home_resolves_to_home_relative_file() {
   let _guard = cwd_lock().lock().unwrap();
   let old_cwd = std::env::current_dir().unwrap();

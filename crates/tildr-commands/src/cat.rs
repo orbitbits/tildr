@@ -6,7 +6,7 @@ use tildr_core::{
 };
 use tildr_utils::pager::page_string;
 
-use crate::utils::target::{FileResolution, resolve_logical_file};
+use crate::utils::target::{ResolvedTarget, resolve_target};
 
 pub struct CatArgs {
   pub target: Option<String>,
@@ -26,16 +26,14 @@ pub fn run(ctx: &Context, args: CatArgs) -> Result<()> {
   let path = if target.is_absolute() && target.exists() && !target.starts_with(&ctx.home_path) {
     target
   } else {
-    match resolve_logical_file(ctx, &target, args.profile.as_deref())? {
-      FileResolution::Found(entry) => entry.repo_path,
-      FileResolution::AmbiguousAcrossProfiles(profiles) => {
-        bail!(
-          "File '{}' exists in multiple profiles: {}. Use --profile <name>.",
-          target.display(),
-          profiles.join(", ")
-        );
-      }
-      FileResolution::NotManaged => bail!("Target is not managed: {}", target.display()),
+    match resolve_target(
+      ctx,
+      Some(target.display().to_string()),
+      args.profile.as_deref(),
+    )? {
+      ResolvedTarget::File(entry) => entry.repo_path,
+      ResolvedTarget::Dir { input, .. } => bail!("Target is a directory: {input}"),
+      ResolvedTarget::Interactive => unreachable!(),
     }
   };
 

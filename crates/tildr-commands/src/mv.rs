@@ -5,6 +5,7 @@ use tildr_core::{
   pick::{self, PickMode},
 };
 use tildr_fs::{
+  paths::resolve_home_path,
   symlink::{create_symlink, is_symlink},
   utils::remove_file_or_dir,
 };
@@ -56,7 +57,6 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
     ResolvedTarget::Interactive => unreachable!(),
   };
   let source_repo = entry.repo_path;
-  let profile_name = entry.profile;
 
   // --- Resolve dest ---
   let dest_input = match args.dest {
@@ -79,23 +79,8 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
 
   // If the user typed only a filename (no directory separator),
   // keep the original directory.
-  let dest_rel = {
-    let dest_path = PathBuf::from(&dest_input);
-    if dest_path.components().count() == 1 {
-      match source_rel.parent() {
-        Some(parent) if parent != std::path::Path::new("") => parent.join(&dest_path),
-        _ => dest_path,
-      }
-    } else {
-      dest_path
-    }
-  };
-
-  let dest_repo = ctx
-    .repo_path
-    .join("profiles")
-    .join(&profile_name)
-    .join(&dest_rel);
+  let dest_rel = resolve_dest_relative(ctx, &source_rel, &dest_input)?;
+  let dest_repo = storage_root_for(&source_repo, &source_rel)?.join(&dest_rel);
   let source_home = ctx.home_path.join(&source_rel);
   let dest_home = ctx.home_path.join(&dest_rel);
 
@@ -172,4 +157,40 @@ pub fn run(ctx: &Context, args: MvArgs) -> Result<()> {
   );
 
   Ok(())
+}
+
+fn resolve_dest_relative(
+  ctx: &Context,
+  source_rel: &std::path::Path,
+  input: &str,
+) -> Result<PathBuf> {
+  let input_path = std::path::Path::new(input);
+
+  let dest_home = if input_path.components().count() == 1 {
+    match source_rel.parent() {
+      Some(parent) if parent != std::path::Path::new("") => ctx.home_path.join(parent).join(input),
+      _ => ctx.home_path.join(input),
+    }
+  } else {
+    resolve_home_path(input, &ctx.home_path)
+  };
+
+  Ok(dest_home.strip_prefix(&ctx.home_path)?.to_path_buf())
+}
+
+fn storage_root_for(
+  source_repo: &std::path::Path,
+  source_rel: &std::path::Path,
+) -> Result<PathBuf> {
+  let mut root = source_repo.to_path_buf();
+
+  for _ in source_rel.components() {
+    root.pop();
+  }
+
+  if root.as_os_str().is_empty() {
+    bail!("Could not determine repository storage root");
+  }
+
+  Ok(root)
 }
