@@ -51,7 +51,7 @@ tildr restore document.ods
 
 The commands above are treated like `~/Documents/document.ods`. This applies to
 managed-file commands such as `add`, `restore`, `unlink`, `cat`, `edit`, `del`,
-and `mv`.
+`mv`, and `profile add/mv -f`.
 
 ---
 
@@ -182,6 +182,32 @@ Behavior:
 * With `--check`, only validates symlinks and reports missing, broken, or conflicting HOME files
 * Uses the repository as the source of truth
 * Does not modify repository content
+
+---
+
+### `tildr clean`
+
+Removes empty directories left inside profile storage.
+
+```sh
+tildr clean
+tildr clean --dry-run
+tildr clean --quiet
+```
+
+Options:
+
+| Flag        | Short | Description                                      |
+|-------------|-------|--------------------------------------------------|
+| `--dry-run` | `-n`  | Preview directories that would be removed        |
+| `--quiet`   | `-q`  | Suppress per-directory output                    |
+
+Behavior:
+
+* Removes empty directories under `common/` and `profiles/<name>/`
+* Keeps structural directories such as `common/`, `profiles/`, and profile roots
+* Does not remove files or symlinks
+* Runs automatically after `tildr profile mv`
 
 ---
 
@@ -1054,6 +1080,7 @@ Behavior:
 * Legacy repositories with `profiles/common/` are still supported as a fallback
 * `default` is only kept as a legacy compatibility fallback
 * `add` copies files preserving the source; `mv` moves files (copies then removes originals)
+* `mv` removes empty source directories left after moving files
 * Without `-f`, `add`/`mv` operate on all eligible files (orphans for `no-profile`, all tracked files for a profile)
 * `del` removes the profile directory and restores orphaned files to `common/`
 * `rename` renames the profile directory and updates all tracked file paths; if the profile is active, updates active profile name; re-creates symlinks for linked files

@@ -45,7 +45,7 @@ The commands above are treated like
 \f[CR]\[ti]/Documents/document.ods\f[R].
 This applies to managed\-file commands such as \f[CR]add\f[R],
 \f[CR]restore\f[R], \f[CR]unlink\f[R], \f[CR]cat\f[R], \f[CR]edit\f[R],
-\f[CR]del\f[R], and \f[CR]mv\f[R].
+\f[CR]del\f[R], \f[CR]mv\f[R], and \f[CR]profile add/mv \-f\f[R].
 .SH COMMANDS
 .SS tildr init
 Initializes the Tildr repository and writes the user configuration file.
@@ -228,6 +228,34 @@ Uses the repository as the source of truth
 Does not modify repository content
 .IP \[bu] 2
 Always idempotent \[em] running multiple times produces the same result
+.SS tildr clean
+Removes empty directories left inside profile storage.
+.IP
+.EX
+tildr clean
+tildr clean \-\-dry\-run
+tildr clean \-\-quiet
+.EE
+.PP
+\f[B]Options:\f[R]
+.TP
+\f[B]\-n\f[R], \f[B]\[en]dry\-run\f[R]
+Preview directories that would be removed.
+.TP
+\f[B]\-q\f[R], \f[B]\[en]quiet\f[R]
+Suppress per\-directory output.
+.PP
+\f[B]Behavior:\f[R]
+.IP \[bu] 2
+Removes empty directories under \f[CR]common/\f[R] and
+\f[CR]profiles/<name>/\f[R]
+.IP \[bu] 2
+Keeps structural directories such as \f[CR]common/\f[R],
+\f[CR]profiles/\f[R], and profile roots
+.IP \[bu] 2
+Does not remove files or symlinks
+.IP \[bu] 2
+Runs automatically after \f[CR]tildr profile mv\f[R]
 .SS tildr status
 Shows the synchronization state of all managed files.
 .IP
@@ -1163,6 +1191,8 @@ as a fallback
 .IP \[bu] 2
 \f[CR]add\f[R] copies files preserving the source; \f[CR]mv\f[R] moves
 files (copies then removes originals)
+.IP \[bu] 2
+\f[CR]mv\f[R] removes empty source directories left after moving files
 .IP \[bu] 2
 Without \f[CR]\-f\f[R], \f[CR]add\f[R]/\f[CR]mv\f[R] operate on all
 eligible files (orphans for \f[CR]no\-profile\f[R], all tracked files

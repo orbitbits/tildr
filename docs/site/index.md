@@ -146,6 +146,7 @@ Instead of keeping the original file in place, `Tildr` moves the managed file in
 * The repository becomes the source of truth
 * `$HOME` contains symlinks that represent the applied state
 * `apply` re-creates or repairs those symlinks
+* `clean` removes empty directories left in profile storage
 * `restore` moves files back from the repository into `$HOME`
 * `unlink` removes symlinks without deleting repository content
 * `del` removes managed content from the repository and unlinks it from `$HOME`
