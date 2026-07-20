@@ -14,7 +14,7 @@ fi
 if ! git diff --quiet -- crates/; then
   echo ""
   echo "[tildr] Detected uncommitted changes after build."
-  echo "[tildr] You probably forgot to generate artifacts (man pages, etc)."
+  echo "[tildr] The build or formatter changed files under crates/."
   echo ""
   echo "Run:"
   echo "  make build"
