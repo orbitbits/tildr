@@ -19,7 +19,7 @@ pub struct Command {
   #[arg(short, long)]
   pub less: bool,
 
-  /// Read the file from a specific profile instead of using the active one
+  /// Read the file from a specific profile, or no-profile for shared files
   #[arg(long, value_name = "NAME")]
   pub profile: Option<String>,
 }

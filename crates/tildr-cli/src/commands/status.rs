@@ -22,7 +22,7 @@ pub struct Command {
   #[arg(short, long)]
   pub less: bool,
 
-  /// Filter by profile name
+  /// Filter by profile name, or no-profile for shared files
   #[arg(long, value_name = "NAME")]
   pub profile: Option<String>,
 }

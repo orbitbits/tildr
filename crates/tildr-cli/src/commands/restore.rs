@@ -15,7 +15,7 @@ pub struct Command {
   /// Files or directories to restore. Defaults to interactive picker
   pub targets: Vec<String>,
 
-  /// Resolve targets in a specific profile instead of using the active one
+  /// Resolve targets in a specific profile, or no-profile for shared files
   #[arg(short, long)]
   pub profile: Option<String>,
 

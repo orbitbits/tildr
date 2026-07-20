@@ -11,7 +11,7 @@ EXAMPLES:
   tildr list --export ~/tildr-files.json
   tildr list --import ~/tildr-files.json
   tildr list --profile work
-  tildr list --long --profile common\n"
+  tildr list --long --profile no-profile\n"
 )]
 pub struct Command {
   /// Show files in a tree view
@@ -32,7 +32,7 @@ pub struct Command {
   /// View the output in an interactive pager
   #[arg(long)]
   pub less: bool,
-  /// Filter by profile name
+  /// Filter by profile name, or no-profile for shared files
   #[arg(long, value_name = "NAME")]
   pub profile: Option<String>,
 }

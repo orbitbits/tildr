@@ -12,7 +12,7 @@ pub struct Command {
   /// Managed HOME file path
   pub target: String,
 
-  /// Resolve the file from a specific profile instead of using the active one
+  /// Resolve the file from a specific profile, or no-profile for shared files
   #[arg(long, value_name = "NAME")]
   pub profile: Option<String>,
 }

@@ -6,6 +6,7 @@ use anyhow::{Context as _, Result};
 use console::style;
 use serde::{Deserialize, Serialize};
 use tildr_core::context::Context;
+use tildr_fs::paths::resolve_home_path;
 use tildr_repo::scatildr_repo;
 use tildr_utils::{fs::tildr_dir, pager::page_string};
 use walkdir::WalkDir;
@@ -15,7 +16,25 @@ use crate::utils::auto_commit::auto_commit;
 
 pub const COMMON_PROFILE: &str = "common";
 pub const COMMON_PROFILE_DISPLAY: &str = "no profile";
+pub const NO_PROFILE_ALIAS: &str = "no-profile";
 pub const DEFAULT_PROFILE: &str = "default";
+
+const MIGRATE_ROOT_EXCLUDES: &[&str] = &[
+  ".git",
+  ".github",
+  ".gitignore",
+  ".tildr",
+  ".tildrignore",
+  COMMON_PROFILE,
+  "profiles",
+];
+
+pub fn normalize_profile_name(profile: &str) -> &str {
+  match profile {
+    "no profile" | "no-profile" | "no_profile" => COMMON_PROFILE,
+    _ => profile,
+  }
+}
 
 pub fn display_profile_name(profile: &str) -> &str {
   if profile == COMMON_PROFILE {
@@ -39,7 +58,7 @@ fn legacy_common_dir(repo_path: &Path) -> PathBuf {
 
 fn profile_file_label(profile: &str, file: &str) -> String {
   match profile {
-    COMMON_PROFILE => format!("{COMMON_PROFILE}/{file}"),
+    COMMON_PROFILE => format!("{NO_PROFILE_ALIAS}/{file}"),
     DEFAULT_PROFILE => file.to_string(),
     _ => format!("profiles/{profile}/{file}"),
   }
@@ -142,7 +161,7 @@ pub fn run(ctx: &Context, mode: &tildr_domain::ProfileMode) -> Result<()> {
 }
 
 fn create(ctx: &Context, name: &str, description: &Option<String>) -> Result<()> {
-  if name == DEFAULT_PROFILE || name == COMMON_PROFILE {
+  if name == DEFAULT_PROFILE || normalize_profile_name(name) == COMMON_PROFILE {
     anyhow::bail!("'{name}' is a reserved name and cannot be used for a profile.");
   }
   let mut profiles = Profiles::load(ctx)?;
@@ -195,18 +214,76 @@ fn resolve_files(ctx: &Context, from: &str, files: &[String]) -> Result<Vec<Stri
   }
 }
 
+fn logical_file_candidates(ctx: &Context, input: &str) -> Vec<PathBuf> {
+  let input_path = Path::new(input);
+  let mut candidates = Vec::new();
+
+  let parts: Vec<String> = input_path
+    .components()
+    .filter_map(|component| match component {
+      std::path::Component::Normal(part) => Some(part.to_string_lossy().to_string()),
+      _ => None,
+    })
+    .collect();
+
+  match parts.as_slice() {
+    [head, rest @ ..] if normalize_profile_name(head) == COMMON_PROFILE && !rest.is_empty() => {
+      candidates.push(rest.iter().collect());
+    }
+    [profiles, _profile, rest @ ..] if profiles == "profiles" && !rest.is_empty() => {
+      candidates.push(rest.iter().collect());
+    }
+    _ => {}
+  }
+
+  let home_path = resolve_home_path(input, &ctx.home_path);
+  if let Ok(relative) = home_path.strip_prefix(&ctx.home_path) {
+    let relative = relative.to_path_buf();
+    if !candidates.iter().any(|candidate| candidate == &relative) {
+      candidates.push(relative);
+    }
+  }
+
+  if !input_path.is_absolute()
+    && input != "~"
+    && !input.starts_with("~/")
+    && input != "$HOME"
+    && !input.starts_with("$HOME/")
+    && let Ok(cwd) = std::env::current_dir()
+    && cwd.starts_with(&ctx.home_path)
+  {
+    let cwd_path = cwd.join(input_path);
+    if let Ok(relative) = cwd_path.strip_prefix(&ctx.home_path) {
+      let relative = relative.to_path_buf();
+      if !candidates.iter().any(|candidate| candidate == &relative) {
+        candidates.push(relative);
+      }
+    }
+  }
+
+  if candidates.is_empty() {
+    candidates.push(PathBuf::from(input));
+  }
+
+  candidates
+}
+
 fn expand_files(ctx: &Context, files: &[String], from_profile: &str) -> Result<Vec<String>> {
   let base = profile_dir(&ctx.repo_path, from_profile);
   let mut result = Vec::new();
   for file in files {
-    // First try relative to the profile directory
-    let profile_path = base.join(file);
+    let candidates = logical_file_candidates(ctx, file);
+    let logical = candidates
+      .iter()
+      .find(|candidate| base.join(candidate).exists() || ctx.repo_path.join(candidate).exists())
+      .unwrap_or(&candidates[0]);
+    let profile_path = base.join(logical);
     let path = if profile_path.exists() {
       profile_path
     } else {
-      // Fallback: try relative to repo root (user may have typed full path)
-      ctx.repo_path.join(file)
+      ctx.repo_path.join(logical)
     };
+
     if path.is_dir() {
       let strip_base = if path.starts_with(&base) {
         &base
@@ -232,7 +309,7 @@ fn expand_files(ctx: &Context, files: &[String], from_profile: &str) -> Result<V
         .to_string();
       result.push(relative);
     } else {
-      result.push(file.clone());
+      result.push(logical.to_string_lossy().to_string());
     }
   }
   result.sort();
@@ -247,6 +324,9 @@ fn transfer(
   files: &[String],
   remove_source: bool,
 ) -> Result<()> {
+  let from = normalize_profile_name(from);
+  let to = normalize_profile_name(to);
+
   if from == to {
     println!("{}", style("Source and destination are the same.").dim());
     return Ok(());
@@ -438,6 +518,7 @@ fn list(ctx: &Context, long: bool, less: bool, name: Option<&str>) -> Result<()>
   let known_profiles: Vec<String> = profiles.profiles.keys().cloned().collect();
 
   let names: Vec<String> = if let Some(name) = name {
+    let name = normalize_profile_name(name);
     if !profiles.profiles.contains_key(name) {
       anyhow::bail!("Profile '{name}' not found.");
     }
@@ -585,7 +666,7 @@ fn current(ctx: &Context) -> Result<()> {
   let profiles = Profiles::load(ctx)?;
   match &profiles.active {
     Some(name) => println!("Active profile: {}", style(name).cyan()),
-    None => println!("No profile is currently active. Using common files."),
+    None => println!("No profile is currently active. Using no-profile files."),
   }
   Ok(())
 }
@@ -596,7 +677,7 @@ fn migrate(ctx: &Context, dry_run: bool) -> Result<()> {
     .filter_map(|e| e.ok())
     .filter(|e| {
       let name = e.file_name().to_string_lossy().to_string();
-      name != ".git" && name != ".tildr" && name != "profiles" && name != COMMON_PROFILE
+      !MIGRATE_ROOT_EXCLUDES.contains(&name.as_str())
     })
     .collect();
 

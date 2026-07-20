@@ -18,7 +18,7 @@ pub struct Command {
   #[arg(value_name = "PATHS")]
   pub paths: Option<Vec<String>>,
 
-  /// Target profile (defaults to active profile or 'default')
+  /// Target profile, or no-profile for shared files (defaults to active profile or no-profile)
   #[arg(short, long)]
   pub profile: Option<String>,
 

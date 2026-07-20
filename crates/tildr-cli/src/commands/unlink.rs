@@ -15,7 +15,7 @@ pub struct Command {
   /// File(s) or directory(s) to unlink (auto-detected). If not provided, an interactive picker will be shown
   pub targets: Vec<String>,
 
-  /// Resolve targets in a specific profile instead of using the active one
+  /// Resolve targets in a specific profile, or no-profile for shared files
   #[arg(short, long)]
   pub profile: Option<String>,
 

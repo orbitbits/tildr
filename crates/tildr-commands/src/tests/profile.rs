@@ -33,6 +33,14 @@ fn display_profile_name_labels_common_as_no_profile() {
 }
 
 #[test]
+fn normalize_profile_name_accepts_no_profile_aliases() {
+  assert_eq!(normalize_profile_name("no-profile"), COMMON_PROFILE);
+  assert_eq!(normalize_profile_name("no_profile"), COMMON_PROFILE);
+  assert_eq!(normalize_profile_name("no profile"), COMMON_PROFILE);
+  assert_eq!(normalize_profile_name("linux"), "linux");
+}
+
+#[test]
 fn resolve_without_active_profile_uses_default() {
   let (root, ctx) = test_ctx("no-active");
   fs::create_dir_all(ctx.repo_path.join("profiles/default")).unwrap();
@@ -275,6 +283,26 @@ fn profile_migrate_moves_root_dotfiles_to_common() {
 }
 
 #[test]
+fn profile_migrate_keeps_repo_control_files_at_root() {
+  let (root, mut ctx) = test_ctx("migrate-keeps-control-files");
+  ctx.config.git.auto_commit = false;
+
+  fs::write(ctx.repo_path.join(".bashrc"), "root bashrc").unwrap();
+  fs::write(ctx.repo_path.join(".gitignore"), "target/").unwrap();
+  fs::write(ctx.repo_path.join(".tildrignore"), "*.tmp").unwrap();
+
+  run(&ctx, &ProfileMode::Migrate { dry_run: false }).unwrap();
+
+  assert!(ctx.repo_path.join("common/.bashrc").exists());
+  assert!(ctx.repo_path.join(".gitignore").exists());
+  assert!(ctx.repo_path.join(".tildrignore").exists());
+  assert!(!ctx.repo_path.join("common/.gitignore").exists());
+  assert!(!ctx.repo_path.join("common/.tildrignore").exists());
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
 fn profile_migrate_dry_run_does_not_create_common() {
   let (root, mut ctx) = test_ctx("migrate-dry-run-no-side-effects");
   ctx.config.git.auto_commit = false;
@@ -334,6 +362,105 @@ fn profile_delete_restores_orphans_to_common() {
   assert_eq!(
     fs::read_to_string(ctx.repo_path.join("common/.bashrc")).unwrap(),
     "work"
+  );
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_mv_accepts_no_profile_alias() {
+  let (root, mut ctx) = test_ctx("mv-no-profile");
+  ctx.config.git.auto_commit = false;
+
+  fs::create_dir_all(ctx.repo_path.join("common")).unwrap();
+  fs::write(ctx.repo_path.join("common/.bashrc"), "common").unwrap();
+
+  let mut profiles = Profiles::load(&ctx).unwrap();
+  profiles
+    .profiles
+    .insert("linux".to_string(), ProfileDef::default());
+  profiles.save(&ctx).unwrap();
+
+  run(
+    &ctx,
+    &ProfileMode::Mv {
+      files: vec![".bashrc".to_string()],
+      from: "no-profile".to_string(),
+      to: "linux".to_string(),
+    },
+  )
+  .unwrap();
+
+  assert!(!ctx.repo_path.join("common/.bashrc").exists());
+  assert_eq!(
+    fs::read_to_string(ctx.repo_path.join("profiles/linux/.bashrc")).unwrap(),
+    "common"
+  );
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_mv_accepts_tilde_file_path() {
+  let (root, mut ctx) = test_ctx("mv-tilde-file");
+  ctx.config.git.auto_commit = false;
+
+  fs::create_dir_all(ctx.repo_path.join("common")).unwrap();
+  fs::write(ctx.repo_path.join("common/.xinitrc"), "xinit").unwrap();
+
+  let mut profiles = Profiles::load(&ctx).unwrap();
+  profiles
+    .profiles
+    .insert("linux".to_string(), ProfileDef::default());
+  profiles.save(&ctx).unwrap();
+
+  run(
+    &ctx,
+    &ProfileMode::Mv {
+      files: vec!["~/.xinitrc".to_string()],
+      from: "no-profile".to_string(),
+      to: "linux".to_string(),
+    },
+  )
+  .unwrap();
+
+  assert!(!ctx.repo_path.join("common/.xinitrc").exists());
+  assert_eq!(
+    fs::read_to_string(ctx.repo_path.join("profiles/linux/.xinitrc")).unwrap(),
+    "xinit"
+  );
+
+  fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn profile_mv_accepts_home_env_file_path() {
+  let (root, mut ctx) = test_ctx("mv-home-env-file");
+  ctx.config.git.auto_commit = false;
+
+  fs::create_dir_all(ctx.repo_path.join("common")).unwrap();
+  fs::write(ctx.repo_path.join("common/.xprofile"), "xprofile").unwrap();
+
+  let mut profiles = Profiles::load(&ctx).unwrap();
+  profiles
+    .profiles
+    .insert("linux".to_string(), ProfileDef::default());
+  profiles.save(&ctx).unwrap();
+
+  run(
+    &ctx,
+    &ProfileMode::Mv {
+      files: vec!["$HOME/.xprofile".to_string()],
+      from: "no-profile".to_string(),
+      to: "linux".to_string(),
+    },
+  )
+  .unwrap();
+
+  assert!(!ctx.repo_path.join("common/.xprofile").exists());
+  assert_eq!(
+    fs::read_to_string(ctx.repo_path.join("profiles/linux/.xprofile")).unwrap(),
+    "xprofile"
   );
 
   fs::remove_dir_all(&root).ok();

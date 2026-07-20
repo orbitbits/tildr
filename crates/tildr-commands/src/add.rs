@@ -21,7 +21,9 @@ use tildr_ui::{
 use tildr_utils::fs::move_file;
 use walkdir::WalkDir;
 
-use crate::profile::{COMMON_PROFILE, DEFAULT_PROFILE, Profiles, profile_dir};
+use crate::profile::{
+  COMMON_PROFILE, DEFAULT_PROFILE, Profiles, normalize_profile_name, profile_dir,
+};
 use crate::utils::{auto_commit::auto_commit_dry_run, tildrignore};
 
 pub struct AddArgs {
@@ -35,16 +37,17 @@ pub struct AddArgs {
 
 fn resolve_profile(ctx: &Context, profile: &Option<String>) -> Result<String> {
   if let Some(name) = profile {
+    let name = normalize_profile_name(name);
     if name == COMMON_PROFILE || name == DEFAULT_PROFILE {
-      return Ok(name.clone());
+      return Ok(name.to_string());
     }
     let profiles = Profiles::load(ctx)?;
     if !profiles.profiles.contains_key(name) {
       bail!("Profile '{}' not found.", name);
     }
-    return Ok(name.clone());
+    return Ok(name.to_string());
   }
-  // Use active profile, or common files when no profile is active.
+  // Use the active profile, or shared no-profile files when no profile is active.
   let profiles = Profiles::load(ctx)?;
   Ok(
     profiles

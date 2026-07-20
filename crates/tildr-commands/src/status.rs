@@ -5,7 +5,7 @@ use tildr_fs::symlink::{is_symlink, is_symlink_to};
 use tildr_ui::{color::Colorize, symbols::icons};
 use tildr_utils::pager::page_string;
 
-use crate::profile::{Profiles, display_profile_name};
+use crate::profile::{Profiles, display_profile_name, normalize_profile_name};
 use crate::utils::target::{ManagedEntryProfile, effective_entries, scan_all_entries_with_profile};
 
 #[derive(Debug, serde::Serialize)]
@@ -52,9 +52,10 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
   // Otherwise show the effective variant for each logical filepath:
   // active profile -> common -> default -> legacy root.
   let entries_to_show: Vec<ManagedEntryProfile> = if let Some(ref profile_name) = args.profile {
+    let profile_name = normalize_profile_name(profile_name);
     by_filepath
       .values()
-      .flat_map(|v| v.iter().filter(|e| e.profile == *profile_name).cloned())
+      .flat_map(|v| v.iter().filter(|e| e.profile == profile_name).cloned())
       .collect()
   } else {
     effective_entries(&ctx.repo_path, &profiles, &by_filepath)

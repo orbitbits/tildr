@@ -6,7 +6,9 @@ use tildr_core::context::Context;
 use tildr_fs::paths::resolve_home_path;
 use tildr_repo::{ManagedEntry, scatildr_repo};
 
-use crate::profile::{COMMON_PROFILE, DEFAULT_PROFILE, Profiles, profile_dir};
+use crate::profile::{
+  COMMON_PROFILE, DEFAULT_PROFILE, Profiles, normalize_profile_name, profile_dir,
+};
 
 pub enum ResolvedTarget {
   Interactive,
@@ -139,6 +141,7 @@ pub fn resolve_logical_file(
 
   // --- Explicit --profile flag: go straight to that profile ---
   if let Some(name) = profile_override {
+    let name = normalize_profile_name(name);
     let mut candidate = profile_dir(&ctx.repo_path, name).join(relative);
     if !candidate.exists() && name == COMMON_PROFILE {
       let legacy_candidate = ctx

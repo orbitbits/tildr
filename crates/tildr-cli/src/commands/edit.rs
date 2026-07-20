@@ -13,7 +13,7 @@ pub struct Command {
   /// File to edit. If not provided, an interactive picker will be shown
   pub target: Option<String>,
 
-  /// Edit the file from a specific profile instead of using the active one
+  /// Edit the file from a specific profile, or no-profile for shared files
   #[arg(long, value_name = "NAME")]
   pub profile: Option<String>,
 }
