@@ -1,17 +1,6 @@
-use anyhow::{Context as _, Result};
-use std::process::Command;
-use tildr_core::context::Context;
+use anyhow::Result;
+use tildr_core::{context::Context, file_manager};
 
 pub fn run(ctx: &Context) -> Result<()> {
-  let file_manager = ctx.config.core.file_manager.trim();
-  if file_manager.is_empty() {
-    open::that_detached(&ctx.repo_path).context("Failed to open file manager")?;
-  } else {
-    Command::new(file_manager)
-      .arg(&ctx.repo_path)
-      .spawn()
-      .with_context(|| format!("Failed to open file manager: {file_manager}"))?;
-  }
-
-  Ok(())
+  file_manager::open_directory(&ctx.config, &ctx.repo_path)
 }

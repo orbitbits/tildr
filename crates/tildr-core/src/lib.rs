@@ -6,6 +6,7 @@ pub use config::{Config, Core, Crypto, CryptoMode, Git};
 pub mod constants;
 pub mod context;
 pub mod errors;
+pub mod file_manager;
 pub mod pick;
 
 #[cfg(test)]

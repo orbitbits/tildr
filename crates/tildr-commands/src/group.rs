@@ -101,16 +101,19 @@ fn pick_files_for_group(ctx: &Context) -> Result<Vec<String>> {
       None => Ok(Vec::new()),
     }
   } else {
-    use tildr_ui::prompt::MinimalTheme;
-    let input: String = dialoguer::Input::with_theme(&MinimalTheme)
-      .with_prompt("File path (relative to HOME)")
-      .allow_empty(true)
-      .interact_text()?;
-    if input.is_empty() {
-      Ok(Vec::new())
-    } else {
-      Ok(input.split_whitespace().map(|s| s.to_string()).collect())
-    }
+    prompt_group_files()
+  }
+}
+
+fn prompt_group_files() -> Result<Vec<String>> {
+  let input: String = dialoguer::Input::with_theme(&MinimalTheme)
+    .with_prompt("File path (relative to HOME)")
+    .allow_empty(true)
+    .interact_text()?;
+  if input.is_empty() {
+    Ok(Vec::new())
+  } else {
+    Ok(input.split_whitespace().map(|s| s.to_string()).collect())
   }
 }
 

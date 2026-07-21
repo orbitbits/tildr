@@ -28,6 +28,7 @@ libc            = { workspace = true }
 rfd             = { workspace = true }
 fuzzy-matcher   = "0.3"
 walkdir         = { workspace = true }
+open            = { workspace = true }
 
 # -------- build --------
 [build-dependencies]

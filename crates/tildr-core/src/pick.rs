@@ -13,6 +13,18 @@ use tildr_ui::{color::Colorize, prompt::MinimalTheme};
 use tildr_utils::sys::has_display;
 use walkdir::WalkDir;
 
+fn prompt_home_relative_path(ctx: &Context) -> Result<PathBuf> {
+  let input: String = dialoguer::Input::with_theme(&MinimalTheme)
+    .with_prompt("File path")
+    .interact_text()?;
+  Ok(
+    resolve_home_path(&input, &ctx.home_path)
+      .strip_prefix(&ctx.home_path)
+      .map_err(|_| anyhow::anyhow!("Path must be inside HOME directory"))?
+      .to_path_buf(),
+  )
+}
+
 pub enum PickMode {
   Managed,
   Home, // list files from home for add pick
@@ -127,14 +139,7 @@ pub fn target(
           None => std::process::exit(130),
         }
       } else {
-        // fallback: type the path
-        let input: String = dialoguer::Input::with_theme(&MinimalTheme)
-          .with_prompt("File path")
-          .interact_text()?;
-        resolve_home_path(&input, &ctx.home_path)
-          .strip_prefix(&ctx.home_path)
-          .map_err(|_| anyhow::anyhow!("Path must be inside HOME directory"))?
-          .to_path_buf()
+        prompt_home_relative_path(ctx)?
       };
 
       return Ok(ctx.home_path.join(&relative));
