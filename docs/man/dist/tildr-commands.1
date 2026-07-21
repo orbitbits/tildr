@@ -781,10 +781,21 @@ tildr open
 .PP
 \f[B]Behavior:\f[R]
 .IP \[bu] 2
-Launches the default file manager of the system at the repository path
+Launches the repository path in the configured file manager when
+\f[CR]core.file_manager\f[R] is set
 .IP \[bu] 2
-Uses the \f[CR]open\f[R] crate for cross\-platform support (xdg\-open on
-Linux, open on macOS)
+Falls back to the system default file manager when
+\f[CR]core.file_manager\f[R] is empty or unset
+.IP \[bu] 2
+Uses the \f[CR]open\f[R] crate for cross\-platform fallback support
+(xdg\-open on Linux, open on macOS)
+.PP
+Example configuration:
+.IP
+.EX
+\f[B][core]\f[R]
+file_manager = \[dq]nautilus\[dq]
+.EE
 .SS tildr stats
 Shows statistics about managed files.
 .IP

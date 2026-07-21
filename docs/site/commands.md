@@ -775,8 +775,16 @@ tildr open
 
 Behavior:
 
-* Launches the default file manager at the repository path
-* Uses the `open` crate for cross-platform support (xdg-open on Linux, open on macOS)
+* Launches the repository path in the configured file manager when `core.file_manager` is set
+* Falls back to the system default file manager when `core.file_manager` is empty or unset
+* Uses the `open` crate for cross-platform fallback support (xdg-open on Linux, open on macOS)
+
+Example configuration:
+
+```toml
+[core]
+file_manager = "nautilus"
+```
 
 ---
 

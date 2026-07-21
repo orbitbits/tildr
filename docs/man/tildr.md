@@ -69,7 +69,7 @@ Instead of keeping the original file in place, **Tildr** moves the managed file 
 - `restore` moves files back from the repository into `$HOME`
 - `unlink` removes symlinks without deleting repository content
 - `del` removes managed content from the repository and unlinks it from `$HOME`
-- `open` opens the repository in the system file manager
+- `open` opens the repository in the configured or system file manager
 - `stats` shows statistics about managed files
 - `backup` creates a compressed tarball backup of the repository
 - `suggest` scans `$HOME` for common dotfile patterns that could be managed
@@ -167,7 +167,7 @@ This means Tildr is not intended for copying files to a repository stored on ano
 :   Manage `.tildrignore` patterns (add, rm, list).
 
 **tildr open**
-:   Open the repository in the system file manager.
+:   Open the repository in the configured or system file manager.
 
 **tildr stats**
 :   Show statistics about managed files.

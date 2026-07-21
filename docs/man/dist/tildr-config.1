@@ -68,6 +68,22 @@ Example:
 color = false
 .EE
 .RE
+.TP
+\f[B]core.file_manager\f[R]
+Optional file manager executable used by \f[B]tildr open\f[R].
+When empty or unset, Tildr uses the system default file manager.
+On Linux, that usually means the XDG \f[CR]inode/directory\f[R]
+association.
+Default: empty
+.RS
+.PP
+Example:
+.IP
+.EX
+\f[B][core]\f[R]
+file_manager = \[dq]nautilus\[dq]
+.EE
+.RE
 .SS [git]
 The \f[CR][git]\f[R] section controls Git integration.
 .TP
@@ -166,6 +182,7 @@ gpg_key = \[dq]william\[at]email.com\[dq]
 repo = \[dq]\[ti]/.dotfiles\[dq]
 search_threshold = 15
 color = true
+\f[I]# file_manager = \[dq]nautilus\[dq]\f[R]
 
 \f[B][git]\f[R]
 available = true

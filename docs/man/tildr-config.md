@@ -62,6 +62,18 @@ The `[core]` section controls general Tildr behavior.
     color = false
     ```
 
+**core.file_manager**
+:   Optional file manager executable used by **tildr open**. When empty or unset,
+    Tildr uses the system default file manager. On Linux, that usually means the XDG
+    `inode/directory` association.
+    Default: empty
+
+    Example:
+    ```toml
+    [core]
+    file_manager = "nautilus"
+    ```
+
 ## [git]
 
 The `[git]` section controls Git integration.
@@ -137,6 +149,7 @@ The `[crypto]` section controls GPG encryption for sensitive files.
 repo = "~/.dotfiles"
 search_threshold = 15
 color = true
+# file_manager = "nautilus"
 
 [git]
 available = true

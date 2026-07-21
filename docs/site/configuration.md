@@ -39,6 +39,7 @@ Tildr uses the XDG Base Directory specification when available. On systems where
 repo = "~/.dotfiles"
 search_threshold = 15
 color = true
+# file_manager = "nautilus"
 
 [git]
 available = true
@@ -61,6 +62,7 @@ Core settings control the repository path, interactive behavior, and output form
 | `repo` | `String` | `"~/.dotfiles"` | Path to the Tildr repository. Accepts `~/...`, `$HOME/...`, or an absolute path inside `$HOME`. |
 | `search_threshold` | `Integer` | `15` | Number of managed files above which interactive pickers show a fuzzy search step before the selection list. |
 | `color` | `Boolean` | `true` | When `false`, disables all colored output by setting `NO_COLOR=1` before dispatch. Also respected if `NO_COLOR` is already set in the environment. |
+| `file_manager` | `String` | `""` | Optional file manager executable used by `tildr open`. When empty or unset, Tildr uses the system default file manager. |
 
 #### `core.repo`
 
@@ -102,6 +104,27 @@ Controls whether Tildr uses ANSI color codes in terminal output.
 ```toml
 # Disable colors in output
 color = false
+```
+
+#### `core.file_manager`
+
+Overrides the file manager used by `tildr open`.
+
+When this value is empty or omitted, Tildr uses the operating system default for directories. On Linux, that usually means the XDG `inode/directory` association.
+
+Set it to an executable name when you want Tildr to open the repository with a specific file manager without changing the desktop-wide default:
+
+```toml
+[core]
+file_manager = "nautilus"
+```
+
+Other examples:
+
+```toml
+file_manager = "hyprfm"
+file_manager = "nemo"
+file_manager = "thunar"
 ```
 
 Colors are also disabled when the `NO_COLOR` environment variable is set:
