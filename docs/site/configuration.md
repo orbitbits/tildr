@@ -108,11 +108,11 @@ color = false
 
 #### `core.file_manager`
 
-Overrides the file manager used by `tildr open`.
+Overrides the file manager used when Tildr opens a directory.
 
 When this value is empty or omitted, Tildr uses the operating system default for directories. On Linux, that usually means the XDG `inode/directory` association.
 
-Set it to an executable name when you want Tildr to open the repository with a specific file manager without changing the desktop-wide default:
+Set it to an executable name when you want Tildr to open directories with a specific file manager without changing the desktop-wide default:
 
 ```toml
 [core]
@@ -126,6 +126,8 @@ file_manager = "hyprfm"
 file_manager = "nemo"
 file_manager = "thunar"
 ```
+
+This setting is used by `tildr open`. Interactive file pickers, such as `tildr add` with no path, are handled by the platform file picker backend and do not use this setting.
 
 Colors are also disabled when the `NO_COLOR` environment variable is set:
 

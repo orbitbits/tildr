@@ -143,6 +143,7 @@ Options:
 
 Behavior:
 
+* If no path is passed, Tildr opens a file picker to select a file from `$HOME`
 * Files are moved into the repository
 * Symlinks are created at the original home path
 * With `--nolink`, files are moved but no symlink is created and the file is added to `.tildrignore`
@@ -767,7 +768,7 @@ Behavior:
 
 ### `tildr open`
 
-Opens the Tildr repository in the system file manager.
+Opens the Tildr repository in the configured or system file manager.
 
 ```sh
 tildr open

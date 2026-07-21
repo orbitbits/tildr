@@ -63,7 +63,7 @@ The `[core]` section controls general Tildr behavior.
     ```
 
 **core.file_manager**
-:   Optional file manager executable used by **tildr open**. When empty or unset,
+:   Optional file manager executable used when Tildr opens a directory. When empty or unset,
     Tildr uses the system default file manager. On Linux, that usually means the XDG
     `inode/directory` association.
     Default: empty
@@ -73,6 +73,10 @@ The `[core]` section controls general Tildr behavior.
     [core]
     file_manager = "nautilus"
     ```
+
+    This setting is used by **tildr open**. Interactive file pickers, such as
+    **tildr add** with no path, are handled by the platform file picker backend and
+    do not use this setting.
 
 ## [git]
 

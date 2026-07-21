@@ -70,7 +70,7 @@ color = false
 .RE
 .TP
 \f[B]core.file_manager\f[R]
-Optional file manager executable used by \f[B]tildr open\f[R].
+Optional file manager executable used when Tildr opens a directory.
 When empty or unset, Tildr uses the system default file manager.
 On Linux, that usually means the XDG \f[CR]inode/directory\f[R]
 association.
@@ -83,6 +83,10 @@ Example:
 \f[B][core]\f[R]
 file_manager = \[dq]nautilus\[dq]
 .EE
+.PP
+This setting is used by \f[B]tildr open\f[R].
+Interactive file pickers, such as \f[B]tildr add\f[R] with no path, are
+handled by the platform file picker backend and do not use this setting.
 .RE
 .SS [git]
 The \f[CR][git]\f[R] section controls Git integration.
