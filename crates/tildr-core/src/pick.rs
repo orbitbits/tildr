@@ -7,7 +7,7 @@ use crossterm::{
 use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use tildr_fs::paths::{normalize_lexically, resolve_home_path};
+use tildr_fs::paths::{current_dir_under_home, normalize_lexically, resolve_home_path};
 use tildr_repo::scatildr_repo;
 use tildr_ui::{color::Colorize, prompt::MinimalTheme};
 use tildr_utils::sys::has_display;
@@ -43,8 +43,7 @@ fn logical_candidates(ctx: &Context, input: &str, home_path: &std::path::Path) -
     && !input.starts_with("~/")
     && input != "$HOME"
     && !input.starts_with("$HOME/")
-    && let Ok(cwd) = std::env::current_dir()
-    && cwd.starts_with(&ctx.home_path)
+    && let Some(cwd) = current_dir_under_home(&ctx.home_path)
   {
     let cwd_path = normalize_lexically(&cwd.join(input_path));
     if let Ok(relative) = cwd_path.strip_prefix(&ctx.home_path)

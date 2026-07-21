@@ -57,9 +57,7 @@ pub fn resolve_home_path(input: &str, home: &Path) -> PathBuf {
     return normalize_lexically(input_path);
   }
 
-  if let Ok(cwd) = std::env::current_dir()
-    && cwd.starts_with(home)
-  {
+  if let Some(cwd) = current_dir_under_home(home) {
     let cwd_path = cwd.join(input_path);
     if input.starts_with("./") || input.starts_with("../") || cwd_path.exists() {
       return normalize_lexically(&cwd_path);
@@ -67,6 +65,19 @@ pub fn resolve_home_path(input: &str, home: &Path) -> PathBuf {
   }
 
   normalize_lexically(&home.join(input_path))
+}
+
+pub fn current_dir_under_home(home: &Path) -> Option<PathBuf> {
+  let cwd = std::env::current_dir().ok()?;
+
+  if cwd.starts_with(home) {
+    return Some(cwd);
+  }
+
+  let canonical_cwd = cwd.canonicalize().ok()?;
+  let canonical_home = home.canonicalize().ok()?;
+  let relative = canonical_cwd.strip_prefix(canonical_home).ok()?;
+  Some(home.join(relative))
 }
 
 /// Normalize `.` and `..` components without following symlinks.

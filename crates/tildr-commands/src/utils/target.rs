@@ -3,7 +3,7 @@ use console::style;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Component, Path, PathBuf};
 use tildr_core::context::Context;
-use tildr_fs::paths::{normalize_lexically, resolve_home_path};
+use tildr_fs::paths::{current_dir_under_home, normalize_lexically, resolve_home_path};
 use tildr_repo::{ManagedEntry, scatildr_repo};
 
 use crate::profile::{
@@ -297,9 +297,7 @@ fn candidate_home_paths(ctx: &Context, target: &str) -> Vec<PathBuf> {
     && target != "$HOME"
     && !target.starts_with("$HOME/")
   {
-    if let Ok(cwd) = std::env::current_dir()
-      && cwd.starts_with(&ctx.home_path)
-    {
+    if let Some(cwd) = current_dir_under_home(&ctx.home_path) {
       candidates.push(normalize_lexically(&cwd.join(input_path)));
     }
 

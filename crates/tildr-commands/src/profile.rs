@@ -7,7 +7,7 @@ use console::style;
 use dialoguer::Input;
 use serde::{Deserialize, Serialize};
 use tildr_core::context::Context;
-use tildr_fs::paths::{normalize_lexically, resolve_home_path};
+use tildr_fs::paths::{current_dir_under_home, normalize_lexically, resolve_home_path};
 use tildr_repo::scatildr_repo;
 use tildr_ui::prompt::MinimalTheme;
 use tildr_utils::{fs::tildr_dir, pager::page_string};
@@ -278,8 +278,7 @@ fn logical_file_candidates(ctx: &Context, input: &str) -> Vec<PathBuf> {
     && !input.starts_with("~/")
     && input != "$HOME"
     && !input.starts_with("$HOME/")
-    && let Ok(cwd) = std::env::current_dir()
-    && cwd.starts_with(&ctx.home_path)
+    && let Some(cwd) = current_dir_under_home(&ctx.home_path)
   {
     let cwd_path = normalize_lexically(&cwd.join(input_path));
     if let Ok(relative) = cwd_path.strip_prefix(&ctx.home_path) {
