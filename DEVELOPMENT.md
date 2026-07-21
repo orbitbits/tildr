@@ -361,12 +361,23 @@ Release automation is defined in:
 
 Current workflow responsibilities include:
 
-- generating `CHANGELOG.md` with `git-cliff`
 - running tests
+- generating `docs/man/dist` with the pinned Pandoc version
+- generating and committing `CHANGELOG.md` with `git-cliff`
 - building Linux and macOS binaries
-- generating checksums
+- generating checksums for all binary artifacts
 - signing release artifacts
-- publishing GitHub Releases
+- publishing GitHub Releases after every platform build is ready
+
+The release workflow prepares one release commit before tagging. That commit contains the generated changelog and man pages, so GitHub's automatic source archives include those files. The expected release assets are:
+
+- `tildr-<VERSION>-linux-x86_64`
+- `tildr-<VERSION>-macos-aarch64`
+- `tildr-<VERSION>-macos-x86_64`
+- `SHA256SUMS`
+- `SHA256SUMS.sig`
+- GitHub's automatic source `zip`
+- GitHub's automatic source `tar.gz`
 
 If you change release artifact names, supported targets, or documentation packaging, review this workflow together with the installer scripts.
 
