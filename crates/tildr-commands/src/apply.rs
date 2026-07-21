@@ -130,21 +130,19 @@ pub fn run(ctx: &Context, args: ApplyArgs) -> Result<()> {
       ("Updated", true, true)
     } else if !exists {
       ("Created", false, false)
+    } else if args.force {
+      ("Updated", true, true)
     } else {
-      if args.force {
-        ("Updated", true, true)
-      } else {
-        up_to_date += 1;
+      up_to_date += 1;
 
-        if args.verbose && !args.quiet {
-          actions.push(ActionLog {
-            action: "Skipped".to_string(),
-            file: file_str,
-          });
-        }
-
-        continue;
+      if args.verbose && !args.quiet {
+        actions.push(ActionLog {
+          action: "Skipped".to_string(),
+          file: file_str,
+        });
       }
+
+      continue;
     };
 
     // --- Dry run ---
