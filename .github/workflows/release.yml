@@ -1,4 +1,3 @@
-# Note: change cliff.toml -> [remote.github]
 name: Release Linux/macOS
 
 on:
@@ -8,93 +7,34 @@ on:
     paths-ignore:
       - "CHANGELOG.md"
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  release:
+  prepare:
+    name: Prepare release commit
     runs-on: ubuntu-latest
 
     permissions:
       contents: write
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      release_sha: ${{ steps.release_commit.outputs.release_sha }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.ref_name }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Install dependencies
-        run: |
-          cargo install git-cliff
-          sudo apt-get update && sudo apt-get install -y jq gnupg
-
-      - name: Get version from Cargo.toml
-        id: version
-        run: |
-          VERSION=$(cargo metadata --no-deps --format-version=1 \
-            | jq -r '.packages[] | select(.name=="tildr") | .version')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
-
-      # [WARNING !] avoids duplicate releases
-      - name: Check if tag exists
-        id: tag_check
-        run: |
-          if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Stop if tag exists
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: steps.tag_check.outputs.exists == 'true'
-        run: exit 0
-
-      - name: Generate full changelog
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: git cliff --config cliff.toml --output CHANGELOG.md
-
-      - name: Commit changelog
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add CHANGELOG.md
-          git commit -m "chore(release): update changelog for v${{ steps.version.outputs.version }}" || echo "No changes"
-          git push origin HEAD:${{ github.ref_name }}
-
-      - name: Create tag
-        run: |
-          git tag ${{ steps.version.outputs.tag }}
-          git push origin ${{ steps.version.outputs.tag }}
-
-      - name: Regenerate CHANGELOG after tag (close Unreleased)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: git cliff --config cliff.toml --output CHANGELOG.md
-
-      - name: Commit finalized CHANGELOG
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add CHANGELOG.md
-          git commit -m "docs(changelog): finalize v${{ steps.version.outputs.version }}" || echo "No changes"
-          git push origin HEAD:${{ github.ref_name }}
-
-      # Generate changelog for the latest release.
-      - name: Generate release notes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: git cliff --latest --config cliff.toml > CHANGELOG_RELEASE.md
-
-      - name: Load CHANGELOG_RELEASE.md
-        run: |
-          echo "CHANGELOG_RELEASE<<EOF" >> $GITHUB_ENV
-          cat CHANGELOG_RELEASE.md >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+        with:
+          components: rustfmt, clippy
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -105,85 +45,146 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Tests Linux
+      - name: Install dependencies
+        env:
+          PANDOC_VERSION: 3.6.1
         run: |
-          cargo test --target x86_64-unknown-linux-gnu
-
-      - name: Build Linux
-        run: |
-          cargo build --release --target x86_64-unknown-linux-gnu
-          mkdir dist
-          cp target/x86_64-unknown-linux-gnu/release/tildr dist/tildr-${{ steps.version.outputs.version }}-linux-x86_64
-
-      - name: Generate SHA256SUMS (Linux only — macOS will append later)
-        run: |
-          cd dist
-          sha256sum * > SHA256SUMS
-
-      - name: Import GPG key
-        run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
-
-      - name: Sign SHA256SUMS
-        run: |
-          cd dist
-          echo "${{ secrets.GPG_PASSPHRASE }}" | \
-          gpg --batch --yes --pinentry-mode loopback \
-              --passphrase-fd 0 \
-              --detach-sign \
-              --local-user "${{ secrets.GPG_KEY_ID }}" \
-              SHA256SUMS
-
-      # Create a release containing only the latest version
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          body: |
-            # Release ${{ steps.version.outputs.tag }}
-
-            ## Files
-
-            - Linux binary (x86_64)
-            - macOS binaries (x86_64, aarch64)
-            - SHA256SUMS (all platforms)
-            - GPG signature (SHA256SUMS.sig)
-
-            ## Verification
-
-            ```bash
-            sha256sum -c SHA256SUMS
-            gpg --verify SHA256SUMS.sig SHA256SUMS
-            ```
-
-            ${{ env.CHANGELOG_RELEASE }}
-
-          files: |
-            dist/*
-
-  # macOS
-  macos:
-    name: Build macOS and append to release
-    needs: release
-    runs-on: macos-latest
-
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout same commit
-        uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+          cargo install git-cliff
+          sudo apt-get update
+          sudo apt-get install -y jq
+          curl -fsSL \
+            "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-1-amd64.deb" \
+            -o /tmp/pandoc.deb
+          sudo dpkg -i /tmp/pandoc.deb
+          pandoc --version
 
       - name: Get version from Cargo.toml
         id: version
         run: |
           VERSION=$(cargo metadata --no-deps --format-version=1 \
             | jq -r '.packages[] | select(.name=="tildr") | .version')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if tag exists
+        id: tag_check
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop if tag exists
+        if: steps.tag_check.outputs.exists == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: echo "Tag ${TAG} already exists. Nothing to release."
+
+      - name: Format check
+        if: steps.tag_check.outputs.exists != 'true'
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        if: steps.tag_check.outputs.exists != 'true'
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Test
+        if: steps.tag_check.outputs.exists != 'true'
+        run: cargo test --workspace
+
+      - name: Generate man pages
+        if: steps.tag_check.outputs.exists != 'true'
+        run: make man
+
+      - name: Generate changelog
+        if: steps.tag_check.outputs.exists != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: git cliff --config cliff.toml --tag "$TAG" --output CHANGELOG.md
+
+      - name: Commit release sources
+        if: steps.tag_check.outputs.exists != 'true'
+        id: release_commit
+        env:
+          BRANCH: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add CHANGELOG.md docs/man/dist
+
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): prepare v${VERSION} [skip ci]"
+          else
+            echo "No release source changes to commit."
+          fi
+
+          git fetch origin "$BRANCH"
+          git rebase "origin/$BRANCH"
+          git push origin HEAD:"$BRANCH"
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  build-linux:
+    name: Build Linux
+    needs: prepare
+    if: needs.prepare.outputs.release_sha != ''
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.release_sha }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Test Linux
+        run: cargo test --target x86_64-unknown-linux-gnu
+
+      - name: Build Linux
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p dist
+          cp target/x86_64-unknown-linux-gnu/release/tildr \
+            "dist/tildr-${{ needs.prepare.outputs.version }}-linux-x86_64"
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: dist/*
+          if-no-files-found: error
+
+  build-macos:
+    name: Build macOS
+    needs: prepare
+    if: needs.prepare.outputs.release_sha != ''
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.release_sha }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Disable osxcross config
         run: |
@@ -191,59 +192,113 @@ jobs:
             mv .cargo/config.toml .cargo/config.toml.bak
           fi
 
-      - name: Add macOS targets Rust
+      - name: Add macOS targets
         run: |
           rustup target add x86_64-apple-darwin
           rustup target add aarch64-apple-darwin
 
-      - name: Tests macOS
+      - name: Test macOS
         run: |
           cargo test --target x86_64-apple-darwin
           cargo test --target aarch64-apple-darwin
 
-      - name: Build x86_64 (Intel)
-        run: cargo build --release --target x86_64-apple-darwin
-
-      - name: Build aarch64 (Apple Silicon)
-        run: cargo build --release --target aarch64-apple-darwin
-
-      - name: Prepare dist
+      - name: Build macOS
         run: |
-          mkdir dist
+          cargo build --release --target x86_64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin
+
+      - name: Prepare artifacts
+        run: |
+          mkdir -p dist
           cp target/x86_64-apple-darwin/release/tildr \
-             dist/tildr-${{ steps.version.outputs.version }}-macos-x86_64
+            "dist/tildr-${{ needs.prepare.outputs.version }}-macos-x86_64"
           cp target/aarch64-apple-darwin/release/tildr \
-             dist/tildr-${{ steps.version.outputs.version }}-macos-aarch64
+            "dist/tildr-${{ needs.prepare.outputs.version }}-macos-aarch64"
 
-      - name: Download SHA256SUMS from release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
+    needs:
+      - prepare
+      - build-linux
+      - build-macos
+    if: needs.prepare.outputs.release_sha != ''
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.prepare.outputs.release_sha }}
+
+      - name: Install dependencies
         run: |
-          gh release download ${{ steps.version.outputs.tag }} -p SHA256SUMS
-          mv SHA256SUMS dist/
+          cargo install git-cliff
+          sudo apt-get update
+          sudo apt-get install -y gnupg
 
-      - name: Append macOS hashes
+      - name: Create and push tag
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_SHA: ${{ needs.prepare.outputs.release_sha }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists. Refusing to overwrite it."
+            exit 1
+          fi
+
+          git tag "$TAG" "$RELEASE_SHA"
+          git push origin "$TAG"
+
+      - name: Generate release notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: git cliff --latest --config cliff.toml > CHANGELOG_RELEASE.md
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate SHA256SUMS
         run: |
           cd dist
-          shasum -a 256 tildr-* >> SHA256SUMS
+          sha256sum tildr-* > SHA256SUMS
 
       - name: Import GPG key
         run: echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
 
-      - name: Re-sign SHA256SUMS
+      - name: Sign SHA256SUMS
         run: |
           cd dist
-          rm -f SHA256SUMS.sig
           echo "${{ secrets.GPG_PASSPHRASE }}" | \
-          gpg --batch --yes --pinentry-mode loopback \
+            gpg --batch --yes --pinentry-mode loopback \
               --passphrase-fd 0 \
               --detach-sign \
               --local-user "${{ secrets.GPG_KEY_ID }}" \
               SHA256SUMS
 
-      - name: Upload macOS artifacts to existing release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          target_commitish: ${{ needs.prepare.outputs.release_sha }}
+          body_path: CHANGELOG_RELEASE.md
           files: |
-            dist/*
+            dist/tildr-${{ needs.prepare.outputs.version }}-linux-x86_64
+            dist/tildr-${{ needs.prepare.outputs.version }}-macos-aarch64
+            dist/tildr-${{ needs.prepare.outputs.version }}-macos-x86_64
+            dist/SHA256SUMS
+            dist/SHA256SUMS.sig
