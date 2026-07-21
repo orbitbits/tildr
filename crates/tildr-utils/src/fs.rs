@@ -56,6 +56,11 @@ pub fn should_ignore(path: &Path) -> bool {
     return true;
   }
 
+  // macOS AppleDouble resource fork metadata, e.g. `._.bashrc`.
+  if file_name.starts_with("._") {
+    return true;
+  }
+
   // Sufixo tipo *~
   if IGNORE_SUFFIXES.iter().any(|s| file_name.ends_with(s)) {
     return true;

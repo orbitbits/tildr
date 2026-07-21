@@ -33,6 +33,8 @@ fn should_ignore_tildr_dir() {
 #[test]
 fn should_ignore_dotfiles() {
   assert!(should_ignore(Path::new(".DS_Store")));
+  assert!(should_ignore(Path::new("._.DS_Store")));
+  assert!(should_ignore(Path::new("._.bashrc")));
   assert!(should_ignore(Path::new("Thumbs.db")));
   assert!(should_ignore(Path::new(".gitkeep")));
   assert!(should_ignore(Path::new(".gitignore")));

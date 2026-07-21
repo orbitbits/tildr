@@ -80,6 +80,7 @@ fn scan_distinguishes_root_control_files_from_managed_dotfiles() {
   fs::create_dir_all(dir.join("profiles/linux")).unwrap();
   fs::write(dir.join(".gitignore"), "target/").unwrap();
   fs::write(dir.join(".tildrignore"), "cache/").unwrap();
+  fs::write(dir.join("._.gitignore"), "mac metadata").unwrap();
   fs::write(dir.join("common/.gitignore"), "*.log").unwrap();
   fs::write(dir.join("profiles/linux/.tildrignore"), "linux-cache/").unwrap();
 
@@ -148,6 +149,8 @@ fn scan_common_directory_as_common_profile() {
   let common = dir.join("common");
   fs::create_dir_all(&common).unwrap();
   fs::write(common.join(".bashrc"), "common").unwrap();
+  fs::write(dir.join("._common"), "mac metadata").unwrap();
+  fs::write(common.join("._.bashrc"), "mac metadata").unwrap();
 
   let entries = scatildr_repo(&dir).unwrap();
   assert_eq!(entries.len(), 1);
