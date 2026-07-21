@@ -23,6 +23,8 @@ pub struct Core {
   pub repo: String,
   pub search_threshold: usize,
   pub color: bool,
+  #[serde(skip_serializing_if = "String::is_empty")]
+  pub file_manager: String,
   // pub backup: bool,
 }
 
@@ -73,6 +75,7 @@ impl Default for Core {
       repo: "~/.dotfiles".to_string(),
       search_threshold: 15,
       color: true,
+      file_manager: String::new(),
     }
   }
 }

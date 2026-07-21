@@ -131,6 +131,33 @@ fn color_defaults_to_true() {
 }
 
 #[test]
+fn file_manager_defaults_to_system_default() {
+  let config: Config = toml::from_str(
+    r#"
+        [core]
+        repo = "~/.dotfiles"
+      "#,
+  )
+  .expect("should parse without file_manager");
+
+  assert!(config.core.file_manager.is_empty());
+}
+
+#[test]
+fn file_manager_can_be_set_in_config() {
+  let config: Config = toml::from_str(
+    r#"
+        [core]
+        repo = "~/.dotfiles"
+        file_manager = "nautilus"
+      "#,
+  )
+  .expect("should parse with file_manager");
+
+  assert_eq!(config.core.file_manager, "nautilus");
+}
+
+#[test]
 fn search_threshold_defaults_to_15() {
   let config: Config = toml::from_str(
     r#"
