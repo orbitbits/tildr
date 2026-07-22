@@ -29,14 +29,8 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Format check
-        run: cargo fmt --all -- --check
-
-      - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-
-      - name: Test
-        run: cargo test
+      - name: Check workspace
+        run: make check
 
   docs:
     name: Documentation
@@ -50,10 +44,15 @@ jobs:
         env:
           PANDOC_VERSION: 3.6.1
         run: |
-          curl -fsSL \
+          curl --fail --location --show-error --silent \
+            --retry 5 \
+            --retry-all-errors \
+            --retry-delay 5 \
+            --connect-timeout 30 \
+            --max-time 300 \
             "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-1-amd64.deb" \
-            -o /tmp/pandoc.deb
-          sudo dpkg -i /tmp/pandoc.deb
+            --output "$RUNNER_TEMP/pandoc.deb"
+          sudo dpkg --install "$RUNNER_TEMP/pandoc.deb"
           pandoc --version
 
       - name: Generate man pages

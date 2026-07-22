@@ -10,7 +10,7 @@ git config core.hooksPath hooks
 
 ### `pre-commit`
 
-Runs `make build` (`cargo fmt --all` + `cargo build`) before each commit. Aborts the commit if the build fails or if formatting changes files under `crates/`.
+Runs `make check` before each commit. This performs a non-mutating format check, Clippy with warnings denied, and the workspace test suite.
 
 ### `commit-msg`
 

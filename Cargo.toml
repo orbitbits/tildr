@@ -62,7 +62,10 @@ incremental = true
 debug = true
 
 # -------- optimization release --------
-[profile.release.package."*"]
+[profile.release]
 opt-level = 3
 codegen-units = 1
 debug = false
+strip = "symbols"
+lto = "thin"
+panic = "abort"

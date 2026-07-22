@@ -32,7 +32,7 @@ jobs:
           ref: ${{ github.ref_name }}
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.90.0
         with:
           components: rustfmt, clippy
 
@@ -90,17 +90,9 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: echo "Tag ${TAG} already exists. Nothing to release."
 
-      - name: Format check
+      - name: Check workspace
         if: steps.tag_check.outputs.exists != 'true'
-        run: cargo fmt --all -- --check
-
-      - name: Clippy
-        if: steps.tag_check.outputs.exists != 'true'
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-      - name: Test
-        if: steps.tag_check.outputs.exists != 'true'
-        run: cargo test --workspace
+        run: make check
 
       - name: Generate man pages
         if: steps.tag_check.outputs.exists != 'true'
@@ -148,7 +140,7 @@ jobs:
           ref: ${{ needs.prepare.outputs.release_sha }}
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.90.0
 
       - name: Cache cargo
         uses: actions/cache@v5
@@ -160,10 +152,10 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Test Linux
-        run: cargo test --target x86_64-unknown-linux-gnu
+        run: cargo test --target x86_64-unknown-linux-gnu --locked
 
       - name: Build Linux
-        run: cargo build --release --target x86_64-unknown-linux-gnu
+        run: cargo build --release --target x86_64-unknown-linux-gnu --locked
 
       - name: Prepare artifact
         run: |
@@ -191,7 +183,7 @@ jobs:
           ref: ${{ needs.prepare.outputs.release_sha }}
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.90.0
 
       - name: Disable osxcross config
         run: |
@@ -206,13 +198,13 @@ jobs:
 
       - name: Test macOS
         run: |
-          cargo test --target x86_64-apple-darwin
-          cargo test --target aarch64-apple-darwin
+          cargo test --target x86_64-apple-darwin --locked
+          cargo test --target aarch64-apple-darwin --locked
 
       - name: Build macOS
         run: |
-          cargo build --release --target x86_64-apple-darwin
-          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin --locked
+          cargo build --release --target aarch64-apple-darwin --locked
 
       - name: Prepare artifacts
         run: |

@@ -8,7 +8,7 @@ This guide describes the current development workflow for **Tildr** and the supp
 
 Make sure these tools are available locally:
 
-- Rust `1.90.0` or newer
+- Rust `1.90.0`
 - `cargo`
 - `git`
 - `make`
@@ -31,7 +31,10 @@ Verify the toolchain:
 ```sh
 rustc --version
 cargo --version
+rustup show active-toolchain
 ```
+
+The repository includes `rust-toolchain.toml`, so `rustup` automatically selects the pinned toolchain and required components when commands run inside the project.
 
 ---
 
@@ -45,10 +48,7 @@ cd tildr
 make build
 ```
 
-The default development build runs:
-
-- `cargo fmt --all`
-- `cargo build`
+The default development build runs `cargo build --locked`. It does not format files.
 
 Enable the repository hooks if you want the same local guardrails used by maintainers:
 
@@ -63,22 +63,27 @@ git config core.hooksPath hooks
 Typical local workflow:
 
 ```sh
-make build
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test
+make fmt
+make check
 ```
 
 Useful commands:
 
-| Command                                                    | Purpose                                                      |
-|------------------------------------------------------------|--------------------------------------------------------------|
-| `make build`                                               | Format and build the workspace                               |
-| `make release`                                             | Generate man pages, format, test, and build release binaries |
-| `make man`                                                 | Generate `man` pages into `docs/man/dist`                    |
-| `make man-gz`                                              | Generate and compress `man` pages                            |
-| `cargo test`                                               | Run the full test suite                                      |
-| `cargo test -p tildr-commands`                             | Focus on the command crate                                   |
-| `cargo clippy --all-targets --all-features -- -D warnings` | Run lints as CI errors                                       |
+| Command                        | Purpose                                                      |
+|--------------------------------|--------------------------------------------------------------|
+| `make fmt`                     | Format the workspace                                         |
+| `make fmt-check`               | Check formatting without changing files                      |
+| `make clippy`                  | Run lints as CI errors                                       |
+| `make test`                    | Run the workspace test suite with `--locked`                 |
+| `make check`                   | Run format check, Clippy, and tests                          |
+| `make build`                   | Build the workspace with `--locked`                          |
+| `make release`                 | Generate man pages, check, and build release binaries        |
+| `make man`                     | Generate `man` pages into `docs/man/dist`                    |
+| `make man-gz`                  | Generate and compress `man` pages                            |
+| `cargo test -p tildr-commands` | Focus on the command crate                                   |
+| `make audit`                   | Run `cargo audit` when installed                             |
+| `make deny`                    | Run `cargo deny check` when installed                        |
+| `make machete`                 | Run `cargo machete` when installed                           |
 
 When changing CLI behavior, keep these areas aligned:
 
@@ -232,12 +237,10 @@ Examples accepted by the hook:
 This hook runs:
 
 ```sh
-make build
+make check
 ```
 
-Then it checks whether files under `crates/` changed during that process.
-
-If Rust files changed, the commit is aborted. In practice, this is a safety net for forgotten formatting or other generated Rust changes.
+The check is intentionally non-mutating, so it supports split commits. Run `make fmt` explicitly when you want to rewrite formatting.
 
 If you changed manual sources, regenerate the manual output yourself before committing:
 
@@ -257,9 +260,7 @@ The CI workflow runs on Pull Requests and pushes to `main`.
 
 It checks:
 
-- `cargo fmt --all -- --check`
-- `cargo clippy --all-targets --all-features -- -D warnings`
-- `cargo test`
+- `make check`
 - `make man`
 - generated man pages under `docs/man/dist`
 

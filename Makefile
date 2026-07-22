@@ -13,32 +13,51 @@ MAN_FILES := $(patsubst $(DOCS_MD_DIR)/%.md,$(DOCS_MAN_DIR)/%.1,$(MD_FILES))
 
 # ----- Targets -----
 
-.PHONY: all build release macos fmt tests man man-gz clean push push-lease
+.PHONY: all build check release macos fmt fmt-check clippy test tests audit deny machete man man-gz clean push push-lease
 
 # ----- Default -----
 all: build
 
 # ----- Builds (Linux) -----
-build: fmt
-	cargo build
+build:
+	cargo build --locked
 
-release: man fmt tests
-	cargo build --release
+check: fmt-check clippy test
+
+release: man check
+	cargo build --release --locked
 
 # ----- Builds (macOS) -----
 
-macos-x86_64: fmt tests
-	cargo build -p tildr --target x86_64-apple-darwin
+macos-x86_64: check
+	cargo build -p tildr --target x86_64-apple-darwin --locked
 
-macos-aarch64: fmt tests
-	cargo build -p tildr --target aarch64-apple-darwin
+macos-aarch64: check
+	cargo build -p tildr --target aarch64-apple-darwin --locked
 
 # ----- Rust -----
 fmt:
 	cargo fmt --all
 
-tests:
-	cargo test
+fmt-check:
+	cargo fmt --all -- --check
+
+clippy:
+	cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+test:
+	cargo test --workspace --locked
+
+tests: test
+
+audit:
+	cargo audit
+
+deny:
+	cargo deny check
+
+machete:
+	cargo machete
 
 # ----- Man pages (Linux) -----
 man: $(MAN_FILES)

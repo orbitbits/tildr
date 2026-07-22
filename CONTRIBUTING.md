@@ -74,9 +74,7 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for development setup, build commands, and 
 Before opening a Pull Request, run:
 
 ```sh
-cargo fmt --all -- --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test
+make check
 ```
 
 When documentation under `docs/man/*.md` changes, also run:
