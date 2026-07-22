@@ -4,17 +4,35 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Conventional Commits.
 
-## [Unreleased] - 2026-07-21
+## [0.3.1] - 2026-07-22
 
 ### Bug Fixes
+
+- ci: fix(ci): stabilize Rust toolchain and manifest tests ([4340717](https://github.com/orbitbits/tildr/commit/4340717adc857eb02eba11b9484b26c14eea6483))
+  Use dtolnay/rust-toolchain@master with an explicit 1.90.0 toolchain input so Dependabot does not convert the action ref into nonexistent Rust releases such as 1.100.0.
+  Ignore dtolnay/rust-toolchain in Dependabot action updates because the Rust version is governed by the workspace MSRV/toolchain config.
+  Make crypto manifest test directories unique across parallel tests by adding a process id and atomic counter to the temp path, avoiding macOS timestamp collisions.
+
+- sync: fix(sync): support configured remote and auto-commit before sync ([fea8873](https://github.com/orbitbits/tildr/commit/fea88739f63cf76da49855a26d69fff0e6326d95))
+  Allow tildr sync to use git.sync_remote and git.sync_branch when the current
+  branch has no upstream configured. This fixes sync failures in repositories
+  that have remotes but no branch tracking metadata.
+  Also commit pending repository changes before syncing when git.auto_commit is
+  enabled, keep dry-run non-mutating, and document the new sync configuration.
+
+- hooks: fix(hooks): allow split commits with existing unstaged crate changes ([e301c53](https://github.com/orbitbits/tildr/commit/e301c5348406a95f19361b8d6bc3444eafbc0a58))
+  Compare crate diffs before and after the pre-commit build instead of rejecting
+  any existing unstaged change under crates/. This keeps the formatter/build guard
+  while allowing staged-only commits such as version bumps.
+
+- stats: fix(stats): satisfy Rust 1.97 sort lint ([76924c6](https://github.com/orbitbits/tildr/commit/76924c6fea8c72503bbf8f3687fdce10dc03c301))
+  Use sort_by_key with Reverse for descending extension counts, preserving the existing output order while complying with Clippy's unnecessary_sort_by lint.
+
+- fix: correcting unnecessary_sort_by ([fd0e236](https://github.com/orbitbits/tildr/commit/fd0e23680e734e537a0af255d950fb9bc642ac83))
 
 - fix: ignore macOS AppleDouble metadata ([3bb6baf](https://github.com/orbitbits/tildr/commit/3bb6baff1f36b9e0e77b17a51b9e5f48bda3797c))
   Skip files whose names start with ._ so scanner output is not polluted by macOS AppleDouble resource fork metadata.
   Add regression coverage for root and profile storage metadata files to keep scanner counts stable on macOS CI.
-
-## [0.3.0] - 2026-07-21
-
-### Bug Fixes
 
 - fix: satisfy clippy in apply flow ([733b656](https://github.com/orbitbits/tildr/commit/733b65608ac6ed08a8658557eb1865f769fab589))
   Collapse the nested force branch in apply action selection to satisfy clippy::collapsible_else_if.
@@ -76,6 +94,8 @@ The format is based on Conventional Commits.
 - fix: profile-aware file resolution in apply cat edit pick ([d6beb01](https://github.com/orbitbits/tildr/commit/d6beb01a39d2240931971623bf06220c3032c92f))
 
 ### Features
+
+- feat: bump version 0.3.1 ([3b6a928](https://github.com/orbitbits/tildr/commit/3b6a9281de6b30443048f42e649ca63949159907))
 
 - feat: allow configuring file manager ([90761ba](https://github.com/orbitbits/tildr/commit/90761bad8394eb1c4beac357cdfc0a4a6258b555))
   Add core.file_manager as an optional executable override for tildr open.
