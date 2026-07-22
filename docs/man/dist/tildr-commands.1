@@ -1402,13 +1402,26 @@ Suppress output.
 .IP \[bu] 2
 Uses the current branch dynamically
 .IP \[bu] 2
-Uses the branch tracking remote and upstream branch from Git config
+Uses the branch tracking remote and upstream branch from Git config when
+an upstream exists
 .IP \[bu] 2
 Falls back to \f[CR][git] sync_remote\f[R] and
 \f[CR][git] sync_branch\f[R] when the branch has no upstream
 .IP \[bu] 2
+Uses the current local branch name when \f[CR]git.sync_branch\f[R] is
+empty
+.IP \[bu] 2
+Stops with a configuration hint when there is no upstream and
+\f[CR]git.sync_remote\f[R] is empty
+.IP \[bu] 2
 Auto\-commits pending repository changes before syncing when
 \f[CR]git.auto_commit = true\f[R]
+.IP \[bu] 2
+Uses the commit message \f[CR]tildr: sync local changes\f[R] for
+automatic sync commits
+.IP \[bu] 2
+In \f[CR]\-\-dry\-run\f[R] mode, reports whether it would auto\-commit
+without staging or committing files
 .IP \[bu] 2
 Fetches from the tracked remote before deciding what to do
 .IP \[bu] 2
@@ -1432,6 +1445,24 @@ registered
 .IP \[bu] 2
 Skips re\-encryption when secret files are missing from \f[CR]$HOME\f[R]
 (warns instead of failing)
+.PP
+Recommended configuration for repositories that do not configure a Git
+upstream locally:
+.IP
+.EX
+\f[B][git]\f[R]
+auto_commit = true
+sync_remote = \[dq]origin\[dq]
+sync_branch = \[dq]main\[dq]
+.EE
+.PP
+You can omit \f[CR]sync_branch\f[R] when the remote branch has the same
+name as the current local branch:
+.IP
+.EX
+\f[B][git]\f[R]
+sync_remote = \[dq]origin\[dq]
+.EE
 .SS tildr doctor
 Runs a health check against the Tildr environment and reports any
 issues.

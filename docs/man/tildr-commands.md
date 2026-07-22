@@ -1100,9 +1100,13 @@ tildr sync --force
 **Behavior:**
 
 - Uses the current branch dynamically
-- Uses the branch tracking remote and upstream branch from Git config
+- Uses the branch tracking remote and upstream branch from Git config when an upstream exists
 - Falls back to `[git] sync_remote` and `[git] sync_branch` when the branch has no upstream
+- Uses the current local branch name when `git.sync_branch` is empty
+- Stops with a configuration hint when there is no upstream and `git.sync_remote` is empty
 - Auto-commits pending repository changes before syncing when `git.auto_commit = true`
+- Uses the commit message `tildr: sync local changes` for automatic sync commits
+- In `--dry-run` mode, reports whether it would auto-commit without staging or committing files
 - Fetches from the tracked remote before deciding what to do
 - If only local commits exist, pushes them
 - If only remote commits exist, performs a fast-forward pull
@@ -1112,6 +1116,22 @@ tildr sync --force
 - Uses the saved Git availability from Tildr config instead of probing `PATH` on every run
 - Before pushing, re-encrypts the secret bundle if sensitive files are registered
 - Skips re-encryption when secret files are missing from `$HOME` (warns instead of failing)
+
+Recommended configuration for repositories that do not configure a Git upstream locally:
+
+```toml
+[git]
+auto_commit = true
+sync_remote = "origin"
+sync_branch = "main"
+```
+
+You can omit `sync_branch` when the remote branch has the same name as the current local branch:
+
+```toml
+[git]
+sync_remote = "origin"
+```
 
 ## tildr doctor
 

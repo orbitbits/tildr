@@ -276,6 +276,16 @@ tildr git status
 tildr sync
 .EE
 .PP
+For repositories without a local Git upstream, configure the sync remote
+and branch in \f[CR]\[ti]/.config/tildr/config.toml\f[R]:
+.IP
+.EX
+\f[B][git]\f[R]
+auto_commit = true
+sync_remote = \[dq]origin\[dq]
+sync_branch = \[dq]main\[dq]
+.EE
+.PP
 Recovery and maintenance:
 .IP
 .EX
@@ -368,6 +378,9 @@ permanent deletion, otherwise files go to trash
 \f[CR]sync\f[R] commit pending changes before syncing \[em] not
 \f[CR]apply\f[R], \f[CR]unlink\f[R], \f[CR]git\f[R], or read\-only
 commands
+.IP \[bu] 2
+\f[CR]tildr sync\f[R] uses the Git upstream when available, otherwise it
+falls back to \f[CR]git.sync_remote\f[R] and \f[CR]git.sync_branch\f[R]
 .IP \[bu] 2
 \f[CR]git.enable = false\f[R] disables Tildr\-managed Git operations
 even if Git is installed

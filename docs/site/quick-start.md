@@ -215,6 +215,17 @@ tildr sync
 tildr open
 ```
 
+If your repository branch does not have an upstream configured, set the sync remote in `~/.config/tildr/config.toml`:
+
+```toml
+[git]
+auto_commit = true
+sync_remote = "origin"
+sync_branch = "main"
+```
+
+With `auto_commit = true`, `tildr sync` commits pending repository changes before fetching, pulling, merging, or pushing. If `sync_branch` is omitted or empty, Tildr uses the current local branch name.
+
 ---
 
 ### Shell Aliases

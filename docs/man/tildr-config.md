@@ -134,6 +134,26 @@ The `[git]` section controls Git integration.
     sync_branch = "main"
     ```
 
+    Resolution order for **tildr sync**:
+
+    1. Use the current branch's Git upstream when it exists.
+    2. Otherwise, use `git.sync_remote` from config.
+    3. Use `git.sync_branch` when set, or the current local branch name when it is empty.
+    4. Stop with a configuration hint when no upstream exists and `git.sync_remote` is empty.
+
+    Recommended configuration for repositories that do not set an upstream locally:
+
+    ```toml
+    [git]
+    auto_commit = true
+    sync_remote = "origin"
+    sync_branch = "main"
+    ```
+
+    With this configuration, **tildr sync** can commit local changes, fetch the remote branch,
+    pull or merge remote changes when possible, reapply the effective profile, re-encrypt
+    registered secrets before pushing, and push the result back to the remote.
+
 ## [crypto]
 
 The `[crypto]` section controls GPG encryption for sensitive files.

@@ -221,7 +221,26 @@ sync_remote = "origin"
 sync_branch = "main"
 ```
 
-When `sync_branch` is empty, Tildr uses the current local branch name. When `sync_remote` is empty and no Git upstream exists, `tildr sync` stops with an explanation and shows how to configure the remote.
+Resolution order:
+
+1. If the current branch has an upstream, Tildr syncs with that upstream.
+2. If there is no upstream and `git.sync_remote` is set, Tildr uses that remote.
+3. If `git.sync_branch` is set, Tildr uses that branch on the configured remote.
+4. If `git.sync_branch` is empty, Tildr uses the current local branch name.
+5. If there is no upstream and `git.sync_remote` is empty, `tildr sync` stops with an explanation and shows how to configure the remote.
+
+Recommended configuration when your dotfiles repository does not set a Git upstream locally:
+
+```toml
+[git]
+auto_commit = true
+sync_remote = "origin"
+sync_branch = "main"
+```
+
+With this configuration, `tildr sync` can commit local changes, fetch `origin/main`, pull or merge remote changes when possible, reapply the effective profile, re-encrypt registered secrets before pushing, and push the result back to `origin/main`.
+
+If the remote has changes that cannot be merged cleanly, Tildr stops and reports the conflict so you can resolve it manually before running `tildr sync` again.
 
 #### Git Operations Logic
 
