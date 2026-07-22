@@ -3,17 +3,25 @@ updates:
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
+      interval: "quarterly"
+    open-pull-requests-limit: 2
+    groups:
+      rust-dependencies:
+        patterns:
+          - "*"
     commit-message:
       prefix: "build"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
+      interval: "quarterly"
+    open-pull-requests-limit: 2
     ignore:
       - dependency-name: "dtolnay/rust-toolchain"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
     commit-message:
       prefix: "ci"
