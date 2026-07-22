@@ -364,10 +364,10 @@ repository
 \f[CR]del\f[R] removes repository content; use \f[CR]\-\-purge\f[R] for
 permanent deletion, otherwise files go to trash
 .IP \[bu] 2
-\f[CR]git.auto_commit\f[R] affects \f[CR]add\f[R], \f[CR]restore\f[R],
-\f[CR]del\f[R], \f[CR]mv\f[R], \f[CR]secret\f[R], \f[CR]exclude\f[R],
-\f[CR]group\f[R], and \f[CR]profile\f[R] \[em] not \f[CR]apply\f[R],
-\f[CR]unlink\f[R], \f[CR]git\f[R], or \f[CR]sync\f[R]
+\f[CR]git.auto_commit\f[R] affects mutating repository commands and lets
+\f[CR]sync\f[R] commit pending changes before syncing \[em] not
+\f[CR]apply\f[R], \f[CR]unlink\f[R], \f[CR]git\f[R], or read\-only
+commands
 .IP \[bu] 2
 \f[CR]git.enable = false\f[R] disables Tildr\-managed Git operations
 even if Git is installed

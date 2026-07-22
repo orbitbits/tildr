@@ -3,7 +3,25 @@
 
 #[cfg(test)]
 mod tests {
-  use super::*;
+  use crate::{
+    dispatch,
+    sync::scenario::{
+      SyncScenario, classify_sync_scenario, parse_conflicted_files, parse_upstream_ref,
+    },
+  };
+  use anyhow::{Result, bail};
+  use std::{
+    ffi::OsString,
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+    sync::{Mutex, MutexGuard, OnceLock},
+    time::{SystemTime, UNIX_EPOCH},
+  };
+  use tildr_core::Config;
+  use tildr_domain::Commands;
+
+  static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
   #[test]
   fn sync_pushes_local_commits_to_remote() -> Result<()> {
@@ -61,6 +79,142 @@ mod tests {
       fs::read_to_string(fixture.repo.join("remote.txt"))?,
       "remote change\n"
     );
+
+    Ok(())
+  }
+
+  #[test]
+  fn sync_commits_dirty_worktree_before_pushing() -> Result<()> {
+    let _env_lock = lock_env();
+    let fixture = SyncFixture::new("auto-commit")?;
+    let _env_guard = EnvGuard::set(&fixture.home, &fixture.xdg_config);
+
+    write_config_with(|config| config.git.auto_commit = true)?;
+
+    write_file(&fixture.repo, "dirty.txt", "dirty local change\n")?;
+
+    dispatch(Commands::Sync {
+      dry_run: false,
+      quiet: true,
+      force: false,
+    })?;
+
+    assert!(git_stdout(&fixture.repo, ["status", "--porcelain"])?.is_empty());
+    assert_eq!(
+      git_stdout(&fixture.repo, ["log", "-1", "--pretty=%s"])?,
+      "tildr: sync local changes"
+    );
+    assert_eq!(
+      head_ref(&fixture.repo, "HEAD")?,
+      bare_head_ref(&fixture.remote, &fixture.branch)?
+    );
+
+    Ok(())
+  }
+
+  #[test]
+  fn sync_uses_configured_remote_when_branch_has_no_upstream() -> Result<()> {
+    let _env_lock = lock_env();
+    let fixture = SyncFixture::new("configured-remote")?;
+    let _env_guard = EnvGuard::set(&fixture.home, &fixture.xdg_config);
+
+    write_config_with(|config| {
+      config.git.auto_commit = true;
+      config.git.sync_remote = "origin".to_string();
+      config.git.sync_branch = fixture.branch.clone();
+    })?;
+    git(&fixture.repo, ["branch", "--unset-upstream"])?;
+
+    write_file(&fixture.repo, "configured.txt", "configured remote\n")?;
+
+    dispatch(Commands::Sync {
+      dry_run: false,
+      quiet: true,
+      force: false,
+    })?;
+
+    assert_eq!(
+      head_ref(&fixture.repo, "HEAD")?,
+      bare_head_ref(&fixture.remote, &fixture.branch)?
+    );
+
+    Ok(())
+  }
+
+  #[test]
+  fn sync_uses_current_branch_when_configured_sync_branch_is_empty() -> Result<()> {
+    let _env_lock = lock_env();
+    let fixture = SyncFixture::new("configured-remote-current-branch")?;
+    let _env_guard = EnvGuard::set(&fixture.home, &fixture.xdg_config);
+
+    write_config_with(|config| {
+      config.git.auto_commit = true;
+      config.git.sync_remote = "origin".to_string();
+    })?;
+    git(&fixture.repo, ["branch", "--unset-upstream"])?;
+
+    write_file(
+      &fixture.repo,
+      "current-branch.txt",
+      "configured remote branch fallback\n",
+    )?;
+
+    dispatch(Commands::Sync {
+      dry_run: false,
+      quiet: true,
+      force: false,
+    })?;
+
+    assert_eq!(
+      head_ref(&fixture.repo, "HEAD")?,
+      bare_head_ref(&fixture.remote, &fixture.branch)?
+    );
+
+    Ok(())
+  }
+
+  #[test]
+  fn sync_dry_run_does_not_commit_dirty_worktree() -> Result<()> {
+    let _env_lock = lock_env();
+    let fixture = SyncFixture::new("dry-run-dirty")?;
+    let _env_guard = EnvGuard::set(&fixture.home, &fixture.xdg_config);
+
+    write_config_with(|config| config.git.auto_commit = true)?;
+    let head_before = head_ref(&fixture.repo, "HEAD")?;
+
+    write_file(&fixture.repo, "dry-run.txt", "not committed\n")?;
+
+    dispatch(Commands::Sync {
+      dry_run: true,
+      quiet: true,
+      force: false,
+    })?;
+
+    assert_eq!(head_ref(&fixture.repo, "HEAD")?, head_before);
+    assert!(!git_stdout(&fixture.repo, ["status", "--porcelain"])?.is_empty());
+
+    Ok(())
+  }
+
+  #[test]
+  fn sync_respects_disabled_auto_commit() -> Result<()> {
+    let _env_lock = lock_env();
+    let fixture = SyncFixture::new("auto-commit-disabled")?;
+    let _env_guard = EnvGuard::set(&fixture.home, &fixture.xdg_config);
+
+    write_config_with(|config| config.git.auto_commit = false)?;
+    let head_before = head_ref(&fixture.repo, "HEAD")?;
+
+    write_file(&fixture.repo, "disabled.txt", "not committed\n")?;
+
+    dispatch(Commands::Sync {
+      dry_run: false,
+      quiet: true,
+      force: false,
+    })?;
+
+    assert_eq!(head_ref(&fixture.repo, "HEAD")?, head_before);
+    assert!(!git_stdout(&fixture.repo, ["status", "--porcelain"])?.is_empty());
 
     Ok(())
   }
@@ -241,11 +395,16 @@ mod tests {
   }
 
   fn write_config() -> Result<()> {
+    write_config_with(|_| {})
+  }
+
+  fn write_config_with(update: impl FnOnce(&mut Config)) -> Result<()> {
     let mut config = Config::default();
     config.core.repo = "~/.dotfiles".to_string();
     config.git.available = true;
     config.git.enable = None;
     config.git.auto_commit = false;
+    update(&mut config);
     config.save()
   }
 

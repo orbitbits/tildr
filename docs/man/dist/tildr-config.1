@@ -121,8 +121,10 @@ When \f[CR]true\f[R], Tildr automatically runs \f[CR]git add \-A\f[R]
 and \f[CR]git commit\f[R] after \f[B]add\f[R], \f[B]restore\f[R],
 \f[B]del\f[R], \f[B]mv\f[R], \f[B]secret\f[R], \f[B]exclude\f[R],
 \f[B]group\f[R], and \f[B]profile\f[R].
+It also commits pending repository changes before \f[B]sync\f[R]
+fetches, pulls, merges, or pushes.
 Does not affect \f[B]apply\f[R], \f[B]unlink\f[R], \f[B]git\f[R], or
-\f[B]sync\f[R].
+read\-only commands.
 Default: \f[CR]true\f[R]
 .RS
 .PP
@@ -131,6 +133,35 @@ Example:
 .EX
 \f[B][git]\f[R]
 auto_commit = true
+.EE
+.RE
+.TP
+\f[B]git.sync_remote\f[R]
+Remote used by \f[B]tildr sync\f[R] when the current branch has no Git
+upstream configured.
+Default: unset
+.RS
+.PP
+Example:
+.IP
+.EX
+\f[B][git]\f[R]
+sync_remote = \[dq]origin\[dq]
+.EE
+.RE
+.TP
+\f[B]git.sync_branch\f[R]
+Remote branch used with \f[CR]git.sync_remote\f[R].
+When unset, \f[B]tildr sync\f[R] uses the current local branch name.
+Default: unset
+.RS
+.PP
+Example:
+.IP
+.EX
+\f[B][git]\f[R]
+sync_remote = \[dq]origin\[dq]
+sync_branch = \[dq]main\[dq]
 .EE
 .RE
 .SS [crypto]
@@ -191,6 +222,8 @@ color = true
 \f[B][git]\f[R]
 available = true
 auto_commit = true
+sync_remote = \[dq]origin\[dq]
+sync_branch = \[dq]main\[dq]
 
 \f[B][crypto]\f[R]
 mode = \[dq]symmetric\[dq]

@@ -102,13 +102,36 @@ The `[git]` section controls Git integration.
 
 **git.auto_commit**
 :   When `true`, Tildr automatically runs `git add -A` and `git commit` after **add**,
-    **restore**, **del**, **mv**, **secret**, **exclude**, **group**, and **profile**. Does not affect **apply**, **unlink**, **git**, or **sync**.
+    **restore**, **del**, **mv**, **secret**, **exclude**, **group**, and **profile**.
+    It also commits pending repository changes before **sync** fetches, pulls, merges, or pushes.
+    Does not affect **apply**, **unlink**, **git**, or read-only commands.
     Default: `true`
 
     Example:
     ```toml
     [git]
     auto_commit = true
+    ```
+
+**git.sync_remote**
+:   Remote used by **tildr sync** when the current branch has no Git upstream configured.
+    Default: unset
+
+    Example:
+    ```toml
+    [git]
+    sync_remote = "origin"
+    ```
+
+**git.sync_branch**
+:   Remote branch used with `git.sync_remote`. When unset, **tildr sync** uses the current local branch name.
+    Default: unset
+
+    Example:
+    ```toml
+    [git]
+    sync_remote = "origin"
+    sync_branch = "main"
     ```
 
 ## [crypto]
@@ -158,6 +181,8 @@ color = true
 [git]
 available = true
 auto_commit = true
+sync_remote = "origin"
+sync_branch = "main"
 
 [crypto]
 mode = "symmetric"

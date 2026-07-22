@@ -45,6 +45,8 @@ color = true
 available = true
 # enable = true          # optional: explicitly enable/disable Git operations
 auto_commit = true
+sync_remote = "origin"
+sync_branch = "main"
 
 [crypto]
 mode = "symmetric"
@@ -145,7 +147,9 @@ Git settings control version control integration, automatic commits, and the abi
 |-------|------|---------|-------------|
 | `available` | `Boolean` | `true` | Whether Git was detected by `tildr init`. Written automatically by Tildr. |
 | `enable` | `Boolean` | *unset* | Optional override. When explicitly set to `false`, disables all Git operations even if Git is installed. |
-| `auto_commit` | `Boolean` | `true` | When `true`, auto-runs `git add -A && git commit` after `add`, `restore`, `del`, `mv`, `secret`, `exclude`, `group`, and `profile` operations. |
+| `auto_commit` | `Boolean` | `true` | When `true`, auto-runs `git add -A && git commit` after mutating commands and before `tildr sync`. |
+| `sync_remote` | `String` | `""` | Remote used by `tildr sync` when the current branch has no Git upstream. |
+| `sync_branch` | `String` | `""` | Remote branch used with `sync_remote`. When empty, `tildr sync` uses the current branch name. |
 
 #### `git.available`
 
@@ -158,6 +162,7 @@ This is an optional override that allows you to disable Git operations without u
 * `tildr sync` will not work
 * `tildr git status` will not work
 * Auto-commit after `add`, `restore`, `del`, `mv`, `secret`, `exclude`, `group`, and `profile` will be skipped
+* Auto-commit before `tildr sync` will be skipped
 
 ```toml
 [git]
@@ -195,14 +200,28 @@ When `true`, Tildr automatically commits changes after these commands:
 | `tildr profile set` | Commits after activating a profile |
 | `tildr profile unset` | Commits after deactivating a profile |
 | `tildr profile migrate` | Commits after moving shared files into `common/` |
+| `tildr sync` | Commits pending repository changes before fetching, pulling, merging, or pushing |
 
-Commands that do **not** trigger auto-commit: `tildr apply`, `tildr unlink`, `tildr status`, `tildr list`, `tildr git`, `tildr sync`, `tildr doctor`.
+Commands that do **not** trigger auto-commit: `tildr apply`, `tildr unlink`, `tildr status`, `tildr list`, `tildr git`, `tildr doctor`.
 
 ```toml
 [git]
 # Disable automatic commits
 auto_commit = false
 ```
+
+#### `git.sync_remote` and `git.sync_branch`
+
+`tildr sync` first uses the current branch's Git upstream, such as `origin/main`. If the branch has no upstream configured, it falls back to these settings:
+
+```toml
+[git]
+auto_commit = true
+sync_remote = "origin"
+sync_branch = "main"
+```
+
+When `sync_branch` is empty, Tildr uses the current local branch name. When `sync_remote` is empty and no Git upstream exists, `tildr sync` stops with an explanation and shows how to configure the remote.
 
 #### Git Operations Logic
 

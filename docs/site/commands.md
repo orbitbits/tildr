@@ -598,6 +598,8 @@ Behavior:
 
 * Uses the current branch dynamically
 * Uses the branch tracking remote and upstream branch from Git config
+* Falls back to `[git] sync_remote` and `[git] sync_branch` when the branch has no upstream
+* Auto-commits pending repository changes before syncing when `git.auto_commit = true`
 * Fetches from the tracked remote before deciding what to do
 * If only local commits exist, pushes them
 * If only remote commits exist, performs a fast-forward pull

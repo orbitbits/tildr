@@ -1101,6 +1101,8 @@ tildr sync --force
 
 - Uses the current branch dynamically
 - Uses the branch tracking remote and upstream branch from Git config
+- Falls back to `[git] sync_remote` and `[git] sync_branch` when the branch has no upstream
+- Auto-commits pending repository changes before syncing when `git.auto_commit = true`
 - Fetches from the tracked remote before deciding what to do
 - If only local commits exist, pushes them
 - If only remote commits exist, performs a fast-forward pull
@@ -1289,7 +1291,7 @@ tildr group unlink dev
 - `unlink` removes only symlinks, never repository content
 - `restore` physically moves the real file back out of the repository
 - `del` removes repository content; use `--purge` for permanent deletion
-- `git.auto_commit` affects `add`, `restore`, `del`, `mv`, `secret`, `exclude`, `group`, and `profile` — not `apply`, `unlink`, `git`, or `sync`
+- `git.auto_commit` affects mutating repository commands and lets `sync` commit pending changes before syncing — not `apply`, `unlink`, `git`, or read-only commands
 - `git.enable = false` disables Tildr-managed Git operations even if Git is installed
 - `tildr secret` requires `gpg` to be installed and available in `PATH`
 - Sensitive files registered with `tildr secret add` are removed from Git tracking; only the encrypted bundle is committed

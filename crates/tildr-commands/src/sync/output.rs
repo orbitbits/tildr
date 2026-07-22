@@ -9,10 +9,15 @@ pub(super) fn print_dry_run(
   ctx: &Context,
   tracking: &TrackingBranch,
   scenario: SyncScenario,
+  would_auto_commit: bool,
   quiet: bool,
 ) {
   if quiet {
     return;
+  }
+
+  if would_auto_commit {
+    info("Would commit local changes before syncing");
   }
 
   match scenario {

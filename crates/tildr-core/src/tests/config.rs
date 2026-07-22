@@ -24,6 +24,8 @@ fn git_enable_false_overrides_available() {
     available: true,
     enable: Some(false),
     auto_commit: true,
+    sync_remote: String::new(),
+    sync_branch: String::new(),
   };
 
   assert!(!git.operations_enabled());
@@ -36,6 +38,8 @@ fn git_operations_require_availability_even_when_explicitly_enabled() {
     available: false,
     enable: Some(true),
     auto_commit: true,
+    sync_remote: String::new(),
+    sync_branch: String::new(),
   };
 
   assert!(!git.operations_enabled());
@@ -50,6 +54,40 @@ fn serializing_default_config_includes_available_without_enable_override() {
   assert!(toml.contains("available = true"));
   assert!(toml.contains("auto_commit = true"));
   assert!(!toml.contains("enable ="));
+  assert!(!toml.contains("sync_remote ="));
+  assert!(!toml.contains("sync_branch ="));
+}
+
+#[test]
+fn git_sync_defaults_to_no_configured_remote_or_branch() {
+  let config: Config = toml::from_str(
+    r#"
+        [core]
+        repo = "~/.dotfiles"
+      "#,
+  )
+  .expect("config should parse without sync settings");
+
+  assert!(config.git.sync_remote.is_empty());
+  assert!(config.git.sync_branch.is_empty());
+}
+
+#[test]
+fn git_sync_remote_and_branch_can_be_set_in_config() {
+  let config: Config = toml::from_str(
+    r#"
+        [core]
+        repo = "~/.dotfiles"
+
+        [git]
+        sync_remote = "origin"
+        sync_branch = "main"
+      "#,
+  )
+  .expect("config should parse sync settings");
+
+  assert_eq!(config.git.sync_remote, "origin");
+  assert_eq!(config.git.sync_branch, "main");
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use anyhow::{Result, bail};
 use std::path::Path;
 use std::process::{Command, Output};
-use tildr_core::constants::APP_NAME;
+use tildr_core::{config::Git, constants::APP_NAME};
 
 use super::output::command_failure;
 use super::scenario::{MergeCheck, parse_conflicted_files, parse_upstream_ref};
@@ -41,7 +41,7 @@ impl<'a> RepoGit<'a> {
     Ok(branch)
   }
 
-  pub(super) fn tracking_branch(&self, branch: &str) -> Result<TrackingBranch> {
+  pub(super) fn tracking_branch(&self, branch: &str, config: &Git) -> Result<TrackingBranch> {
     if let Ok(upstream) = self.stdout(
       ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
       "Failed to detect tracking branch",
@@ -54,36 +54,88 @@ impl<'a> RepoGit<'a> {
       });
     }
 
-    let remote = self.stdout(
-      vec!["config".to_string(), format!("branch.{branch}.remote")],
-      "No tracking remote configured",
-    )?;
-    let merge_ref = self.stdout(
-      vec!["config".to_string(), format!("branch.{branch}.merge")],
-      "No tracking branch configured",
-    )?;
+    if !config.sync_remote.trim().is_empty() {
+      let remote_branch = if config.sync_branch.trim().is_empty() {
+        branch.to_string()
+      } else {
+        config.sync_branch.trim().to_string()
+      };
 
-    let remote_branch = merge_ref
-      .strip_prefix("refs/heads/")
-      .unwrap_or(&merge_ref)
-      .to_string();
-
-    if remote.is_empty() || remote_branch.is_empty() {
-      bail!(
-        "No git remote configured.\n\nRun:\n  cd $({} repo)\n  git push -u <remote> <branch>",
-        APP_NAME
-      );
+      return Ok(TrackingBranch {
+        branch: branch.to_string(),
+        remote: config.sync_remote.trim().to_string(),
+        remote_branch,
+      });
     }
 
-    Ok(TrackingBranch {
-      branch: branch.to_string(),
-      remote,
-      remote_branch,
-    })
+    if let (Some(remote), Some(merge_ref)) = (
+      self.config_value(format!("branch.{branch}.remote"))?,
+      self.config_value(format!("branch.{branch}.merge"))?,
+    ) {
+      let remote_branch = merge_ref
+        .strip_prefix("refs/heads/")
+        .unwrap_or(&merge_ref)
+        .to_string();
+
+      if !remote.is_empty() && !remote_branch.is_empty() {
+        return Ok(TrackingBranch {
+          branch: branch.to_string(),
+          remote,
+          remote_branch,
+        });
+      }
+    }
+
+    bail!(
+      "No git sync remote configured.\n\nConfigure one in config.toml:\n  [git]\n  sync_remote = \"origin\"\n  sync_branch = \"{}\"\n\nOr run:\n  cd $({} repo)\n  git push -u <remote> <branch>",
+      branch,
+      APP_NAME
+    );
   }
 
   pub(super) fn fetch(&self, remote: &str) -> Result<()> {
     self.check(["fetch", remote], "git fetch failed")
+  }
+
+  pub(super) fn has_worktree_changes(&self) -> Result<bool> {
+    Ok(
+      !self
+        .stdout(
+          ["status", "--porcelain"],
+          "Failed to inspect repository status",
+        )?
+        .is_empty(),
+    )
+  }
+
+  pub(super) fn add_all(&self) -> Result<()> {
+    self.check(["add", "-A"], "git add failed")
+  }
+
+  pub(super) fn has_staged_changes(&self) -> Result<bool> {
+    let output = self.output(["diff", "--cached", "--quiet", "--exit-code"])?;
+    match output.status.code() {
+      Some(0) => Ok(false),
+      Some(1) => Ok(true),
+      _ => bail!(command_failure("git diff --cached failed", &output)),
+    }
+  }
+
+  pub(super) fn commit(&self, message: &str) -> Result<()> {
+    self.check(["commit", "-m", message], "git commit failed")
+  }
+
+  fn config_value(&self, key: String) -> Result<Option<String>> {
+    let output = self.output(["config", key.as_str()])?;
+    if output.status.success() {
+      let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+      return Ok(if value.is_empty() { None } else { Some(value) });
+    }
+
+    match output.status.code() {
+      Some(1) => Ok(None),
+      _ => bail!(command_failure("Failed to read git config", &output)),
+    }
   }
 
   pub(super) fn count_commits(&self, range: &str) -> Result<usize> {

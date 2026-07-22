@@ -58,6 +58,10 @@ pub struct Git {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub enable: Option<bool>,
   pub auto_commit: bool,
+  #[serde(skip_serializing_if = "String::is_empty")]
+  pub sync_remote: String,
+  #[serde(skip_serializing_if = "String::is_empty")]
+  pub sync_branch: String,
 }
 
 impl Default for Crypto {
@@ -86,6 +90,8 @@ impl Default for Git {
       available: true,
       enable: None,
       auto_commit: true,
+      sync_remote: String::new(),
+      sync_branch: String::new(),
     }
   }
 }

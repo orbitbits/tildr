@@ -6,4 +6,5 @@ pub mod mv;
 pub mod profile;
 pub mod restore;
 pub mod status;
+pub mod sync;
 pub mod target;

@@ -35,7 +35,8 @@ pub fn run(ctx: &Context, args: SyncArgs) -> Result<()> {
 
   let git = RepoGit::new(&ctx.repo_path);
   let branch = git.current_branch()?;
-  let tracking = git.tracking_branch(&branch)?;
+  let would_auto_commit = prepare_auto_commit(ctx, &git, args.dry_run, args.quiet)?;
+  let tracking = git.tracking_branch(&branch, &ctx.config.git)?;
 
   git.fetch(&tracking.remote)?;
 
@@ -45,7 +46,7 @@ pub fn run(ctx: &Context, args: SyncArgs) -> Result<()> {
   let scenario = classify_sync_scenario(local_ahead, remote_ahead);
 
   if args.dry_run {
-    print_dry_run(ctx, &tracking, scenario, args.quiet);
+    print_dry_run(ctx, &tracking, scenario, would_auto_commit, args.quiet);
     return Ok(());
   }
 
@@ -123,6 +124,33 @@ pub fn run(ctx: &Context, args: SyncArgs) -> Result<()> {
   }
 
   Ok(())
+}
+
+fn prepare_auto_commit(
+  ctx: &Context,
+  git: &RepoGit<'_>,
+  dry_run: bool,
+  quiet: bool,
+) -> Result<bool> {
+  if !ctx.config.git.auto_commit_enabled() {
+    return Ok(false);
+  }
+
+  if dry_run {
+    return git.has_worktree_changes();
+  }
+
+  git.add_all()?;
+  if !git.has_staged_changes()? {
+    return Ok(false);
+  }
+
+  git.commit(&format!("{}: sync local changes", APP_NAME))?;
+  if !quiet {
+    success("Committed local changes before sync");
+  }
+
+  Ok(true)
 }
 
 fn apply_after_pull(ctx: &Context, quiet: bool) -> Result<()> {
