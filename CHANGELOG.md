@@ -4,17 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Conventional Commits.
 
-## [Unreleased] - 2026-07-21
+## [0.3.0] - 2026-07-22
 
 ### Bug Fixes
+
+- stats: fix(stats): satisfy Rust 1.97 sort lint ([76924c6](https://github.com/orbitbits/tildr/commit/76924c6fea8c72503bbf8f3687fdce10dc03c301))
+  Use sort_by_key with Reverse for descending extension counts, preserving the existing output order while complying with Clippy's unnecessary_sort_by lint.
+
+- fix: correcting unnecessary_sort_by ([fd0e236](https://github.com/orbitbits/tildr/commit/fd0e23680e734e537a0af255d950fb9bc642ac83))
 
 - fix: ignore macOS AppleDouble metadata ([3bb6baf](https://github.com/orbitbits/tildr/commit/3bb6baff1f36b9e0e77b17a51b9e5f48bda3797c))
   Skip files whose names start with ._ so scanner output is not polluted by macOS AppleDouble resource fork metadata.
   Add regression coverage for root and profile storage metadata files to keep scanner counts stable on macOS CI.
-
-## [0.3.0] - 2026-07-21
-
-### Bug Fixes
 
 - fix: satisfy clippy in apply flow ([733b656](https://github.com/orbitbits/tildr/commit/733b65608ac6ed08a8658557eb1865f769fab589))
   Collapse the nested force branch in apply action selection to satisfy clippy::collapsible_else_if.
