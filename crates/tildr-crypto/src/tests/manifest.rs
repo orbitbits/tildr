@@ -6,17 +6,24 @@ use std::sync::atomic::{AtomicU64, Ordering};
 fn temp_dir() -> PathBuf {
   static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
-  let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
   let nanos = std::time::SystemTime::now()
     .duration_since(std::time::UNIX_EPOCH)
     .unwrap()
     .as_nanos();
-  let dir = std::env::temp_dir().join(format!(
-    "tildr-test-manifest-{}-{nanos}-{id}",
-    std::process::id()
-  ));
-  fs::create_dir_all(&dir).unwrap();
-  dir
+
+  for _ in 0..100 {
+    let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!(
+      "tildr-test-manifest-{}-{nanos}-{id}",
+      std::process::id()
+    ));
+
+    if fs::create_dir(&dir).is_ok() {
+      return dir;
+    }
+  }
+
+  panic!("failed to create unique test directory");
 }
 
 fn setup_manifest(dir: &Path) -> EncryptManifest {
