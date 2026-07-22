@@ -1,13 +1,20 @@
 use crate::manifest::*;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 fn temp_dir() -> PathBuf {
+  static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+  let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
   let nanos = std::time::SystemTime::now()
     .duration_since(std::time::UNIX_EPOCH)
     .unwrap()
     .as_nanos();
-  let dir = std::env::temp_dir().join(format!("tildr-test-manifest-{nanos}"));
+  let dir = std::env::temp_dir().join(format!(
+    "tildr-test-manifest-{}-{nanos}-{id}",
+    std::process::id()
+  ));
   fs::create_dir_all(&dir).unwrap();
   dir
 }
