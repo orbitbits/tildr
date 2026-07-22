@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cmp::Reverse, collections::HashMap};
 
 use anyhow::Result;
 use console::style;
@@ -44,7 +44,7 @@ pub fn run(ctx: &Context) -> Result<()> {
 
   if !extensions.is_empty() {
     let mut exts: Vec<_> = extensions.into_iter().collect();
-    exts.sort_by(|a, b| b.1.cmp(&a.1));
+    exts.sort_by_key(|entry| Reverse(entry.1));
     let display: Vec<_> = exts
       .iter()
       .take(6)
