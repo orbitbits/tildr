@@ -15,5 +15,5 @@ tildr-domain  = { workspace = true }
 
 # -------- vendors --------
 clap = { workspace = true }
-clap_complete = "=4.5.3"
+clap_complete = { workspace = true }
 anyhow = { workspace = true }

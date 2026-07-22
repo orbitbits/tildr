@@ -26,7 +26,7 @@ dialoguer       = { workspace = true }
 crossterm       = { workspace = true }
 libc            = { workspace = true }
 rfd             = { workspace = true }
-fuzzy-matcher   = "0.3"
+fuzzy-matcher   = { workspace = true }
 walkdir         = { workspace = true }
 open            = { workspace = true }
 
