@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
@@ -37,7 +37,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -46,16 +46,23 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install dependencies
+        run: |
+          cargo install git-cliff --locked --version 2.13.1
+          jq --version
+
+      - name: Install Pandoc
         env:
           PANDOC_VERSION: 3.6.1
         run: |
-          cargo install git-cliff
-          sudo apt-get update
-          sudo apt-get install -y jq
-          curl -fsSL \
+          curl --fail --location --show-error --silent \
+            --retry 5 \
+            --retry-all-errors \
+            --retry-delay 5 \
+            --connect-timeout 30 \
+            --max-time 300 \
             "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-1-amd64.deb" \
-            -o /tmp/pandoc.deb
-          sudo dpkg -i /tmp/pandoc.deb
+            --output "$RUNNER_TEMP/pandoc.deb"
+          sudo dpkg --install "$RUNNER_TEMP/pandoc.deb"
           pandoc --version
 
       - name: Get version from Cargo.toml
@@ -136,7 +143,7 @@ jobs:
 
     steps:
       - name: Checkout release commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare.outputs.release_sha }}
 
@@ -144,7 +151,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -165,7 +172,7 @@ jobs:
             "dist/tildr-${{ needs.prepare.outputs.version }}-linux-x86_64"
 
       - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-linux
           path: dist/*
@@ -179,7 +186,7 @@ jobs:
 
     steps:
       - name: Checkout release commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare.outputs.release_sha }}
 
@@ -216,7 +223,7 @@ jobs:
             "dist/tildr-${{ needs.prepare.outputs.version }}-macos-aarch64"
 
       - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-macos
           path: dist/*
@@ -236,16 +243,13 @@ jobs:
 
     steps:
       - name: Checkout release commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: ${{ needs.prepare.outputs.release_sha }}
 
       - name: Install dependencies
-        run: |
-          cargo install git-cliff
-          sudo apt-get update
-          sudo apt-get install -y gnupg
+        run: cargo install git-cliff --locked --version 2.13.1
 
       - name: Create and push tag
         env:
@@ -266,7 +270,7 @@ jobs:
         run: git cliff --latest --config cliff.toml > CHANGELOG_RELEASE.md
 
       - name: Download release artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: release-*
           path: dist
@@ -291,7 +295,7 @@ jobs:
               SHA256SUMS
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           target_commitish: ${{ needs.prepare.outputs.release_sha }}
