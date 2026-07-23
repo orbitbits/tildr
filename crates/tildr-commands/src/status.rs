@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, bail};
 use std::{collections::HashMap, fmt::Write, path::PathBuf};
 use tildr_core::{constants::APP_NAME, context::Context};
 use tildr_fs::symlink::{is_symlink, is_symlink_to};
@@ -18,6 +18,7 @@ pub struct FileStatus {
 pub struct StatusArgs {
   pub json: bool,
   pub counter: bool,
+  pub all: bool,
   pub less: bool,
   pub profile: Option<String>,
 }
@@ -125,72 +126,23 @@ pub fn run(ctx: &Context, args: StatusArgs) -> Result<()> {
     return Ok(());
   }
 
-  // --- TABLE ---
-  let mut buf = String::new();
-
-  let profile_width = statuses
-    .iter()
-    .map(|s| display_profile_name(&s.profile).len())
-    .max()
-    .unwrap_or(7)
-    .max(7);
-
-  let filepath_width = statuses
-    .iter()
-    .map(|s| s.filepath.len())
-    .max()
-    .unwrap_or(8)
-    .max(8);
-
-  writeln!(
-    buf,
-    "{:<width_p$}  {:<width_f$}  STATUS",
-    "PROFILE",
-    "FILEPATH",
-    width_p = profile_width,
-    width_f = filepath_width
-  )?;
-
-  for s in &statuses {
-    let (symbol, label) = match s.status.as_str() {
-      "linked" => (icons().none, format!("{}linked", icons().check).green()),
-      "missing_link" => (icons().none, format!("{}missing link", icons().cross).red()),
-      "broken_symlink" => (
-        icons().none,
-        format!("{}broken symlink", icons().cross).red(),
-      ),
-      "not_a_symlink" => (
-        icons().none,
-        format!("{}not a symlink", icons().warn).yellow(),
-      ),
-      _ => (icons().none, "unknown".to_string()),
-    };
-
-    writeln!(
-      buf,
-      "{:<width_p$}  {:<width_f$}  {}{}",
-      display_profile_name(&s.profile),
-      s.filepath,
-      symbol,
-      label,
-      width_p = profile_width,
-      width_f = filepath_width
-    )?;
-  }
-
-  if result.1[1] > 0 || result.1[2] > 0 || result.1[3] > 0 {
-    writeln!(
-      buf,
-      "\n-------------------------------\n{}: {} apply",
-      "run".cyan(),
-      APP_NAME
-    )?;
-  }
+  let has_problems = result.1[1] > 0 || result.1[2] > 0 || result.1[3] > 0;
+  let buf = if args.all {
+    render_all_statuses(&statuses)?
+  } else if has_problems {
+    render_problem_statuses(&statuses)?
+  } else {
+    render_clean_status(result.0)?
+  };
 
   if args.less {
     page_string(&buf)?;
   } else {
     print!("{}", buf);
+  }
+
+  if has_problems && !args.all {
+    bail!("Status check found problems");
   }
 
   Ok(())
@@ -222,4 +174,127 @@ pub(crate) fn counter_all(statuses: &[FileStatus]) -> Result<(usize, Vec<i32>)> 
 
   let total = statuses.len();
   Ok((total, vec![linked, missing, broken, not_symlink]))
+}
+
+pub(crate) fn render_all_statuses(statuses: &[FileStatus]) -> Result<String> {
+  let mut buf = String::new();
+
+  let profile_width = statuses
+    .iter()
+    .map(|s| display_profile_name(&s.profile).len())
+    .max()
+    .unwrap_or(7)
+    .max(7);
+
+  let filepath_width = statuses
+    .iter()
+    .map(|s| s.filepath.len())
+    .max()
+    .unwrap_or(8)
+    .max(8);
+
+  writeln!(
+    buf,
+    "{:<width_p$}  {:<width_f$}  STATUS",
+    "PROFILE",
+    "FILEPATH",
+    width_p = profile_width,
+    width_f = filepath_width
+  )?;
+
+  for s in statuses {
+    writeln!(
+      buf,
+      "{:<width_p$}  {:<width_f$}  {}",
+      display_profile_name(&s.profile),
+      s.filepath,
+      status_label(&s.status),
+      width_p = profile_width,
+      width_f = filepath_width
+    )?;
+  }
+
+  let result = counter_all(statuses)?;
+  if result.1[1] > 0 || result.1[2] > 0 || result.1[3] > 0 {
+    write_apply_hint(&mut buf)?;
+  }
+
+  Ok(buf)
+}
+
+pub(crate) fn render_clean_status(total: usize) -> Result<String> {
+  let mut buf = String::new();
+  writeln!(
+    buf,
+    "{}All {} files linked correctly.",
+    icons().check.green(),
+    total
+  )?;
+  writeln!(buf)?;
+  writeln!(
+    buf,
+    "{}: {} list   (to see all tracked files)",
+    "run".cyan(),
+    APP_NAME
+  )?;
+  Ok(buf)
+}
+
+pub(crate) fn render_problem_statuses(statuses: &[FileStatus]) -> Result<String> {
+  let mut buf = String::new();
+  let groups = [
+    ("missing_link", "missing link"),
+    ("broken_symlink", "broken symlink"),
+    ("not_a_symlink", "not a symlink"),
+  ];
+  let mut wrote_group = false;
+
+  for (status, label) in groups {
+    let matching: Vec<&FileStatus> = statuses.iter().filter(|s| s.status == status).collect();
+    if matching.is_empty() {
+      continue;
+    }
+
+    if wrote_group {
+      writeln!(buf)?;
+    }
+
+    writeln!(buf, "{}", status_group_label(status, label, matching.len()))?;
+    for item in matching {
+      writeln!(buf, "  {}", item.filepath)?;
+    }
+
+    wrote_group = true;
+  }
+
+  write_apply_hint(&mut buf)?;
+  Ok(buf)
+}
+
+fn status_label(status: &str) -> String {
+  match status {
+    "linked" => format!("{}linked", icons().check).green(),
+    "missing_link" => format!("{}missing link", icons().cross).red(),
+    "broken_symlink" => format!("{}broken symlink", icons().cross).red(),
+    "not_a_symlink" => format!("{}not a symlink", icons().warn).yellow(),
+    _ => "unknown".to_string(),
+  }
+}
+
+fn status_group_label(status: &str, label: &str, count: usize) -> String {
+  match status {
+    "missing_link" | "broken_symlink" => format!("{}{} ({})", icons().cross, label, count).red(),
+    "not_a_symlink" => format!("{}{} ({})", icons().warn, label, count).yellow(),
+    _ => format!("{} ({})", label, count),
+  }
+}
+
+fn write_apply_hint(buf: &mut String) -> Result<()> {
+  writeln!(
+    buf,
+    "\n-------------------------------\n{}: {} apply",
+    "run".cyan(),
+    APP_NAME
+  )?;
+  Ok(())
 }

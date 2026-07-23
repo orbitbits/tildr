@@ -88,6 +88,7 @@ pub enum Commands {
   Status {
     json: bool,
     counter: bool,
+    all: bool,
     less: bool,
     profile: Option<String>,
   },

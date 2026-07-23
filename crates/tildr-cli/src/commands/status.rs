@@ -2,14 +2,19 @@ use clap::Args;
 
 #[derive(Args, Debug, Clone)]
 #[command(
-  about = "Show the current status of managed files and symlinks",
+  about = "Check managed symlinks and show problems by default",
   after_help = "\
 EXAMPLES:
   tildr status
+  tildr status --all
   tildr status --less
   tildr status --profile work\n"
 )]
 pub struct Command {
+  /// Show all managed files, including correctly linked files
+  #[arg(short, long)]
+  pub all: bool,
+
   /// Output status information in JSON format
   #[arg(short, long)]
   pub json: bool,
