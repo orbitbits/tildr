@@ -6,7 +6,7 @@ Thank you for your interest in contributing to **Tildr**! This document describe
 
 ## Before contributing
 
-Tildr is a project of the **OrbitBits** organization, licensed under the [Elastic License 2.0](LICENSE). By submitting any contribution, you agree to the terms described in this document.
+Tildr is a project of the **OrbitBits** organization, licensed under the [GNU Affero General Public License v3.0](LICENSE). By submitting any contribution, you agree to the terms described in this document.
 
 ---
 
@@ -28,7 +28,7 @@ To maintain the legal integrity of the project and ensure that OrbitBits can con
 > 4. **Absence of encumbrances:** Your contribution is not subject to any agreement, patent, or third-party right that conflicts with the terms above.
 >
 >
-> 5. **License acknowledgment:** You understand that Tildr is distributed under the Elastic License 2.0 and that your contribution will become part of the project under that same license.
+> 5. **License acknowledgment:** You understand that Tildr is distributed under the GNU Affero General Public License v3.0 and that your contribution will become part of the project under that same license.
 
 Acceptance occurs **implicitly** by opening a Pull Request in this repository.
 

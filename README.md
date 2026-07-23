@@ -8,7 +8,7 @@
 <h2 align="center">Manage and reproduce your HOME directory declaratively.</h2>
 
 [![Version](https://img.shields.io/github/v/release/orbitbits/tildr.svg)](https://github.com/orbitbits/tildr/releases)
-[![License](https://img.shields.io/badge/license-Elastic%20License%202.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/MSRV-1.90.0-orange.svg)](https://www.rust-lang.org/)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey.svg)
 [![Build](https://img.shields.io/github/actions/workflow/status/orbitbits/tildr/release.yml?branch=main)](https://github.com/orbitbits/tildr/actions)
@@ -52,11 +52,10 @@ See [SECURITY.md](SECURITY.md) for full verification instructions.
 * [Development](DEVELOPMENT.md)
 * [License Third-Party](LICENSE-THIRD-PARTY.md)
 
-## LICENSE
+## License
 
-"Tildr is source-available under the Elastic License 2.0. You may use, modify
-and contribute freely, but you may not sell or redistribute Tildr as a product
-or service."
+Tildr is free software licensed under the GNU Affero General Public License v3.0.
+You may use, modify, and redistribute it under the terms of the AGPL-3.0 license.
 
 See more at: [License](LICENSE)
 

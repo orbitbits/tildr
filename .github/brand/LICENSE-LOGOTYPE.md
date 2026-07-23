@@ -6,7 +6,7 @@ This folder contains the official logotype, logo variations, and brand assets of
 a project maintained by [OrbitBits](https://github.com/orbitbits).
 
 These assets are the **exclusive property of OrbitBits** and are **not open source**.
-They are not covered by the Elastic License 2.0 that governs the Tildr source code.
+They are not covered by the GNU Affero General Public License v3.0 that governs the Tildr source code.
 
 ---
 
