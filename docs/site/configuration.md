@@ -13,6 +13,8 @@ tags: [Rust, CLI, Declarative, Dotfiles, Synchronization, Reproducible]
 permalink: /tildr/documentation/0.3.1/configuration/
 ---
 
+<!-- markdownlint-disable MD060 -->
+
 ## Configuration Reference
 
 Tildr stores its user configuration in TOML format at `~/.config/tildr/config.toml`.
@@ -23,10 +25,10 @@ The configuration file is created by `tildr init`. It can also be updated by `ti
 
 ### Configuration File Location
 
-| Platform | Path |
-|----------|------|
-| Linux / macOS | `$XDG_CONFIG_HOME/tildr/config.toml` |
-| Fallback | `$HOME/.config/tildr/config.toml` |
+| Platform         | Path                                      |
+|------------------|-------------------------------------------|
+| Linux / macOS    | `$XDG_CONFIG_HOME/tildr/config.toml`      |
+| Fallback         | `$HOME/.config/tildr/config.toml`         |
 
 Tildr uses the XDG Base Directory specification when available. On systems where XDG is not configured, it falls back to `$HOME/.config/tildr/config.toml`.
 

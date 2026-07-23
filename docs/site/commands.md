@@ -491,12 +491,12 @@ tildr unlink --all
 
 Options:
 
-| Flag        |Short | Description               |
-|-------------|------|---------------------------|
+| Flag        |Short | Description                                       |
+|-------------|------|---------------------------------------------------|
 | `--all`     | `-a` | Unlink all files effective for the active profile |
-| `--dry-run` | `-n` | Preview changes           |
-| `--force`   | `-f` | Skip confirmation prompts |
-| `--quiet`   | `-q` | Suppress output           |
+| `--dry-run` | `-n` | Preview changes                                   |
+| `--force`   | `-f` | Skip confirmation prompts                         |
+| `--quiet`   | `-q` | Suppress output                                   |
 
 Behavior:
 
@@ -523,12 +523,12 @@ tildr restore --all
 
 Options:
 
-| Flag        | Short| Description               |
-|-------------|------|---------------------------|
+| Flag        | Short| Description                                        |
+|-------------|------|----------------------------------------------------|
 | `--all`     | `-a` | Restore all files effective for the active profile |
-| `--dry-run` | `-n` | Preview changes           |
-| `--force`   | `-f` | Skip confirmation prompts |
-| `--quiet`   | `-q` | Suppress output           |
+| `--dry-run` | `-n` | Preview changes                                    |
+| `--force`   | `-f` | Skip confirmation prompts                          |
+| `--quiet`   | `-q` | Suppress output                                    |
 
 Behavior:
 
@@ -591,7 +591,7 @@ Options:
 | Flag        |Short | Description                                           |
 |-------------|------|-------------------------------------------------------|
 | `--dry-run` | `-n` | Preview pull / merge / push actions without executing |
-| `--force`   | `-f` | Use `--force-with-lease` for the final `git push`      |
+| `--force`   | `-f` | Use `--force-with-lease` for the final `git push`     |
 | `--quiet`   | `-q` | Suppress output                                       |
 
 Behavior:
@@ -647,7 +647,7 @@ Checks performed:
 | Git         | Repository is a Git repo and the working tree has no pending or untracked changes  |
 | Permissions | Repository and managed files are accessible                                        |
 | Disk        | Repository total size                                                              |
-| Symlinks    | Effective active-profile symlinks are correct; reports broken or missing links      |
+| Symlinks    | Effective active-profile symlinks are correct; reports broken or missing links     |
 
 Output example:
 
@@ -1009,18 +1009,18 @@ tildr profile migrate --dry-run
 
 Options:
 
-| Subcommand                                             | Description                                                             |
-|--------------------------------------------------------|-------------------------------------------------------------------------|
-| `create <NAME> [--description <DESC>]`                 | Create a new profile using one path-safe name (`"common"`, `"no-profile"`, and `"default"` are reserved) |
-| `add <FROM> [-f <FILES>] --to <TO>`                    | Copy files between no-profile files, profiles, or between profiles      |
-| `mv <FROM> [-f <FILES>] --to <TO>`                     | Move files between no-profile files, profiles, or between profiles      |
-| `del <NAME>`                                           | Delete a profile and restore orphans to `common/`                       |
-| `rename [<FROM>] [<TO>] [--description <DESC>]`        | Rename a profile and optionally replace its description                  |
-| `list [<NAME>] [--long] [--less]`                      | List all available profiles                                             |
-| `set <NAME>`                                           | Set the active profile and relink `$HOME` immediately                   |
-| `unset`                                                | Unset the active profile and relink `$HOME` to no-profile files         |
-| `current`                                              | Show the currently active profile                                       |
-| `migrate [--dry-run]`                                  | Move old repo-root dotfiles into `common/`                              |
+| Subcommand                                      | Description                                                                                              |
+|-------------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| `create <NAME> [--description <DESC>]`          | Create a new profile using one path-safe name (`"common"`, `"no-profile"`, and `"default"` are reserved) |
+| `add <FROM> [-f <FILES>] --to <TO>`             | Copy files between no-profile files, profiles, or between profiles                                       |
+| `mv <FROM> [-f <FILES>] --to <TO>`              | Move files between no-profile files, profiles, or between profiles                                       |
+| `del <NAME>`                                    | Delete a profile and restore orphans to `common/`                                                        |
+| `rename [<FROM>] [<TO>] [--description <DESC>]` | Rename a profile and optionally replace its description                                                  |
+| `list [<NAME>] [--long] [--less]`               | List all available profiles                                                                              |
+| `set <NAME>`                                    | Set the active profile and relink `$HOME` immediately                                                    |
+| `unset`                                         | Unset the active profile and relink `$HOME` to no-profile files                                          |
+| `current`                                       | Show the currently active profile                                                                        |
+| `migrate [--dry-run]`                           | Move old repo-root dotfiles into `common/`                                                               |
 
 List options:
 
