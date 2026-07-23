@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Conventional Commits.
 
+## [0.3.2] - 2026-07-23
+
+### Features
+
+- status: feat(status): show only link problems by default ([90466d0](https://github.com/orbitbits/tildr/commit/90466d0efd2edd4832edd7ea67b3dc540e6bcaea))
+  Add the --all flag to preserve the previous full status table while making the default output behave like a health check.
+  Group missing links, broken symlinks, and regular-file conflicts in the human output, print a concise clean-state summary, and return a non-zero status when the default check finds problems.
+  Keep JSON and counter modes exhaustive and exit-code neutral, and add tests for grouped output, clean output, --all output, and the default error path.
+
+### Refactoring
+
+- docs: refactor(docs): fixing Markdown linter messages ([a94afb3](https://github.com/orbitbits/tildr/commit/a94afb385340600e1b245d5b89205cda48673e0e))
+
 ## [0.3.1] - 2026-07-22
 
 ### Bug Fixes
