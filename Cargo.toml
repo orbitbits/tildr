@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/*", "tildr"]
 
 [workspace.package]
-version = "0.3.1"
+version = "0.3.2"
 authors = ["William <https://williamcanin.github.io>"]
 edition = "2024"
 homepage = "https://orbitbits.github.io/tildr/"
@@ -14,7 +14,17 @@ rust-version = "1.90.0"
 description = "Manage and reproduce your HOME directory declaratively."
 
 [workspace.metadata.tildr]
-keywords = ["CLI", "dotfiles", "synchronization", "declarative", "reproducible"]
+keywords = [
+	"tildr",
+	"CLI",
+	"dotfiles",
+	"synchronization",
+	"declarative",
+	"reproducible",
+	"symlinks",
+	"linux",
+	"macos",
+	"terminal-app"]
 categories = ["command-line-utilities"]
 documentation = "https://orbitbits.github.io/tildr/documentation/"
 maintainer = "OrbitBits <https://orbitbits.github.io>"
