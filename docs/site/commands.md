@@ -3,14 +3,14 @@ layout: doc
 part: 7
 section: CLI Reference
 menu: tildr
-version: "0.3.1"
+version: "0.3.2"
 doc_product: tildr
 logo: https://raw.githubusercontent.com/orbitbits/tildr/refs/heads/main/.github/brand/logo-text/compact/tildr-variation-3.svg
 title: Core Commands
 description: Manage your HOME files and directories with symlinks and Git.
 date: 2026-04-18 17:59:04 -0300
 tags: [Rust, CLI, Declarative, Dotfiles, Synchronization, Reproducible]
-permalink: /tildr/documentation/0.3.1/commands/
+permalink: /tildr/documentation/0.3.2/commands/
 ---
 
 ## Command Reference
@@ -217,16 +217,41 @@ Behavior:
 
 ### `tildr status`
 
-Shows the synchronization state of files effective for the active profile.
+Checks whether files effective for the active profile are linked correctly.
+By default, `status` is a health check: it prints only problems and exits with
+a non-zero status when any problem is found.
 
 ```sh
 tildr status
+tildr status --all
 tildr status --json
 tildr status --counter
 tildr status --less
 ```
 
-Output example:
+Clean output example:
+
+```text
+✔ All 42 files linked correctly.
+
+run: tildr list   (to see all tracked files)
+```
+
+Problem output example:
+
+```text
+✖ missing link (2)
+  ~/.bashrc
+  ~/.config/nvim/init.lua
+
+⚠ not a symlink (1)
+  ~/.gitconfig
+
+-------------------------------
+run: tildr apply
+```
+
+Use `--all` to show the full table, including correctly linked files:
 
 ```text
 PROFILE     FILEPATH            STATUS
@@ -235,19 +260,24 @@ no profile  ~/Templates/main.sh  ✔ linked
 linux       ~/.bashrc           ✔ linked
 ```
 
-The table output always includes the `PROFILE` column. Without `--profile`,
-Tildr shows the effective variant for each logical file. By default `FILEPATH`
-is the home-relative path you can pass to commands such as `restore`, `unlink`,
-`cat`, and `del`; use `list --source` or `source-path` to inspect repository source files.
+The `--all` table output always includes the `PROFILE` column. Without `--profile`,
+Tildr checks the effective variant for each logical file. `FILEPATH` is the
+home-relative path you can pass to commands such as `restore`, `unlink`, `cat`,
+and `del`; use `list --source` or `source-path` to inspect repository source files.
 Shared files stored in `common/` are shown as `no profile` in human-readable tables.
 
 Options:
 
 | Flag        | Short | Description                                                   |
 |-------------|-------|---------------------------------------------------------------|
+| `--all`     | `-a`  | Show all files, including correctly linked files              |
 | `--json`    | `-j`  | Emit structured JSON output                                   |
 | `--counter` | `-c`  | Print aggregated counters only                                |
 | `--less`    | `-l`  | View the output in an interactive pager (`less -RFX`)         |
+
+`--json` remains exhaustive and prints all statuses for machine-readable use.
+`--counter` keeps the same summary counters and does not change the exit code.
+`--all` restores the full-table human output and does not change the exit code.
 
 Status values:
 

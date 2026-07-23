@@ -3,14 +3,14 @@ layout: doc
 part: 2
 section: Storage Architecture
 menu: tildr
-version: "0.3.1"
+version: "0.3.2"
 doc_product: tildr
 logo: https://raw.githubusercontent.com/orbitbits/tildr/refs/heads/main/.github/brand/logo-text/compact/tildr-variation-3.svg
 title: Repository Model
 description: How Tildr manages files through symlinks and Git.
 date: 2026-04-18 17:59:04 -0300
 tags: [Rust, CLI, Declarative, Dotfiles, Synchronization, Reproducible]
-permalink: /tildr/documentation/0.3.1/repository-model/
+permalink: /tildr/documentation/0.3.2/repository-model/
 ---
 
 ## Repository Model

@@ -3,14 +3,14 @@ layout: doc
 part: 0
 section: Quick Start
 menu: tildr
-version: "0.3.1"
+version: "0.3.2"
 doc_product: tildr
 logo: https://raw.githubusercontent.com/orbitbits/tildr/refs/heads/main/.github/brand/logo-text/compact/tildr-variation-3.svg
 title: Quick Start
 description: Install and start using Tildr in minutes.
 date: 2026-04-18 17:59:04 -0300
 tags: [Rust, CLI, Declarative, Dotfiles, Synchronization, Reproducible]
-permalink: /tildr/documentation/0.3.1/quick-start/
+permalink: /tildr/documentation/0.3.2/quick-start/
 ---
 
 ## Quick Start
@@ -159,7 +159,16 @@ Each `add` command:
 tildr status
 ```
 
-Shows the synchronization state of files effective for the active profile:
+Checks files effective for the active profile and prints only problems by default.
+When everything is healthy, it prints a short summary:
+
+```text
+✔ All 3 files linked correctly.
+
+run: tildr list   (to see all tracked files)
+```
+
+Use `tildr status --all` when you want the full table, including correctly linked files.
 
 | Status           | Meaning                                                        |
 |------------------|----------------------------------------------------------------|

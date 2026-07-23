@@ -134,7 +134,7 @@ This means Tildr is not intended for copying files to a repository stored on ano
 :   Remove empty directories left inside profile storage.
 
 **tildr status** *[options]*
-:   Show synchronization state of managed files.
+:   Show link problems by default; use **--all** for the full status table.
 
 **tildr list** *[options]*
 :   List managed files in the repository.

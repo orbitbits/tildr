@@ -232,16 +232,41 @@ tildr clean --quiet
 
 ## tildr status
 
-Shows the synchronization state of files effective for the active profile.
+Checks whether files effective for the active profile are linked correctly.
+By default, **status** is a health check: it prints only problems and exits with
+a non-zero status when any problem is found.
 
 ```sh
 tildr status
+tildr status --all
 tildr status --json
 tildr status --counter
 tildr status --less
 ```
 
-**Output example:**
+**Clean output example:**
+
+```text
+✔ All 42 files linked correctly.
+
+run: tildr list   (to see all tracked files)
+```
+
+**Problem output example:**
+
+```text
+✖ missing link (2)
+  ~/.bashrc
+  ~/.config/nvim/init.lua
+
+⚠ not a symlink (1)
+  ~/.gitconfig
+
+-------------------------------
+run: tildr apply
+```
+
+Use **--all** to show the full table, including correctly linked files:
 
 ```text
 PROFILE     FILEPATH            STATUS
@@ -250,13 +275,16 @@ no profile  ~/Templates/main.sh  ✔ linked
 linux       ~/.bashrc           ✔ linked
 ```
 
-The table output always includes the `PROFILE` column. Without `--profile`,
-Tildr shows the effective variant for each logical file. By default `FILEPATH`
-is the home-relative path you can pass to commands such as `restore`, `unlink`,
-`cat`, and `del`; use `list --source` or `source-path` to inspect repository source files.
+The **--all** table output always includes the `PROFILE` column. Without `--profile`,
+Tildr checks the effective variant for each logical file. `FILEPATH` is the
+home-relative path you can pass to commands such as `restore`, `unlink`, `cat`,
+and `del`; use `list --source` or `source-path` to inspect repository source files.
 Shared files stored in `common/` are shown as `no profile` in human-readable tables.
 
 **Options:**
+
+**-a**, **--all**
+:   Show all files, including correctly linked files.
 
 **-j**, **--json**
 :   Emit structured JSON output.
@@ -266,6 +294,10 @@ Shared files stored in `common/` are shown as `no profile` in human-readable tab
 
 **-l**, **--less**
 :   View the output in an interactive pager (uses `$PAGER` or `less -RFX`).
+
+**--json** remains exhaustive and prints all statuses for machine-readable use.
+**--counter** keeps the same summary counters and does not change the exit code.
+**--all** restores the full-table human output and does not change the exit code.
 
 **Status values:**
 

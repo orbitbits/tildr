@@ -267,17 +267,43 @@ Does not remove files or symlinks
 .IP \[bu] 2
 Runs automatically after \f[CR]tildr profile mv\f[R]
 .SS tildr status
-Shows the synchronization state of files effective for the active
-profile.
+Checks whether files effective for the active profile are linked
+correctly.
+By default, \f[B]status\f[R] is a health check: it prints only problems
+and exits with a non\-zero status when any problem is found.
 .IP
 .EX
 tildr status
+tildr status \-\-all
 tildr status \-\-json
 tildr status \-\-counter
 tildr status \-\-less
 .EE
 .PP
-\f[B]Output example:\f[R]
+\f[B]Clean output example:\f[R]
+.IP
+.EX
+✔ All 42 files linked correctly.
+
+run: tildr list   (to see all tracked files)
+.EE
+.PP
+\f[B]Problem output example:\f[R]
+.IP
+.EX
+✖ missing link (2)
+  \[ti]/.bashrc
+  \[ti]/.config/nvim/init.lua
+
+⚠ not a symlink (1)
+  \[ti]/.gitconfig
+
+\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+run: tildr apply
+.EE
+.PP
+Use \f[B]\[en]all\f[R] to show the full table, including correctly
+linked files:
 .IP
 .EX
 PROFILE     FILEPATH            STATUS
@@ -286,17 +312,21 @@ no profile  \[ti]/Templates/main.sh  ✔ linked
 linux       \[ti]/.bashrc           ✔ linked
 .EE
 .PP
-The table output always includes the \f[CR]PROFILE\f[R] column.
-Without \f[CR]\-\-profile\f[R], Tildr shows the effective variant for
+The \f[B]\[en]all\f[R] table output always includes the
+\f[CR]PROFILE\f[R] column.
+Without \f[CR]\-\-profile\f[R], Tildr checks the effective variant for
 each logical file.
-By default \f[CR]FILEPATH\f[R] is the home\-relative path you can pass
-to commands such as \f[CR]restore\f[R], \f[CR]unlink\f[R],
-\f[CR]cat\f[R], and \f[CR]del\f[R]; use \f[CR]list \-\-source\f[R] or
+\f[CR]FILEPATH\f[R] is the home\-relative path you can pass to commands
+such as \f[CR]restore\f[R], \f[CR]unlink\f[R], \f[CR]cat\f[R], and
+\f[CR]del\f[R]; use \f[CR]list \-\-source\f[R] or
 \f[CR]source\-path\f[R] to inspect repository source files.
 Shared files stored in \f[CR]common/\f[R] are shown as
 \f[CR]no profile\f[R] in human\-readable tables.
 .PP
 \f[B]Options:\f[R]
+.TP
+\f[B]\-a\f[R], \f[B]\[en]all\f[R]
+Show all files, including correctly linked files.
 .TP
 \f[B]\-j\f[R], \f[B]\[en]json\f[R]
 Emit structured JSON output.
@@ -307,6 +337,13 @@ Print aggregated counters only.
 \f[B]\-l\f[R], \f[B]\[en]less\f[R]
 View the output in an interactive pager (uses \f[CR]$PAGER\f[R] or
 \f[CR]less \-RFX\f[R]).
+.PP
+\f[B]\[en]json\f[R] remains exhaustive and prints all statuses for
+machine\-readable use.
+\f[B]\[en]counter\f[R] keeps the same summary counters and does not
+change the exit code.
+\f[B]\[en]all\f[R] restores the full\-table human output and does not
+change the exit code.
 .PP
 \f[B]Status values:\f[R]
 .TP
