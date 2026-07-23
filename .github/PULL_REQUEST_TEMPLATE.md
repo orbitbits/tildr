@@ -16,6 +16,7 @@
 - [ ] `cargo fmt --all -- --check`
 - [ ] `cargo clippy --all-targets --all-features -- -D warnings`
 - [ ] `cargo test`
+- [ ] `make docs-version-check` when `Cargo.toml` version changed
 - [ ] `make man` when `docs/man/*.md` changed
 
 ## Notes

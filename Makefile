@@ -4,6 +4,7 @@
 # ----- Directories -----
 DOCS_MD_DIR := docs/man
 DOCS_MAN_DIR := docs/man/dist
+DOCS_VERSION_SCRIPT := tools/scripts/sync-docs-version.sh
 BRANCH := $(shell git branch --show-current)
 REMOTES := $(shell git remote)
 MD_FILES := $(wildcard $(DOCS_MD_DIR)/tildr*.md)
@@ -13,7 +14,7 @@ MAN_FILES := $(patsubst $(DOCS_MD_DIR)/%.md,$(DOCS_MAN_DIR)/%.1,$(MD_FILES))
 
 # ----- Targets -----
 
-.PHONY: all build check release macos fmt fmt-check clippy test tests audit deny machete man man-gz clean push push-lease
+.PHONY: all build check release macos fmt fmt-check clippy test tests audit deny machete docs-version docs-version-check man man-gz clean push push-lease
 
 # ----- Default -----
 all: build
@@ -24,7 +25,7 @@ build:
 
 check: fmt-check clippy test
 
-release: man check
+release: docs-version man check
 	cargo build --release --locked
 
 # ----- Builds (macOS) -----
@@ -58,6 +59,13 @@ deny:
 
 machete:
 	cargo machete
+
+# ----- Site docs -----
+docs-version:
+	$(DOCS_VERSION_SCRIPT) update
+
+docs-version-check:
+	$(DOCS_VERSION_SCRIPT) check
 
 # ----- Man pages (Linux) -----
 man: $(MAN_FILES)

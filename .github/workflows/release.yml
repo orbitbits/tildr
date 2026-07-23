@@ -91,6 +91,10 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: echo "Tag ${TAG} already exists. Nothing to release."
 
+      - name: Sync site docs version
+        if: steps.tag_check.outputs.exists != 'true'
+        run: make docs-version
+
       - name: Check workspace
         if: steps.tag_check.outputs.exists != 'true'
         run: make check

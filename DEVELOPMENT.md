@@ -77,7 +77,9 @@ Useful commands:
 | `make test`                    | Run the workspace test suite with `--locked`                 |
 | `make check`                   | Run format check, Clippy, and tests                          |
 | `make build`                   | Build the workspace with `--locked`                          |
-| `make release`                 | Generate man pages, check, and build release binaries        |
+| `make release`                 | Sync docs version, generate man pages, check, and build      |
+| `make docs-version`            | Sync `docs/site/*.md` front matter with `Cargo.toml`         |
+| `make docs-version-check`      | Verify site docs version without changing files              |
 | `make man`                     | Generate `man` pages into `docs/man/dist`                    |
 | `make man-gz`                  | Generate and compress `man` pages                            |
 | `cargo test -p tildr-commands` | Focus on the command crate                                   |
@@ -172,6 +174,7 @@ These files are generated from the Markdown sources with `pandoc`.
 Recommended:
 
 ```sh
+make docs-version
 make man
 ```
 
@@ -199,8 +202,9 @@ When you change behavior, flags, output, or workflow:
 
 1. Update the relevant Rust code.
 2. Update `docs/man/*.md`.
-3. Regenerate `docs/man/dist/*.1` with `make man`.
-4. Update `docs/site/*.md` when the long-form docs are affected.
+3. Update `docs/site/*.md` when the long-form docs are affected.
+4. Sync site documentation front matter with `make docs-version` after version bumps.
+5. Regenerate `docs/man/dist/*.1` with `make man`.
 
 This matters because the installers consume the generated files from `docs/man/dist`.
 
@@ -245,6 +249,7 @@ The check is intentionally non-mutating, so it supports split commits. Run `make
 If you changed manual sources, regenerate the manual output yourself before committing:
 
 ```sh
+make docs-version
 make man
 git add docs/man docs/man/dist docs/site/
 ```
@@ -261,8 +266,9 @@ The CI workflow runs on Pull Requests and pushes to `main`.
 It checks:
 
 - `make check`
+- `make docs-version-check`
 - `make man`
-- generated man pages under `docs/man/dist`
+- generated docs under `docs/site` and `docs/man/dist`
 
 ---
 

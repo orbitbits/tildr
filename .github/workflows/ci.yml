@@ -41,6 +41,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.90.0
+
+      - name: Check site docs version
+        run: make docs-version-check
+
       - name: Install pandoc
         env:
           PANDOC_VERSION: 3.6.1
