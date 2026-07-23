@@ -3,14 +3,14 @@ layout: doc
 part: 4
 section: Path Handling
 menu: tildr
-version: "0.2.0"
+version: "0.3.1"
 doc_product: tildr
 logo: https://raw.githubusercontent.com/orbitbits/tildr/refs/heads/main/.github/brand/logo-text/compact/tildr-variation-3.svg
 title: Resolution Rules
 description: How Tildr resolves path arguments.
 date: 2026-04-18 17:59:04 -0300
 tags: [Rust, CLI, Declarative, Dotfiles, Synchronization, Reproducible]
-permalink: /tildr/documentation/0.2.0/path-resolution/
+permalink: /tildr/documentation/0.3.1/path-resolution/
 ---
 
 ## Path Resolution Rules

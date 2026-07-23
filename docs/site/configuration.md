@@ -3,14 +3,14 @@ layout: doc
 part: 3
 section: Setup & Options
 menu: tildr
-version: "0.2.0"
+version: "0.3.1"
 doc_product: tildr
 logo: https://raw.githubusercontent.com/orbitbits/tildr/refs/heads/main/.github/brand/logo-text/compact/tildr-variation-3.svg
 title: Configuration Reference
 description: Complete configuration reference for Tildr.
 date: 2026-04-18 17:59:04 -0300
 tags: [Rust, CLI, Declarative, Dotfiles, Synchronization, Reproducible]
-permalink: /tildr/documentation/0.2.0/configuration/
+permalink: /tildr/documentation/0.3.1/configuration/
 ---
 
 ## Configuration Reference
