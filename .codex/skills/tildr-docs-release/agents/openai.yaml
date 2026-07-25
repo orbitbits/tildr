@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tildr Docs Release"
+  short_description: "Update docs, man pages, and releases."
+  brand_color: "#0F766E"
+  default_prompt: "Use $tildr-docs-release to update Tildr documentation and release files."
+policy:
+  allow_implicit_invocation: true

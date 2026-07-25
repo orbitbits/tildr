@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tildr Quality Review"
+  short_description: "Review Tildr for bugs and consistency."
+  brand_color: "#7C3AED"
+  default_prompt: "Use $tildr-quality-review to review this Tildr change deeply."
+policy:
+  allow_implicit_invocation: true

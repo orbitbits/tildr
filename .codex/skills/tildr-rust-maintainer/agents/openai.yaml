@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tildr Rust Maintainer"
+  short_description: "Maintain Tildr Rust commands and tests."
+  brand_color: "#2563EB"
+  default_prompt: "Use $tildr-rust-maintainer to implement this Tildr Rust change safely."
+policy:
+  allow_implicit_invocation: true
