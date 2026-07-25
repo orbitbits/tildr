@@ -17,7 +17,7 @@ pub fn last_update() -> String {
 }
 
 pub fn latest_commit() -> String {
-  let hash = Command::new("git")
+  Command::new("git")
     .args(["rev-parse", "HEAD"])
     .output()
     .ok()
@@ -28,31 +28,17 @@ pub fn latest_commit() -> String {
         None
       }
     })
-    .unwrap_or_else(|| "unknown".to_string());
-
-  // I only take the first 8 characters of the commit hash.
-  hash[..8].to_string()
+    .and_then(|hash| short_commit_hash(&hash))
+    .unwrap_or_else(|| "unknown".to_string())
 }
 
 fn metadata(key: &str) -> Result<String, Box<dyn std::error::Error>> {
   // CARGO_MANIFEST_DIR points to where the build.rs file is located (the root of the workspace).
   let manifest_dir = var("CARGO_MANIFEST_DIR")?;
 
-  let root = Path::new(&manifest_dir)
-    .ancestors()
-    .find(|p| {
-      let cargo = p.join("Cargo.toml");
-      if !cargo.exists() {
-        return false;
-      }
-
-      if let Ok(content) = fs::read_to_string(&cargo) {
-        content.contains("[workspace]")
-      } else {
-        false
-      }
-    })
-    .expect("Workspace Cargo.toml not found");
+  let Some(root) = workspace_root_from(Path::new(&manifest_dir)) else {
+    return Ok("Unknown".to_string());
+  };
 
   // Go up one level to get the Cargo.toml file from the workspace.
   let workspace_cargo_toml = root.join("Cargo.toml");
@@ -68,6 +54,26 @@ fn metadata(key: &str) -> Result<String, Box<dyn std::error::Error>> {
     .unwrap_or("Unknown");
 
   Ok(value.to_string())
+}
+
+fn short_commit_hash(hash: &str) -> Option<String> {
+  let short = hash.chars().take(8).collect::<String>();
+  (short.len() == 8).then_some(short)
+}
+
+fn workspace_root_from(manifest_dir: &Path) -> Option<&Path> {
+  manifest_dir.ancestors().find(|p| {
+    let cargo = p.join("Cargo.toml");
+    if !cargo.exists() {
+      return false;
+    }
+
+    if let Ok(content) = fs::read_to_string(&cargo) {
+      content.contains("[workspace]")
+    } else {
+      false
+    }
+  })
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
