@@ -18,5 +18,4 @@ docs/*
 !/docs/site
 .envrc
 opencode.json
-CLAUDE.md
 ANNOTATIONS.txt
