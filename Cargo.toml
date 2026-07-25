@@ -15,16 +15,12 @@ description = "Manage and reproduce your HOME directory declaratively."
 
 [workspace.metadata.tildr]
 keywords = [
-	"tildr",
-	"CLI",
 	"dotfiles",
-	"synchronization",
+	"cli",
 	"declarative",
-	"reproducible",
-	"symlinks",
 	"linux",
-	"macos",
-	"terminal-app"]
+	"symlink",
+	]
 categories = ["command-line-utilities"]
 documentation = "https://orbitbits.github.io/tildr/documentation/"
 maintainer = "OrbitBits <https://orbitbits.github.io>"
@@ -33,16 +29,16 @@ copyright = "© 2026 OrbitBits."
 [workspace.dependencies]
 
 # -------- built-in --------
-tildr-cli      = { path = "crates/tildr-cli" }
-tildr-fs       = { path = "crates/tildr-fs" }
-tildr-repo     = { path = "crates/tildr-repo" }
-tildr-ui       = { path = "crates/tildr-ui" }
-tildr-core     = { path = "crates/tildr-core" }
-tildr-utils    = { path = "crates/tildr-utils" }
-tildr-commands = { path = "crates/tildr-commands" }
-tildr-git      = { path = "crates/tildr-git" }
-tildr-domain   = { path = "crates/tildr-domain" }
-tildr-crypto   = { path = "crates/tildr-crypto" }
+tildr-cli      = {  version = "0.3.2", path = "crates/tildr-cli" }
+tildr-fs       = {  version = "0.3.2", path = "crates/tildr-fs" }
+tildr-repo     = {  version = "0.3.2", path = "crates/tildr-repo" }
+tildr-ui       = {  version = "0.3.2", path = "crates/tildr-ui" }
+tildr-core     = {  version = "0.3.2", path = "crates/tildr-core" }
+tildr-utils    = {  version = "0.3.2", path = "crates/tildr-utils" }
+tildr-commands = {  version = "0.3.2", path = "crates/tildr-commands" }
+tildr-git      = {  version = "0.3.2", path = "crates/tildr-git" }
+tildr-domain   = {  version = "0.3.2", path = "crates/tildr-domain" }
+tildr-crypto   = {  version = "0.3.2", path = "crates/tildr-crypto" }
 
 # -------- vendors --------
 clap            = { version = "=4.6.4", features = ["derive"] }
