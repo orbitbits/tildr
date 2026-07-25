@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Conventional Commits.
 
+## [0.3.3] - 2026-07-25
+
+### Bug Fixes
+
+- core: fix(core): handle missing git metadata during packaging ([6a2bd45](https://github.com/orbitbits/tildr/commit/6a2bd45052130b4d3f6dd6962030ba79c27f91da))
+  Avoid slicing the fallback commit string when the package is verified outside a Git checkout, such as during cargo publish --dry-run.
+  Return safe unknown metadata when the crate is built outside the workspace root so crates.io package verification does not depend on repository-only files.
+
+### Features
+
+- feat: bump version to 0.3.3 ([8737420](https://github.com/orbitbits/tildr/commit/8737420b737727842710f379ae74127b53a98fc6))
+
+- status: feat(status): show only link problems by default ([90466d0](https://github.com/orbitbits/tildr/commit/90466d0efd2edd4832edd7ea67b3dc540e6bcaea))
+  Add the --all flag to preserve the previous full status table while making the default output behave like a health check.
+  Group missing links, broken symlinks, and regular-file conflicts in the human output, print a concise clean-state summary, and return a non-zero status when the default check finds problems.
+  Keep JSON and counter modes exhaustive and exit-code neutral, and add tests for grouped output, clean output, --all output, and the default error path.
+
+### Refactoring
+
+- docs: refactor(docs): fixing Markdown linter messages ([a94afb3](https://github.com/orbitbits/tildr/commit/a94afb385340600e1b245d5b89205cda48673e0e))
+
 ## [0.3.1] - 2026-07-22
 
 ### Bug Fixes
