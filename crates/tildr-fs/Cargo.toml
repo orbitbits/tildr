@@ -8,7 +8,7 @@ license.workspace = true
 readme.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-description.workspace = true
+description = "Filesystem path resolution and symlink helpers for Tildr."
 
 [dependencies]
 # -------- vendors --------

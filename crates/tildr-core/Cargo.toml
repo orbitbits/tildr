@@ -1,12 +1,12 @@
 [package]
 name = "tildr-core"
 version.workspace = true
-description.workspace = true
 repository.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 homepage.workspace = true
 license.workspace = true
+description = "Core configuration, context, constants, and platform services for Tildr."
 build = "build.rs"
 
 [dependencies]
