@@ -3,14 +3,14 @@ layout: doc
 part: 0
 section: Quick Start
 menu: tildr
-version: "0.3.2"
+version: "0.3.3"
 doc_product: tildr
 logo: https://raw.githubusercontent.com/orbitbits/tildr/refs/heads/main/.github/brand/logo-text/compact/tildr-variation-3.svg
 title: Quick Start
 description: Install and start using Tildr in minutes.
 date: 2026-04-18 17:59:04 -0300
 tags: [Rust, CLI, Declarative, Dotfiles, Synchronization, Reproducible]
-permalink: /tildr/documentation/0.3.2/quick-start/
+permalink: /tildr/documentation/0.3.3/quick-start/
 ---
 
 ## Quick Start

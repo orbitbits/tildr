@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/*", "tildr"]
 
 [workspace.package]
-version = "0.3.2"
+version = "0.3.3"
 authors = ["William <https://williamcanin.github.io>"]
 edition = "2024"
 homepage = "https://orbitbits.com/tildr/"
@@ -29,16 +29,16 @@ copyright = "© 2026 OrbitBits."
 [workspace.dependencies]
 
 # -------- built-in --------
-tildr-cli      = {  version = "0.3.2", path = "crates/tildr-cli" }
-tildr-fs       = {  version = "0.3.2", path = "crates/tildr-fs" }
-tildr-repo     = {  version = "0.3.2", path = "crates/tildr-repo" }
-tildr-ui       = {  version = "0.3.2", path = "crates/tildr-ui" }
-tildr-core     = {  version = "0.3.2", path = "crates/tildr-core" }
-tildr-utils    = {  version = "0.3.2", path = "crates/tildr-utils" }
-tildr-commands = {  version = "0.3.2", path = "crates/tildr-commands" }
-tildr-git      = {  version = "0.3.2", path = "crates/tildr-git" }
-tildr-domain   = {  version = "0.3.2", path = "crates/tildr-domain" }
-tildr-crypto   = {  version = "0.3.2", path = "crates/tildr-crypto" }
+tildr-cli      = {  version = "0.3.3", path = "crates/tildr-cli" }
+tildr-fs       = {  version = "0.3.3", path = "crates/tildr-fs" }
+tildr-repo     = {  version = "0.3.3", path = "crates/tildr-repo" }
+tildr-ui       = {  version = "0.3.3", path = "crates/tildr-ui" }
+tildr-core     = {  version = "0.3.3", path = "crates/tildr-core" }
+tildr-utils    = {  version = "0.3.3", path = "crates/tildr-utils" }
+tildr-commands = {  version = "0.3.3", path = "crates/tildr-commands" }
+tildr-git      = {  version = "0.3.3", path = "crates/tildr-git" }
+tildr-domain   = {  version = "0.3.3", path = "crates/tildr-domain" }
+tildr-crypto   = {  version = "0.3.3", path = "crates/tildr-crypto" }
 
 # -------- vendors --------
 clap            = { version = "=4.6.4", features = ["derive"] }
