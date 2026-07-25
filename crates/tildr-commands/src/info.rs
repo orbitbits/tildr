@@ -25,7 +25,7 @@ fn run_license() -> Result<()> {
     Some(p) => p,
     None => {
       bail!(
-        "License file not found.\nSee: https://orbitbits.github.io/{}/license/",
+        "License file not found.\nSee: https://orbitbits.com/{}/license/",
         APP_NAME
       )
     }

@@ -95,7 +95,7 @@ Both plugins are installed automatically by the Tildr installer script
 when the respective file manager is detected on the system:
 
 ```sh
-curl -fsSL https://orbitbits.github.io/tildr/linux.sh | sh
+curl -fsSL https://orbitbits.com/tildr/linux.sh | sh
 ```
 
 If the file manager is not installed at the time of Tildr installation,

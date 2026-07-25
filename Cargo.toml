@@ -6,7 +6,7 @@ members = ["crates/*", "tildr"]
 version = "0.3.2"
 authors = ["William <https://williamcanin.github.io>"]
 edition = "2024"
-homepage = "https://orbitbits.github.io/tildr/"
+homepage = "https://orbitbits.com/tildr/"
 license = "AGPL-3.0-only"
 readme = "README.md"
 repository = "https://github.com/orbitbits/tildr"
@@ -22,8 +22,8 @@ keywords = [
 	"symlink",
 	]
 categories = ["command-line-utilities"]
-documentation = "https://orbitbits.github.io/tildr/documentation/"
-maintainer = "OrbitBits <https://orbitbits.github.io>"
+documentation = "https://orbitbits.com/tildr/documentation/"
+maintainer = "OrbitBits <https://orbitbits.com>"
 copyright = "© 2026 OrbitBits."
 
 [workspace.dependencies]

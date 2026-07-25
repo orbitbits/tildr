@@ -5,19 +5,19 @@
 #
 # --- Usage:
 # Help
-# curl -fsSL https://orbitbits.github.io/tildr/macos.sh | sh -s -- --help
+# curl -fsSL https://orbitbits.com/tildr/macos.sh | sh -s -- --help
 #
 # List versions
-# curl -fsSL https://orbitbits.github.io/tildr/macos.sh | sh -s -- --versions
+# curl -fsSL https://orbitbits.com/tildr/macos.sh | sh -s -- --versions
 #
 # Install a specific version
-# curl -fsSL https://orbitbits.github.io/tildr/macos.sh | sh -s -- 0.1.1
+# curl -fsSL https://orbitbits.com/tildr/macos.sh | sh -s -- 0.1.1
 #
 # Install the latest (no argument)
-# curl -fsSL https://orbitbits.github.io/tildr/macos.sh | sh
+# curl -fsSL https://orbitbits.com/tildr/macos.sh | sh
 #
 # Uninstall
-# curl -fsSL https://orbitbits.github.io/tildr/macos.sh | sh -s -- --uninstall
+# curl -fsSL https://orbitbits.com/tildr/macos.sh | sh -s -- --uninstall
 #
 set -e
 export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
