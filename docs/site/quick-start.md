@@ -54,12 +54,12 @@ curl -fsSL https://orbitbits.com/tildr/macos.sh | sh
 
 ```sh
 # Import GPG key
-curl -fsSL https://deb.orbitbits.com/tildr-deb-pub.gpg \
-  | sudo gpg --dearmor -o /usr/share/keyrings/tildr.gpg
+curl -fsSL https://packages.orbitbits.com/keys/orbitbits.gpg \
+  | sudo gpg --dearmor -o /usr/share/keyrings/orbitbits.gpg
 
 # Add repository
-echo "deb [signed-by=/usr/share/keyrings/tildr.gpg] https://deb.orbitbits.com/ stable main" \
-  | sudo tee /etc/apt/sources.list.d/tildr.list
+echo "deb [signed-by=/usr/share/keyrings/orbitbits.gpg] https://packages.orbitbits.com/deb stable main" \
+  | sudo tee /etc/apt/sources.list.d/orbitbits.list
 
 # Install
 sudo apt update && sudo apt install tildr
@@ -75,11 +75,11 @@ yay -S tildr-bin
 
 ```sh
 # Import GPG key
-sudo rpm --import https://rpm.orbitbits.com/tildr-rpm-pub.gpg
+sudo rpm --import https://packages.orbitbits.com/keys/orbitbits.gpg
 
 # Add repository
 sudo dnf config-manager addrepo \
-  --from-repofile=https://rpm.orbitbits.com/tildr.repo
+  --from-repofile=https://packages.orbitbits.com/rpm/orbitbits.repo
 
 # Install
 sudo dnf install tildr
